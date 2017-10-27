@@ -2,7 +2,7 @@
 Scrapes Linkedin User Data
 
 ## Installation
-> pip3 install --user linkedin_user_scrapper
+    > pip3 install --user linkedin_user_scrapper
 
 ## Usage
 To use it, just create the class

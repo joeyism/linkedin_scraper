@@ -1,4 +1,4 @@
-# Linkedin User
+# Linkedin User Scraper
 Scrapes Linkedin User Data
 
 ## Installation

@@ -1,4 +1,4 @@
-#Linkedin User
+# Linkedin User
 Scrapes Linkedin User Data
 
 ## Installation
@@ -7,9 +7,9 @@ Scrapes Linkedin User Data
 ## Usage
 To use it, just create the class
 
-```
-    from linkedin_user_scraper.scraper import Person
-    person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
+```python
+from linkedin_user_scraper.scraper import Person
+person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
 ```
     
     

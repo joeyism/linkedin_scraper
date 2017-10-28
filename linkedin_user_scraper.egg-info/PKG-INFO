@@ -1,0 +1,12 @@
+Metadata-Version: 1.1
+Name: linkedin-user-scraper
+Version: 0.0.4
+Summary: Scrapes user data from Linkedin
+Home-page: https://github.com/joeyism/linkedin_user_scraper
+Author: Joey Sham
+Author-email: sham.joey@gmail.com
+License: UNKNOWN
+Download-URL: https://github.com/joeyism/linkedin_user_scraper/dist/0.0.4.tar.gz
+Description: UNKNOWN
+Keywords: linkedin,scraping,scraper
+Platform: UNKNOWN

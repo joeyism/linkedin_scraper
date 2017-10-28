@@ -28,10 +28,7 @@ class Person(object):
         self.educations.append(education)
 
     def __scrape_linkedin__(self):
-        if os.getenv("CHROMEDRIVER") == None:
-            driver_path = os.path.join(os.path.dirname(__file__), 'drivers/chromedriver')
-        else:
-            driver_path = os.getenv("CHROMEDRIVER")
+        driver_path = os.path.join(os.path.dirname(__file__), '../drivers/chromedriver')
         driver = webdriver.Chrome(driver_path)
         page = driver.get(self.linkedin_url)
 

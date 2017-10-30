@@ -1,3 +1,4 @@
+README.rst
 setup.cfg
 setup.py
 linkedin_user_scraper/__init__.py

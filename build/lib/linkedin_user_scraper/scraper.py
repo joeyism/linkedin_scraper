@@ -11,6 +11,7 @@ class Person(object):
     name = None
     experiences = []
     educations = []
+    also_viewed_urls = []
     linkedin_url = None
 
     def __init__(self, linkedin_url = None, experiences = [], educations = []):
@@ -66,6 +67,8 @@ class Person(object):
             education = Education(from_date = from_date, to_date = to_date, degree=degree)
             education.institution_name = university
             self.add_education(education)
+
+        # get 
 
         driver.close()
 

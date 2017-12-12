@@ -1,3 +1,0 @@
-lxml
-request
-selenium

@@ -2,7 +2,7 @@
 Scrapes Linkedin User Data
 
 ## Installation
-    > pip3 install --user linkedin_user_scrapper
+    > pip3 install --user linkedin_user_scraper
 
 ## Setup
 First, you must set your chromedriver location by

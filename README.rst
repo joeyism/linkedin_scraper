@@ -8,7 +8,7 @@ Installation
 
 ::
 
-    > pip3 install --user linkedin_user_scrapper
+    > pip3 install --user linkedin_user_scraper
 
 Setup
 -----

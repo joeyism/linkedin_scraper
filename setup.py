@@ -12,12 +12,12 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
         name = 'linkedin_user_scraper',
         packages = ['linkedin_user_scraper'], # this must be the same as the name above
-        version = '0.0.7',
+        version = '0.0.8',
         description = 'Scrapes user data from Linkedin',
         author = 'Joey Sham',
         author_email = 'sham.joey@gmail.com',
         url = 'https://github.com/joeyism/linkedin_user_scraper', # use the URL to the github repo
-        download_url = 'https://github.com/joeyism/linkedin_user_scraper/dist/0.0.7.tar.gz',
+        download_url = 'https://github.com/joeyism/linkedin_user_scraper/dist/0.0.8.tar.gz',
         keywords = ['linkedin', 'scraping', 'scraper'], 
         classifiers = [],
         install_requires=['lxml', 'request', 'selenium'],

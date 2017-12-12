@@ -1,2 +1,4 @@
 *.swp
 linkedin_user_scraper.egg-info
+dist
+build/

@@ -23,7 +23,7 @@ person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
 Overall, to a Person object can be created with the following inputs:
 
 ```python
-Person( linkedin_url=None, experiences = [], educations = [], driver = None)
+Person( linkedin_url=None, experiences = [], educations = [], driver = None, scrape = True)
 ```
 #### `linkedin_url`
 This is the linkedin url of their profile
@@ -42,6 +42,9 @@ For example
 driver = webdriver.Chrome()
 person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = driver)
 ```
+
+#### `scrape`
+When this is **True**, the scraping happens automatically. To scrape afterwards, that can be run by the `scrape()` function from the `Person` object.
     
 ## Versions
 **1.1.x**

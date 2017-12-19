@@ -31,7 +31,7 @@ class Person(object):
             except:
                 driver = webdriver.Chrome()
 
-        driver.get("http://linkedin.com")
+        driver.get(linkedin_url)
         self.driver = driver
 
         if scrape:

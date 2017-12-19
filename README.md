@@ -47,6 +47,9 @@ person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = 
 When this is **True**, the scraping happens automatically. To scrape afterwards, that can be run by the `scrape()` function from the `Person` object.
     
 ## Versions
+**1.2.x**
+* Allows scraping later
+
 **1.1.x**
 * Addes additional API where user can use their own webdriver
 

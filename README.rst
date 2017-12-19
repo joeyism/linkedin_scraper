@@ -79,6 +79,8 @@ afterwards, that can be run by the ``scrape()`` function from the
 Versions
 --------
 
+**1.2.x** \* Allows scraping later
+
 **1.1.x** \* Addes additional API where user can use their own webdriver
 
 **1.0.x** \* first publish and fixes

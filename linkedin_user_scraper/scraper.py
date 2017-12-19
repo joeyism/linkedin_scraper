@@ -44,7 +44,7 @@ class Person(object):
     def add_education(self, education):
         self.educations.append(education)
 
-    def scrape(self):
+    def scrape(self, close_on_complete=True):
         driver = self.driver
         page = driver.get(self.linkedin_url)
 
@@ -81,8 +81,8 @@ class Person(object):
             self.add_education(education)
 
         # get 
-
-        driver.close()
+        if close_on_complete:
+            driver.close()
 
     def __repr__(self):
         return "{name}\n\nExperience\n{exp}\n\nEducation\n{edu}".format(name = self.name, exp = self.experiences, edu = self.educations)

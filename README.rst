@@ -69,6 +69,15 @@ For example
     driver = webdriver.Chrome()
     person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = driver)
 
+``scrape(close_on_complete=True)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the meat of the code, where execution of this function scrapes
+the profile. If *close_on_complete* is True (which it is by default),
+then the browser will close upon completion. If scraping of other
+profiles are desired, then you might want to set that to false so you
+can keep using the same driver.
+
 ``scrape``
 ^^^^^^^^^^
 

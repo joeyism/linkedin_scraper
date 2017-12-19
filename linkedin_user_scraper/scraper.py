@@ -13,14 +13,30 @@ class Person(object):
     educations = []
     also_viewed_urls = []
     linkedin_url = None
+    driver = None
 
-    def __init__(self, linkedin_url = None, experiences = [], educations = [], driver = None):
+    def __init__(self, linkedin_url = None, experiences = [], educations = [], driver = None, scrape = True):
         self.linkedin_url = linkedin_url
         self.experiences = experiences
         self.educations = educations
 
-        if self.linkedin_url != None:
-            self.__scrape_linkedin__(driver)
+        if driver is None:
+            try:
+                if os.getenv("CHROMEDRIVER") == None:
+                    driver_path = os.path.join(os.path.dirname(__file__), 'drivers/chromedriver')
+                else:
+                    driver_path = os.getenv("CHROMEDRIVER")
+
+                driver = webdriver.Chrome(driver_path)
+            except:
+                driver = webdriver.Chrome()
+
+        driver.get("http://linkedin.com")
+        self.driver = driver
+
+        if scrape:
+            self.scrape()
+ 
 
     def add_experience(self, experience):
         self.experiences.append(experience)
@@ -28,17 +44,8 @@ class Person(object):
     def add_education(self, education):
         self.educations.append(education)
 
-    def __scrape_linkedin__(self, driver = None):
-        if os.getenv("CHROMEDRIVER") == None:
-            driver_path = os.path.join(os.path.dirname(__file__), 'drivers/chromedriver')
-        else:
-            driver_path = os.getenv("CHROMEDRIVER")
-
-        if driver is None:
-            try:
-                driver = webdriver.Chrome(driver_path)
-            except:
-                driver = webdriver.Chrome()
+    def scrape(self):
+        driver = self.driver
         page = driver.get(self.linkedin_url)
 
         # get name

@@ -2,3 +2,5 @@
 linkedin_user_scraper.egg-info
 dist
 build
+__pycache__
+*.pyc

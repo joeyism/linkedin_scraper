@@ -16,6 +16,12 @@ class CompanySummary(object):
         self.name = name
         self.followers = followers
 
+    def __repr__(self):
+        if self.followers == None:
+            return """ {name} """.format(name = self.name)
+        else:
+            return """ {name} {followers} """.format(name = self.name, followers = self.followers)
+
 class Company(object):
     linkedin_url = None
     name = None
@@ -83,31 +89,37 @@ class Company(object):
         self.founded = self.__get_text_under_subtitle_by_class(driver, "founded")
 
         # get showcase
-        driver.find_element_by_id("view-other-showcase-pages-dialog").click()
         try:
+            driver.find_element_by_id("view-other-showcase-pages-dialog").click()
             WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'dialog')))
-        except:
-            print("Took too long!")
-            return
 
-        showcase_pages = driver.find_elements_by_class_name("company-showcase-pages")[1]
-        for showcase_company in showcase_pages.find_elements_by_tag_name("li"):
-            name_elem = showcase_company.find_element_by_class_name("name")
-            companySummary = CompanySummary(
-                linkedin_url = name_elem.find_element_by_tag_name("a").get_attribute("href"),
-                name = name_elem.text,
-                followers = showcase_company.text.split("\n")[1]
-            )
-            self.showcase_pages.append(companySummary)
+            showcase_pages = driver.find_elements_by_class_name("company-showcase-pages")[1]
+            for showcase_company in showcase_pages.find_elements_by_tag_name("li"):
+                name_elem = showcase_company.find_element_by_class_name("name")
+                companySummary = CompanySummary(
+                    linkedin_url = name_elem.find_element_by_tag_name("a").get_attribute("href"),
+                    name = name_elem.text,
+                    followers = showcase_company.text.split("\n")[1]
+                )
+                self.showcase_pages.append(companySummary)
+            driver.find_element_by_class_name("dialog-close").click()
+        except:
+            pass
 
         # affiliated company
-        affiliated_pages = driver.find_element_by_class_name("affiliated-companies")
-        for affiliated_page in affiliated_pages.find_elements_by_class_name("affiliated-company-name"):
-            companySummary = CompanySummary(
-                linkedin_url = affiliated_page.find_element_by_tag_name("a").get_attribute("href"),
-                name = affiliated_page.text
-            )
-            self.affiliated_companies.append(companySummary)
+        try:
+            affiliated_pages = driver.find_element_by_class_name("affiliated-companies")
+            for i, affiliated_page in enumerate(affiliated_pages.find_elements_by_class_name("affiliated-company-name")):
+                if i % 3 == 0:
+                    affiliated_pages.find_element_by_class_name("carousel-control-next").click()
+
+                companySummary = CompanySummary(
+                    linkedin_url = affiliated_page.find_element_by_tag_name("a").get_attribute("href"),
+                    name = affiliated_page.text
+                )
+                self.affiliated_companies.append(companySummary)
+        except:
+            pass
 
         if close_on_complete:
             driver.close()
@@ -126,6 +138,12 @@ Type: {company_type}
 Headquarters: {headquarters}
 Company Size: {company_size}
 Founded: {founded}
+
+Showcase Pages
+{showcase_pages}
+
+Affiliated Companies
+{affiliated_companies}
     """.format(
         name = self.name,
         about_us = self.about_us,
@@ -135,5 +153,7 @@ Founded: {founded}
         company_type= self.company_type,
         headquarters= self.headquarters,
         company_size= self.company_size,
-        founded= self.founded
+        founded= self.founded,
+        showcase_pages = self.showcase_pages,
+        affiliated_companies = self.affiliated_companies
     )

@@ -6,9 +6,12 @@ Scrapes Linkedin User Data
 Installation
 ------------
 
-::
+.. code:: bash
 
-    > pip3 install --user linkedin_scraper
+    pip3 install --user linkedin_scraper
+
+Version **2.0.0** and before is called ``linkedin_user_scraper`` and can
+be installed via ``pip3 install --user linkedin_user_scraper``
 
 Setup
 -----
@@ -193,7 +196,8 @@ can keep using the same driver.
 Versions
 --------
 
-**2.0.x** \* Modified the way the objects are called \* Added Company
+**2.0.x** \* Modified the way the objects are called \* Added Company \*
+Changed name from ``linkedin_user_scraper`` to ``linkedin_scraper``
 
 **1.2.x** \* Allows scraping later
 

@@ -1,5 +1,6 @@
 *.swp
 linkedin_user_scraper.egg-info
+linkedin_scraper.egg-info
 dist
 build
 __pycache__

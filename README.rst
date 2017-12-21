@@ -24,13 +24,27 @@ Usage
 
 To use it, just create the class
 
+User Scraping
+~~~~~~~~~~~~~
+
 .. code:: python
 
-    from linkedin_user_scraper.scraper import Person
+    from linkedin_user_scraper import Person
     person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
+
+Company Scraping
+~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    from linkedin_user_scraper import Company
+    company = Company("https://ca.linkedin.com/company/google")
 
 API
 ---
+
+Person
+~~~~~~
 
 Overall, to a Person object can be created with the following inputs:
 
@@ -85,8 +99,101 @@ then the browser will close upon completion. If scraping of other
 profiles are desired, then you might want to set that to false so you
 can keep using the same driver.
 
+Company
+~~~~~~~
+
+.. code:: python
+
+    Company(linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True)
+
+.. linkedin_url-1:
+
+``linkedin_url``
+^^^^^^^^^^^^^^^^
+
+This is the linkedin url of their profile
+
+``name``
+^^^^^^^^
+
+This is the name of the company
+
+``about_us``
+^^^^^^^^^^^^
+
+The description of the company
+
+``website``
+^^^^^^^^^^^
+
+The website of the company
+
+``headquarters``
+^^^^^^^^^^^^^^^^
+
+The headquarters location of the company
+
+``founded``
+^^^^^^^^^^^
+
+When the company was founded
+
+``company_type``
+^^^^^^^^^^^^^^^^
+
+The type of the company
+
+``company_size``
+^^^^^^^^^^^^^^^^
+
+How many people are employeed at the company
+
+``specialties``
+^^^^^^^^^^^^^^^
+
+What the company specializes in
+
+``showcase_pages``
+^^^^^^^^^^^^^^^^^^
+
+Pages that the company owns to showcase their products
+
+``affiliated_companies``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Other companies that are affiliated with this one
+
+.. driver-1:
+
+``driver``
+^^^^^^^^^^
+
+This is the driver from which to scraper the Linkedin profile. A driver
+using Chrome is created by default. However, if a driver is passed in,
+that will be used instead.
+
+For example
+
+.. code:: python
+
+    driver = webdriver.Chrome()
+    company = Company("https://ca.linkedin.com/company/googl://ca.linkedin.com/company/google", driver = driver)
+
+.. scrapeclose_on_completetrue-1:
+
+``scrape(close_on_complete=True)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the meat of the code, where execution of this function scrapes
+the company. If *close_on_complete* is True (which it is by default),
+then the browser will close upon completion. If scraping of other
+companies are desired, then you might want to set that to false so you
+can keep using the same driver.
+
 Versions
 --------
+
+**2.0.x** \* Modified the way the objects are called \* Added Company
 
 **1.2.x** \* Allows scraping later
 

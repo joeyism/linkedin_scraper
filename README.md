@@ -1,8 +1,8 @@
-# Linkedin User Scraper
+# Linkedin Scraper
 Scrapes Linkedin User Data
 
 ## Installation
-    > pip3 install --user linkedin_user_scraper
+    > pip3 install --user linkedin_scraper
 
 ## Setup
 First, you must set your chromedriver location by
@@ -17,14 +17,14 @@ To use it, just create the class
 ### User Scraping
 
 ```python
-from linkedin_user_scraper import Person
+from linkedin_scraper import Person
 person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
 ```
 
 ### Company Scraping
 
 ```python
-from linkedin_user_scraper import Company
+from linkedin_scraper import Company
 company = Company("https://ca.linkedin.com/company/google")
 ```
 
@@ -41,10 +41,10 @@ Person( linkedin_url=None, experiences = [], educations = [], driver = None, scr
 This is the linkedin url of their profile
 
 #### `experiences`
-This is the past experiences they have. A list of `linkedin_user_scraper.scraper.Experience`
+This is the past experiences they have. A list of `linkedin_scraper.scraper.Experience`
 
 #### `educations`
-This is the past educations they have. A list of `linkedin_user_scraper.scraper.Education`
+This is the past educations they have. A list of `linkedin_scraper.scraper.Education`
 
 #### `driver`
 This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.

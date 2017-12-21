@@ -1,5 +1,5 @@
-Linkedin User Scraper
-=====================
+Linkedin Scraper
+================
 
 Scrapes Linkedin User Data
 
@@ -8,7 +8,7 @@ Installation
 
 ::
 
-    > pip3 install --user linkedin_user_scraper
+    > pip3 install --user linkedin_scraper
 
 Setup
 -----
@@ -29,7 +29,7 @@ User Scraping
 
 .. code:: python
 
-    from linkedin_user_scraper import Person
+    from linkedin_scraper import Person
     person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
 
 Company Scraping
@@ -37,7 +37,7 @@ Company Scraping
 
 .. code:: python
 
-    from linkedin_user_scraper import Company
+    from linkedin_scraper import Company
     company = Company("https://ca.linkedin.com/company/google")
 
 API
@@ -61,13 +61,13 @@ This is the linkedin url of their profile
 ^^^^^^^^^^^^^^^
 
 This is the past experiences they have. A list of
-``linkedin_user_scraper.scraper.Experience``
+``linkedin_scraper.scraper.Experience``
 
 ``educations``
 ^^^^^^^^^^^^^^
 
 This is the past educations they have. A list of
-``linkedin_user_scraper.scraper.Education``
+``linkedin_scraper.scraper.Education``
 
 ``driver``
 ^^^^^^^^^^

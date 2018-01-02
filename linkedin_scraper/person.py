@@ -2,6 +2,7 @@ import requests
 from lxml import html
 from selenium import webdriver
 from .functions import time_divide
+from .objects import Experience, Education
 import os
 
 class Person(object):

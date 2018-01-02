@@ -33,6 +33,30 @@ from linkedin_scraper import Company
 company = Company("https://ca.linkedin.com/company/google")
 ```
 
+### Scraping sites where login is required first
+1. Run `ipython` or `python`
+2. In `ipython`/`python`, run the following code (you can modify it if you need to specify your driver)
+3. 
+```python
+from linkedin_scraper import Person
+from selenium import webdriver
+driver = webdriver.Chrome()
+person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = driver, scrape=False)
+```
+4. Login to Linkedin
+5. **Logout** of Linkedin
+6. In the same `ipython`/`python` code, run
+```python
+person.scrape()
+```
+
+The reason is that LinkedIn has recently blocked people from viewing certain profiles without having previously signed in. So by setting `scrape=False`, it doesn't automatically scrape the profile, but Chrome will open the linkedin page anyways. You can login and logout, and the cookie will stay in the browser and it won't affect your profile views. Then when you run `person.scrape()`, it'll scrape and close the browser. If you want to keep the browser on so you can scrape others, run it as 
+
+```python
+person.scrape(close_on_complete=False)
+``` 
+so it doesn't close.
+
 
 ## API
 

@@ -72,10 +72,20 @@ class Company(object):
     def __get_text_under_subtitle_by_class(self, driver, class_name):
         return self.__get_text_under_subtitle(driver.find_element_by_class_name(class_name))
 
+    def __prompts_login__(self):
+        try:
+            self.driver.find_element_by_class_name("login-form")
+            return True
+        except:
+            return False
 
-    def scrape(self, close_on_complete = True):
+
+    def scrape(self, close_on_complete = True, retry_limit = 10):
         driver = self.driver
-        page = driver.get(self.linkedin_url)
+        retry_times = 0
+        while self.__prompts_login__() and retry_times <= retry_limit:
+            page = driver.get(self.linkedin_url)
+            retry_times = retry_times + 1
 
         self.name = driver.find_element_by_class_name("name").text
 

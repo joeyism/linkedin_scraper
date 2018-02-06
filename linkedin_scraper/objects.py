@@ -48,4 +48,13 @@ class Education(Institution):
     def __repr__(self):
         return "{degree} at {company} from {from_date} to {to_date}".format( from_date = self.from_date, to_date = self.to_date, degree = self.degree, company = self.institution_name)
 
+class Scraper(object):
+    driver = None
 
+    def is_signed_in(self):
+        try:
+            self.driver.find_element_by_id("profile-nav-item")
+            return True
+        except:
+            pass
+        return False

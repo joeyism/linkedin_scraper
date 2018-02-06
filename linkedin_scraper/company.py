@@ -4,6 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from .objects import Scraper
 import os
 
 class CompanySummary(object):
@@ -22,7 +23,7 @@ class CompanySummary(object):
         else:
             return """ {name} {followers} """.format(name = self.name, followers = self.followers)
 
-class Company(object):
+class Company(Scraper):
     linkedin_url = None
     name = None
     about_us =None
@@ -34,7 +35,6 @@ class Company(object):
     specialties = None
     showcase_pages =[]
     affiliated_companies = []
-    driver = None
 
     def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True):
         self.linkedin_url = linkedin_url
@@ -64,7 +64,7 @@ class Company(object):
         self.driver = driver
 
         if scrape:
-            self.scrape()
+            self.scrape_not_logged_in()
 
     def __get_text_under_subtitle(self, elem):
         return "\n".join(elem.text.split("\n")[1:])
@@ -79,8 +79,37 @@ class Company(object):
         except:
             return False
 
+    def scrape_logged_in(self, close_on_complete = True):
+        driver = self.driver
 
-    def scrape(self, close_on_complete = True, retry_limit = 10):
+        self.name = driver.find_element_by_xpath('//h1[@dir="ltr"]').text
+        self.about_us = driver.find_element_by_class_name("org-about-us-organization-description__text").text
+
+        self.specialties = "\n".join(driver.find_element_by_class_name("org-about-company-module__specialities").text.split(", "))
+        self.website = driver.find_element_by_class_name("org-about-us-company-module__website").text
+        self.headquarters = driver.find_element_by_class_name("org-about-company-module__headquarters").text
+        self.industry = driver.find_element_by_class_name("company-industries").text
+        self.company_size = driver.find_element_by_class_name("org-about-company-module__company-staff-count-range").text
+
+        # get showcase
+        try:
+            showcase = driver.find_element_by_class_name("company-list")
+            for showcase_company in showcase.find_elements_by_class_name("org-company-card"):
+                companySummary = CompanySummary(
+                        linkedin_url = showcase_company.find_element_by_class_name("company-name-link").get_attribute("href")
+                        name = showcase_company.find_element_by_class_name("company-name-link").text,
+                        followers = showcase_company.find_element_by_class_name("company-followers-count").text
+                    )
+                self.showcase_pages.append(companySummary)
+        except:
+            pass
+
+        # affiliated company
+
+        if close_on_complete:
+            driver.close()
+
+    def scrape_not_logged_in(self, close_on_complete = True, retry_limit = 10):
         driver = self.driver
         retry_times = 0
         while self.__prompts_login__() and retry_times <= retry_limit:

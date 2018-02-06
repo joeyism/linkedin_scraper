@@ -2,16 +2,15 @@ import requests
 from lxml import html
 from selenium import webdriver
 from .functions import time_divide
-from .objects import Experience, Education
+from .objects import Experience, Education, Scraper
 import os
 
-class Person(object):
+class Person(Scraper):
     name = None
     experiences = []
     educations = []
     also_viewed_urls = []
     linkedin_url = None
-    driver = None
 
     def __init__(self, linkedin_url = None, experiences = [], educations = [], driver = None, scrape = True):
         self.linkedin_url = linkedin_url

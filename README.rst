@@ -59,7 +59,7 @@ Scraping sites where login is required first
     person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = driver, scrape=False)
 
 4. Login to Linkedin
-5. **Logout** of Linkedin
+5. [OPTIONAL] Logout of Linkedin
 6. In the same ``ipython``/``python`` code, run
 
 .. code:: python
@@ -73,7 +73,7 @@ Chrome will open the linkedin page anyways. You can login and logout,
 and the cookie will stay in the browser and it won’t affect your profile
 views. Then when you run ``person.scrape()``, it’ll scrape and close the
 browser. If you want to keep the browser on so you can scrape others,
-run it as
+run it as For version > *2.1.0*, scraping can also occur while logged in
 
 .. code:: python
 
@@ -233,6 +233,8 @@ can keep using the same driver.
 
 Versions
 --------
+
+**2.1.x** \* Scraping allowed after logged in
 
 **2.0.x** \* Modified the way the objects are called \* Added Company \*
 Changed name from ``linkedin_user_scraper`` to ``linkedin_scraper``

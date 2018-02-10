@@ -72,15 +72,8 @@ class Company(Scraper):
     def __get_text_under_subtitle_by_class(self, driver, class_name):
         return self.__get_text_under_subtitle(driver.find_element_by_class_name(class_name))
 
-    def __prompts_login__(self):
-        try:
-            self.driver.find_element_by_id("profile-nav-item")
-            return True
-        except:
-            return False
-
     def scrape(self, close_on_complete = True):
-        if self.__prompts_login__():
+        if self.is_signed_in():
             self.scrape_logged_in(close_on_complete = close_on_complete)
         else:
             self.scrape_not_logged_in(close_on_complete = close_on_complete)
@@ -134,7 +127,7 @@ class Company(Scraper):
     def scrape_not_logged_in(self, close_on_complete = True, retry_limit = 10):
         driver = self.driver
         retry_times = 0
-        while self.__prompts_login__() and retry_times <= retry_limit:
+        while self.is_signed_in() and retry_times <= retry_limit:
             page = driver.get(self.linkedin_url)
             retry_times = retry_times + 1
 

@@ -141,7 +141,7 @@ This is the driver from which to scraper the Linkedin profile. A driver using Ch
 For example
 ```python
 driver = webdriver.Chrome()
-company = Company("https://ca.linkedin.com/company/googl://ca.linkedin.com/company/google", driver = driver)
+company = Company("https://ca.linkedin.com/company/google", driver = driver)
 ```
 
 

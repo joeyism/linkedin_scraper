@@ -5,7 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .objects import Scraper
+from .person import Person
+import time
 import os
+import pdb
 
 class CompanySummary(object):
     linkedin_url = None
@@ -78,8 +81,52 @@ class Company(Scraper):
         else:
             self.scrape_not_logged_in(close_on_complete = close_on_complete)
 
+    def __parse_employee__(self, employee_raw):
+        return Person(
+                linkedin_url = employee_raw.find_element_by_class_name("search-result__result-link").get_attribute("href"),
+                name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text,
+                driver = self.driver,
+                get = False,
+                scrape = False
+                )
+
+    def get_employees(self):
+        driver = self.driver
+
+        see_all_employees = driver.find_element_by_xpath('//span[@data-control-name="topcard_see_all_employees"]')
+        driver.get(see_all_employees.find_elements_by_css_selector("*")[0].get_attribute("href"))
+
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "results-list")))
+
+        total = []
+        driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
+        time.sleep(1)
+        driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
+        results_list = driver.find_element_by_class_name("results-list")
+        results_li = results_list.find_elements_by_tag_name("li")
+        for i, res in enumerate(results_li):
+            total.append(self.__parse_employee__(res))
+
+        while self.__find_element_by_class_name__("next"):
+            #TODO: Fix
+            driver.find_element_by_class_name("next").click()
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
+            results_list = driver.find_element_by_class_name("results-list")
+            results_li = results_list.find_elements_by_tag_name("li")
+            for i, res in enumerate(results_li):
+                total.append(self.__parse_employee__(res))
+
+        pdb.set_trace()
+
+
     def scrape_logged_in(self, close_on_complete = True):
         driver = self.driver
+
+        driver.get(self.linkedin_url)
+
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'nav-main__content')))
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, '//h1[@dir="ltr"]')))
 
         self.name = driver.find_element_by_xpath('//h1[@dir="ltr"]').text
         self.about_us = driver.find_element_by_class_name("org-about-us-organization-description__text").text
@@ -120,6 +167,7 @@ class Company(Scraper):
         except:
             pass
 
+        self.get_employees()
 
         if close_on_complete:
             driver.close()

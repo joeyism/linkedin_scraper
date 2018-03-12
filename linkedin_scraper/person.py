@@ -15,8 +15,9 @@ class Person(Scraper):
     also_viewed_urls = []
     linkedin_url = None
 
-    def __init__(self, linkedin_url = None, experiences = [], educations = [], driver = None, scrape = True):
+    def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], driver = None, get = True, scrape = True):
         self.linkedin_url = linkedin_url
+        self.name = name
         self.experiences = experiences
         self.educations = educations
 
@@ -31,7 +32,9 @@ class Person(Scraper):
             except:
                 driver = webdriver.Chrome()
 
-        driver.get(linkedin_url)
+        if get:
+            driver.get(linkedin_url)
+
         self.driver = driver
 
         if scrape:

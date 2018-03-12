@@ -58,3 +58,13 @@ class Scraper(object):
         except:
             pass
         return False
+
+    def __find_element_by_class_name__(self, class_name):
+        try:
+            self.driver.find_element_by_class_name(class_name)
+            return True
+        except:
+            pass
+        return False
+
+

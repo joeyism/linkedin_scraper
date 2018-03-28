@@ -78,21 +78,27 @@ class Person(Scraper):
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));")
 
-        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "education-section")))
-
         # get education
-        edu = driver.find_element_by_id("education-section")
-        for school in edu.find_elements_by_class_name("pv-profile-section__sortable-item"):
-            university = school.find_element_by_class_name("pv-entity__school-name").text
-            degree = school.find_element_by_class_name("pv-entity__degree-name").text
-            try:
-                times = school.find_element_by_class_name("pv-entity__dates").text
-                from_date, to_date, duration = time_divide(times)
-            except:
-                from_date, to_date = (None, None)
-            education = Education(from_date = from_date, to_date = to_date, degree=degree)
-            education.institution_name = university
-            self.add_education(education)
+        try:
+            edu = driver.find_element_by_id("education-section")
+        except:
+            edu = None
+
+        if edu:
+            schoolList = edu.find_elements_by_class_name("pv-profile-section__sortable-item")
+            if not schoolList:
+                schoolList = edu.find_elements_by_class_name("pv-education-entity")
+            for school in schoolList:
+                university = school.find_element_by_class_name("pv-entity__school-name").text
+                degree = ' '.join([item.text for item in school.find_elements_by_class_name("pv-entity__secondary-title")])
+                try:
+                    times = school.find_element_by_class_name("pv-entity__dates").text
+                    from_date, to_date, duration = time_divide(times)
+                except:
+                    from_date, to_date = (None, None)
+                education = Education(from_date = from_date, to_date = to_date, degree=degree)
+                education.institution_name = university
+                self.add_education(education)
 
         if close_on_complete:
             driver.close()

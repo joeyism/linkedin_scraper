@@ -8,7 +8,6 @@ from .objects import Scraper
 from .person import Person
 import time
 import os
-import pdb
 
 class CompanySummary(object):
     linkedin_url = None
@@ -39,7 +38,7 @@ class Company(Scraper):
     showcase_pages =[]
     affiliated_companies = []
 
-    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True):
+    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
         self.linkedin_url = linkedin_url
         self.name = name
         self.about_us = about_us
@@ -67,7 +66,7 @@ class Company(Scraper):
         self.driver = driver
 
         if scrape:
-            self.scrape()
+            self.scrape(get_employees=get_employees, close_on_complete=close_on_complete)
 
     def __get_text_under_subtitle(self, elem):
         return "\n".join(elem.text.split("\n")[1:])
@@ -75,28 +74,31 @@ class Company(Scraper):
     def __get_text_under_subtitle_by_class(self, driver, class_name):
         return self.__get_text_under_subtitle(driver.find_element_by_class_name(class_name))
 
-    def scrape(self, close_on_complete = True):
+    def scrape(self, get_employees = True, close_on_complete = True):
         if self.is_signed_in():
-            self.scrape_logged_in(close_on_complete = close_on_complete)
+            self.scrape_logged_in(get_employees = get_employees, close_on_complete = close_on_complete)
         else:
-            self.scrape_not_logged_in(close_on_complete = close_on_complete)
+            self.scrape_not_logged_in(get_employees = get_employees, close_on_complete = close_on_complete)
 
     def __parse_employee__(self, employee_raw):
-        return Person(
+        try:
+            return Person(
                 linkedin_url = employee_raw.find_element_by_class_name("search-result__result-link").get_attribute("href"),
                 name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text,
                 driver = self.driver,
                 get = False,
                 scrape = False
                 )
+        except:
+            return None
 
-    def get_employees(self):
+    def get_employees(self, wait_time=10):
         driver = self.driver
 
         see_all_employees = driver.find_element_by_xpath('//span[@data-control-name="topcard_see_all_employees"]')
         driver.get(see_all_employees.find_elements_by_css_selector("*")[0].get_attribute("href"))
 
-        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "results-list")))
+        _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, "results-list")))
 
         total = []
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
@@ -104,23 +106,32 @@ class Company(Scraper):
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
         results_list = driver.find_element_by_class_name("results-list")
         results_li = results_list.find_elements_by_tag_name("li")
-        for i, res in enumerate(results_li):
+        for res in results_li:
             total.append(self.__parse_employee__(res))
 
         while self.__find_element_by_class_name__("next"):
-            #TODO: Fix
             driver.find_element_by_class_name("next").click()
+            _ = WebDriverWait(driver, wait_time).until(EC.staleness_of(driver.find_element_by_class_name("search-result")), 'visible')
+
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/4));")
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/3));")
+            time.sleep(1)
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*2/3));")
+            time.sleep(1)
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
+
             results_list = driver.find_element_by_class_name("results-list")
             results_li = results_list.find_elements_by_tag_name("li")
-            for i, res in enumerate(results_li):
+            for res in results_li:
+                _ = WebDriverWait(driver, wait_time).until(EC.visibility_of(res))
                 total.append(self.__parse_employee__(res))
 
-        pdb.set_trace()
 
 
-    def scrape_logged_in(self, close_on_complete = True):
+    def scrape_logged_in(self, get_employees = True, close_on_complete = True):
         driver = self.driver
 
         driver.get(self.linkedin_url)
@@ -167,12 +178,15 @@ class Company(Scraper):
         except:
             pass
 
-        self.get_employees()
+        if get_employees:
+            self.get_employees()
+
+        driver.get(self.linkedin_url)
 
         if close_on_complete:
             driver.close()
 
-    def scrape_not_logged_in(self, close_on_complete = True, retry_limit = 10):
+    def scrape_not_logged_in(self, close_on_complete = True, retry_limit = 10, get_employees = True):
         driver = self.driver
         retry_times = 0
         while self.is_signed_in() and retry_times <= retry_limit:
@@ -222,6 +236,11 @@ class Company(Scraper):
                 self.affiliated_companies.append(companySummary)
         except:
             pass
+
+        if get_employees:
+            self.get_employees()
+
+        driver.get(self.linkedin_url)
 
         if close_on_complete:
             driver.close()

@@ -99,7 +99,7 @@ This is the meat of the code, where execution of this function scrapes the profi
 ### Company
 
 ```python
-Company(linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True)
+Company(linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True)
 ```
 
 #### `linkedin_url`
@@ -138,6 +138,9 @@ Other companies that are affiliated with this one
 #### `driver`
 This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.
 
+#### `driver`
+Whether to get all the employees of company
+
 For example
 ```python
 driver = webdriver.Chrome()
@@ -150,6 +153,8 @@ This is the meat of the code, where execution of this function scrapes the compa
 
     
 ## Versions
+**2.2.x**
+* Scraping employees allowed
 
 **2.1.x**
 * Scraping allowed after logged in

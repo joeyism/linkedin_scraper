@@ -84,8 +84,9 @@ class Person(Scraper):
         edu = driver.find_element_by_id("education-section")
         for school in edu.find_elements_by_class_name("pv-profile-section__sortable-item"):
             university = school.find_element_by_class_name("pv-entity__school-name").text
-            degree = school.find_element_by_class_name("pv-entity__degree-name").text
+            degree = None
             try:
+                degree = school.find_element_by_class_name("pv-entity__degree-name").text
                 times = school.find_element_by_class_name("pv-entity__dates").text
                 from_date, to_date, duration = time_divide(times)
             except:

@@ -138,7 +138,7 @@ Other companies that are affiliated with this one
 #### `driver`
 This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.
 
-#### `driver`
+#### `get_employees`
 Whether to get all the employees of company
 
 For example

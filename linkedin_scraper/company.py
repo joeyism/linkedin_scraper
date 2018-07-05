@@ -84,7 +84,7 @@ class Company(Scraper):
         try:
             return Person(
                 linkedin_url = employee_raw.find_element_by_class_name("search-result__result-link").get_attribute("href"),
-                name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text,
+                name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text.encode('utf-8').strip(),
                 driver = self.driver,
                 get = False,
                 scrape = False
@@ -139,14 +139,14 @@ class Company(Scraper):
         _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'nav-main__content')))
         _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, '//h1[@dir="ltr"]')))
 
-        self.name = driver.find_element_by_xpath('//h1[@dir="ltr"]').text
-        self.about_us = driver.find_element_by_class_name("org-about-us-organization-description__text").text
+        self.name = driver.find_element_by_xpath('//h1[@dir="ltr"]').text.encode('utf-8').strip()
+        self.about_us = driver.find_element_by_class_name("org-about-us-organization-description__text").text.encode('utf-8').strip()
 
-        self.specialties = "\n".join(driver.find_element_by_class_name("org-about-company-module__specialities").text.split(", "))
-        self.website = driver.find_element_by_class_name("org-about-us-company-module__website").text
-        self.headquarters = driver.find_element_by_class_name("org-about-company-module__headquarters").text
-        self.industry = driver.find_element_by_class_name("company-industries").text
-        self.company_size = driver.find_element_by_class_name("org-about-company-module__company-staff-count-range").text
+        self.specialties = "\n".join(driver.find_element_by_class_name("org-about-company-module__specialities").text.encode('utf-8').strip().split(", "))
+        self.website = driver.find_element_by_class_name("org-about-us-company-module__website").text.encode('utf-8').strip()
+        self.headquarters = driver.find_element_by_class_name("org-about-company-module__headquarters").text.encode('utf-8').strip()
+        self.industry = driver.find_element_by_class_name("company-industries").text.encode('utf-8').strip()
+        self.company_size = driver.find_element_by_class_name("org-about-company-module__company-staff-count-range").text.encode('utf-8').strip()
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 
@@ -160,8 +160,8 @@ class Company(Scraper):
             for showcase_company in showcase.find_elements_by_class_name("org-company-card"):
                 companySummary = CompanySummary(
                         linkedin_url = showcase_company.find_element_by_class_name("company-name-link").get_attribute("href"),
-                        name = showcase_company.find_element_by_class_name("company-name-link").text,
-                        followers = showcase_company.find_element_by_class_name("company-followers-count").text
+                        name = showcase_company.find_element_by_class_name("company-name-link").text.encode('utf-8').strip(),
+                        followers = showcase_company.find_element_by_class_name("company-followers-count").text.encode('utf-8').strip()
                     )
                 self.showcase_pages.append(companySummary)
 
@@ -170,8 +170,8 @@ class Company(Scraper):
             for affiliated_company in showcase.find_elements_by_class_name("org-company-card"):
                 companySummary = CompanySummary(
                          linkedin_url = affiliated_company.find_element_by_class_name("company-name-link").get_attribute("href"),
-                        name = affiliated_company.find_element_by_class_name("company-name-link").text,
-                        followers = affiliated_company.find_element_by_class_name("company-followers-count").text
+                        name = affiliated_company.find_element_by_class_name("company-name-link").text.encode('utf-8').strip(),
+                        followers = affiliated_company.find_element_by_class_name("company-followers-count").text.encode('utf-8').strip()
                         )
                 self.affiliated_companies.append(companySummary)
 
@@ -193,14 +193,14 @@ class Company(Scraper):
             page = driver.get(self.linkedin_url)
             retry_times = retry_times + 1
 
-        self.name = driver.find_element_by_class_name("name").text
+        self.name = driver.find_element_by_class_name("name").text.encode('utf-8').strip()
 
-        self.about_us = driver.find_element_by_class_name("basic-info-description").text
+        self.about_us = driver.find_element_by_class_name("basic-info-description").text.encode('utf-8').strip()
         self.specialties = self.__get_text_under_subtitle_by_class(driver, "specialties")
         self.website = self.__get_text_under_subtitle_by_class(driver, "website")
-        self.headquarters = driver.find_element_by_class_name("adr").text
-        self.industry = driver.find_element_by_class_name("industry").text
-        self.company_size = driver.find_element_by_class_name("company-size").text
+        self.headquarters = driver.find_element_by_class_name("adr").text.encode('utf-8').strip()
+        self.industry = driver.find_element_by_class_name("industry").text.encode('utf-8').strip()
+        self.company_size = driver.find_element_by_class_name("company-size").text.encode('utf-8').strip()
         self.company_type = self.__get_text_under_subtitle_by_class(driver, "type")
         self.founded = self.__get_text_under_subtitle_by_class(driver, "founded")
 
@@ -214,8 +214,8 @@ class Company(Scraper):
                 name_elem = showcase_company.find_element_by_class_name("name")
                 companySummary = CompanySummary(
                     linkedin_url = name_elem.find_element_by_tag_name("a").get_attribute("href"),
-                    name = name_elem.text,
-                    followers = showcase_company.text.split("\n")[1]
+                    name = name_elem.text.encode('utf-8').strip(),
+                    followers = showcase_company.text.encode('utf-8').strip().split("\n")[1]
                 )
                 self.showcase_pages.append(companySummary)
             driver.find_element_by_class_name("dialog-close").click()
@@ -231,7 +231,7 @@ class Company(Scraper):
 
                 companySummary = CompanySummary(
                     linkedin_url = affiliated_page.find_element_by_tag_name("a").get_attribute("href"),
-                    name = affiliated_page.text
+                    name = affiliated_page.text.encode('utf-8').strip()
                 )
                 self.affiliated_companies.append(companySummary)
         except:

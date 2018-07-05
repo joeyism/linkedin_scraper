@@ -22,15 +22,17 @@ class Experience(Institution):
     to_date = None
     description = None
     position_title = None
+    duration = None
 
-    def __init__(self, from_date = None, to_date = None, description = None, position_title = None):
+    def __init__(self, from_date = None, to_date = None, description = None, position_title = None, duration = None):
         self.from_date = from_date
         self.to_date = to_date
         self.description = description
         self.position_title = position_title
+        self.duration = duration
 
     def __repr__(self):
-        return "{position_title} at {company} from {from_date} to {to_date}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name)
+        return "{position_title} at {company} from {from_date} to {to_date} for {duration}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name, duration = self.duration)
 
 
 class Education(Institution):
@@ -66,5 +68,3 @@ class Scraper(object):
         except:
             pass
         return False
-
-

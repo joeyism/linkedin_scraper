@@ -72,7 +72,11 @@ class Person(Scraper):
                 from_date, to_date, duration = time_divide(times)
             except:
                 from_date, to_date, duration = (None, None, None)
-            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration)
+            try:
+                location = position.find_element_by_class_name("pv-entity__location").text.encode('utf-8').strip()
+            except:
+                location = None
+            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
             experience.institution_name = company
             self.add_experience(experience)
 
@@ -121,7 +125,12 @@ class Person(Scraper):
                 from_date, to_date, duration = time_divide(times)
             except:
                 from_date, to_date, duration = (None, None, None)
-            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration)
+
+            try:
+                location = position.find_element_by_class_name("location").text.encode('utf-8').strip()
+            except:
+                location = None
+            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
             experience.institution_name = company
             self.add_experience(experience)
 

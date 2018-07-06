@@ -24,15 +24,16 @@ class Experience(Institution):
     position_title = None
     duration = None
 
-    def __init__(self, from_date = None, to_date = None, description = None, position_title = None, duration = None):
+    def __init__(self, from_date = None, to_date = None, description = None, position_title = None, duration = None, location = None):
         self.from_date = from_date
         self.to_date = to_date
         self.description = description
         self.position_title = position_title
         self.duration = duration
+        self.location = location
 
     def __repr__(self):
-        return "{position_title} at {company} from {from_date} to {to_date} for {duration}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name, duration = self.duration)
+        return "{position_title} at {company} from {from_date} to {to_date} for {duration} based at {location}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name, duration = self.duration, location = self.location)
 
 
 class Education(Institution):

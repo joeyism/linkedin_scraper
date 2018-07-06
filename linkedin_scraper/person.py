@@ -18,8 +18,8 @@ class Person(Scraper):
     def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], driver = None, get = True, scrape = True):
         self.linkedin_url = linkedin_url
         self.name = name
-        self.experiences = experiences
-        self.educations = educations
+        self.experiences = experiences or []
+        self.educations = educations or []
 
         if driver is None:
             try:

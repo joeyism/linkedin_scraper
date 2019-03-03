@@ -18,8 +18,8 @@ class Person(Scraper):
     def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], driver = None, get = True, scrape = True):
         self.linkedin_url = linkedin_url
         self.name = name
-        self.experiences = experiences
-        self.educations = educations
+        self.experiences = experiences or []
+        self.educations = educations or []
 
         if driver is None:
             try:
@@ -71,8 +71,12 @@ class Person(Scraper):
                 times = position.find_element_by_class_name("pv-entity__date-range").text.encode('utf-8').strip()
                 from_date, to_date, duration = time_divide(times)
             except:
-                from_date, to_date = (None, None)
-            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date)
+                from_date, to_date, duration = (None, None, None)
+            try:
+                location = position.find_element_by_class_name("pv-entity__location").text.encode('utf-8').strip()
+            except:
+                location = None
+            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
             experience.institution_name = company
             self.add_experience(experience)
 
@@ -120,8 +124,13 @@ class Person(Scraper):
                 times = position.find_element_by_class_name("date-range").text.encode('utf-8').strip()
                 from_date, to_date, duration = time_divide(times)
             except:
-                from_date, to_date = (None, None)
-            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date)
+                from_date, to_date, duration = (None, None, None)
+
+            try:
+                location = position.find_element_by_class_name("location").text.encode('utf-8').strip()
+            except:
+                location = None
+            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
             experience.institution_name = company
             self.add_experience(experience)
 

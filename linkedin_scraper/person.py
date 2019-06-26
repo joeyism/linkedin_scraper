@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .functions import time_divide
 from .objects import Experience, Education, Scraper
+from .selenium_utils import WebElement
 import os
 
 class Person(Scraper):
@@ -53,9 +54,10 @@ class Person(Scraper):
         else:
             self.scrape_not_logged_in(close_on_complete = close_on_complete)
 
-    def scrape_logged_in(self, close_on_complete = True):
+    def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
-        self.name = driver.find_element_by_class_name("pv-top-card-section__name").text.encode('utf-8').strip()
+        root = driver.find_element_by_class_name("pv-top-card-v3")
+        self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 
@@ -64,16 +66,17 @@ class Person(Scraper):
         # get experience
         exp = driver.find_element_by_id("experience-section")
         for position in exp.find_elements_by_class_name("pv-position-entity"):
-            position_title = position.find_element_by_tag_name("h3").text.encode('utf-8').strip()
-            company = position.find_element_by_class_name("pv-entity__secondary-title").text.encode('utf-8').strip()
+            position_title = position.find_element_by_tag_name("h3").text.strip()
+            company = position.find_element_by_class_name("pv-entity__secondary-title").text.strip()
 
             try:
-                times = position.find_element_by_class_name("pv-entity__date-range").text.encode('utf-8').strip()
+                times = position.find_element_by_class_name("pv-entity__date-range").text.strip()
+                times = "\n".join(times.split("\n")[1:])
                 from_date, to_date, duration = time_divide(times)
             except:
-                from_date, to_date, duration = (None, None, None)
+                from_date, to_date, duration = ("Unknown", "Unknown", "Unknown")
             try:
-                location = position.find_element_by_class_name("pv-entity__location").text.encode('utf-8').strip()
+                location = position.find_element_by_class_name("pv-entity__location").text.strip()
             except:
                 location = None
             experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
@@ -86,15 +89,15 @@ class Person(Scraper):
 
         # get education
         edu = driver.find_element_by_id("education-section")
-        for school in edu.find_elements_by_class_name("pv-profile-section__sortable-item"):
-            university = school.find_element_by_class_name("pv-entity__school-name").text.encode('utf-8').strip()
-            degree = None
+        for school in edu.find_elements_by_class_name("pv-education-entity"):
+            university = school.find_element_by_class_name("pv-entity__school-name").text.strip()
+            degree = "Unknown Degree"
             try:
-                degree = school.find_element_by_class_name("pv-entity__degree-name").text.encode('utf-8').strip()
-                times = school.find_element_by_class_name("pv-entity__dates").text.encode('utf-8').strip()
+                degree = school.find_element_by_class_name("pv-entity__degree-name").text.strip()
+                times = school.find_element_by_class_name("pv-entity__dates").text.strip()
                 from_date, to_date, duration = time_divide(times)
             except:
-                from_date, to_date = (None, None)
+                from_date, to_date = ("Unknown", "Unknown")
             education = Education(from_date = from_date, to_date = to_date, degree=degree)
             education.institution_name = university
             self.add_education(education)
@@ -112,22 +115,22 @@ class Person(Scraper):
 
 
         # get name
-        self.name = driver.find_element_by_id("name").text.encode('utf-8').strip()
+        self.name = driver.find_element_by_id("name").text.strip()
 
         # get experience
         exp = driver.find_element_by_id("experience")
         for position in exp.find_elements_by_class_name("position"):
-            position_title = position.find_element_by_class_name("item-title").text.encode('utf-8').strip()
-            company = position.find_element_by_class_name("item-subtitle").text.encode('utf-8').strip()
+            position_title = position.find_element_by_class_name("item-title").text.strip()
+            company = position.find_element_by_class_name("item-subtitle").text.strip()
 
             try:
-                times = position.find_element_by_class_name("date-range").text.encode('utf-8').strip()
+                times = position.find_element_by_class_name("date-range").text.strip()
                 from_date, to_date, duration = time_divide(times)
             except:
                 from_date, to_date, duration = (None, None, None)
 
             try:
-                location = position.find_element_by_class_name("location").text.encode('utf-8').strip()
+                location = position.find_element_by_class_name("location").text.strip()
             except:
                 location = None
             experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
@@ -137,10 +140,10 @@ class Person(Scraper):
         # get education
         edu = driver.find_element_by_id("education")
         for school in edu.find_elements_by_class_name("school"):
-            university = school.find_element_by_class_name("item-title").text.encode('utf-8').strip()
-            degree = school.find_element_by_class_name("original").text.encode('utf-8').strip()
+            university = school.find_element_by_class_name("item-title").text.strip()
+            degree = school.find_element_by_class_name("original").text.strip()
             try:
-                times = school.find_element_by_class_name("date-range").text.encode('utf-8').strip()
+                times = school.find_element_by_class_name("date-range").text.strip()
                 from_date, to_date, duration = time_divide(times)
             except:
                 from_date, to_date = (None, None)

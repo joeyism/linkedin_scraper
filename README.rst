@@ -25,7 +25,20 @@ First, you must set your chromedriver location by
 Usage
 -----
 
-To use it, just create the class
+To use it, just create the class.
+
+SAMPLE USAGE
+
+.. code-block:: python
+
+   from linkedin_scraper import Person, actions
+   from selenium import webdriver
+   driver = webdriver.Chrome()
+
+   email = "some-email@email.address"
+   password = "password123"
+   actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
+   person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=driver)
 
 User Scraping
 ^^^^^^^^^^^^^
@@ -74,6 +87,21 @@ The reason is that LinkedIn has recently blocked people from viewing certain pro
 
 so it doesn't close.
 
+Scraping sites and login automatically
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+From verison **2.4.0** on, ``actions`` is a part of the library that allows signing into Linkedin first. The email and password can be provided as a variable into the function. If not provided, both will be prompted in terminal.
+
+.. code-block:: python
+
+   from linkedin_scraper import Person, actions
+   from selenium import webdriver
+   driver = webdriver.Chrome()
+   email = "some-email@email.address"
+   password = "password123"
+   actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
+   person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=driver)
+
 API
 ---
 
@@ -84,7 +112,7 @@ Overall, to a Person object can be created with the following inputs:
 
 .. code-block:: python
 
-   Person( linkedin_url=None, experiences = [], educations = [], driver = None, scrape = True)
+   Person(linkedin_url=None, experiences=[], educations=[], driver=None, scrape=True)
 
 ``linkedin_url``
 ~~~~~~~~~~~~~~~~~~~~
@@ -128,7 +156,7 @@ Company
 
 .. code-block:: python
 
-   Company(linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True)
+   Company(linkedin_url=None, name=None, about_us=one, website=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
 
 ``linkedin_url``
 ~~~~~~~~~~~~~~~~~~~~
@@ -200,7 +228,7 @@ For example
 .. code-block:: python
 
    driver = webdriver.Chrome()
-   company = Company("https://ca.linkedin.com/company/google", driver = driver)
+   company = Company("https://ca.linkedin.com/company/google", driver=driver)
 
 ``scrape(close_on_complete=True)``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -209,6 +237,11 @@ This is the meat of the code, where execution of this function scrapes the compa
 
 Versions
 --------
+
+**2.4.0**
+
+
+* Added ``actions`` for login
 
 **2.3.1**
 

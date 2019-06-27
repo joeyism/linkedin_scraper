@@ -210,6 +210,11 @@ This is the meat of the code, where execution of this function scrapes the compa
 Versions
 --------
 
+**2.3.1**
+
+
+* Fixed bugs
+
 **2.2.x**
 
 

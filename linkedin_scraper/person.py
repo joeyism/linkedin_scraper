@@ -6,7 +6,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .functions import time_divide
 from .objects import Experience, Education, Scraper
-from .selenium_utils import WebElement
 import os
 
 class Person(Scraper):
@@ -16,7 +15,7 @@ class Person(Scraper):
     also_viewed_urls = []
     linkedin_url = None
 
-    def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], driver = None, get = True, scrape = True):
+    def __init__(self, linkedin_url=None, name=None, experiences=[], educations=[], driver=None, get=True, scrape=True):
         self.linkedin_url = linkedin_url
         self.name = name
         self.experiences = experiences or []
@@ -48,7 +47,7 @@ class Person(Scraper):
     def add_education(self, education):
         self.educations.append(education)
 
-    def scrape(self, close_on_complete = True):
+    def scrape(self, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete = close_on_complete)
         else:
@@ -106,7 +105,7 @@ class Person(Scraper):
             driver.close()
 
 
-    def scrape_not_logged_in(self, close_on_complete=True, retry_limit = 10):
+    def scrape_not_logged_in(self, close_on_complete=True, retry_limit=10):
         driver = self.driver
         retry_times = 0
         while self.is_signed_in() and retry_times <= retry_limit:

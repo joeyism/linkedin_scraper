@@ -69,3 +69,11 @@ class Scraper(object):
         except:
             pass
         return False
+
+    def __find_element_by_xpath__(self, tag_name):
+        try:
+            self.driver.find_element_by_xpath(tag_name)
+            return True
+        except:
+            pass
+        return False

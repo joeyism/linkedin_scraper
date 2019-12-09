@@ -12,6 +12,7 @@ class Person(Scraper):
     name = None
     experiences = []
     educations = []
+    location = None
     also_viewed_urls = []
     linkedin_url = None
 
@@ -47,6 +48,9 @@ class Person(Scraper):
     def add_education(self, education):
         self.educations.append(education)
 
+    def add_location(self, location):
+        self.location=location
+    
     def scrape(self, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete = close_on_complete)
@@ -81,6 +85,11 @@ class Person(Scraper):
             experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
             experience.institution_name = company
             self.add_experience(experience)
+        
+        # get location
+        location = driver.find_element_by_class_name('pv-top-card-v3--list-bullet')
+        location = location.find_element_by_tag_name('li').text
+        self.add_location(location)
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));")
 

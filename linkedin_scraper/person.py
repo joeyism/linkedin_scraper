@@ -9,6 +9,7 @@ from .objects import Experience, Education, Scraper
 import os
 
 class Person(Scraper):
+    __TOP_CARD = "pv-top-card"
     name = None
     experiences = []
     educations = []
@@ -59,7 +60,7 @@ class Person(Scraper):
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
-        root = driver.find_element_by_class_name("pv-top-card-v3")
+        root = driver.find_element_by_class_name(self.__TOP_CARD)
         self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
@@ -87,7 +88,7 @@ class Person(Scraper):
             self.add_experience(experience)
         
         # get location
-        location = driver.find_element_by_class_name('pv-top-card-v3--list-bullet')
+        location = driver.find_element_by_class_name(f'{self.__TOP_CARD}--list-bullet')
         location = location.find_element_by_tag_name('li').text
         self.add_location(location)
 

@@ -77,6 +77,12 @@ This is the past experiences they have. A list of `linkedin_scraper.scraper.Expe
 #### `educations`
 This is the past educations they have. A list of `linkedin_scraper.scraper.Education`
 
+#### `interests`
+This is the interests they have. A list of `linkedin_scraper.scraper.Interest`
+
+#### `accomplishment`
+This is the accomplishments they have. A list of `linkedin_scraper.scraper.Accomplishment`
+
 #### `driver`
 This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.
 

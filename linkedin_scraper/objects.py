@@ -1,4 +1,3 @@
-
 class Institution(object):
     institution_name = None
     website = None
@@ -32,7 +31,6 @@ class Experience(Institution):
     def __repr__(self):
         return "{position_title} at {company} from {from_date} to {to_date}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name)
 
-
 class Education(Institution):
     from_date = None
     to_date = None
@@ -47,6 +45,26 @@ class Education(Institution):
 
     def __repr__(self):
         return "{degree} at {company} from {from_date} to {to_date}".format( from_date = self.from_date, to_date = self.to_date, degree = self.degree, company = self.institution_name)
+
+class Interest(Institution):
+    title = None
+    
+    def __init__(self, title = None):
+        self.title = title.decode('utf-8')
+    
+    def __repr__(self):
+        return self.title
+
+class Accomplishment(Institution):
+    category = None
+    title = None
+    
+    def __init__(self, category = None, title = None):
+        self.category = category
+        self.title = title
+    
+    def __repr__(self):
+        return self.category + ": " + self.title
 
 class Scraper(object):
     driver = None
@@ -66,5 +84,3 @@ class Scraper(object):
         except:
             pass
         return False
-
-

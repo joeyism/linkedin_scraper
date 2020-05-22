@@ -12,14 +12,18 @@ class Person(Scraper):
     name = None
     experiences = []
     educations = []
+    interests = []
+    accomplishments = []
     also_viewed_urls = []
     linkedin_url = None
 
-    def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], driver = None, get = True, scrape = True):
+    def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], interests = [], accomplishments = [], driver = None, get = True, scrape = True):
         self.linkedin_url = linkedin_url
         self.name = name
         self.experiences = experiences
         self.educations = educations
+        self.interests = interests
+        self.accomplishments = accomplishments
 
         if driver is None:
             try:
@@ -46,6 +50,12 @@ class Person(Scraper):
 
     def add_education(self, education):
         self.educations.append(education)
+    
+    def add_interest(self, interest):
+        self.interests.append(interest)
+		
+    def add_accomplishment(self, accomplishment):
+        self.accomplishments.append(accomplishment)
 
     def scrape(self, close_on_complete = True):
         if self.is_signed_in():
@@ -59,44 +69,78 @@ class Person(Scraper):
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 
-        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "experience-section")))
-
         # get experience
-        exp = driver.find_element_by_id("experience-section")
-        for position in exp.find_elements_by_class_name("pv-position-entity"):
-            position_title = position.find_element_by_tag_name("h3").text.encode('utf-8').strip()
-            company = position.find_element_by_class_name("pv-entity__secondary-title").text.encode('utf-8').strip()
+        try:
+            _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "experience-section")))
+            exp = driver.find_element_by_id("experience-section")
+        except:
+            exp = None
 
-            try:
-                times = position.find_element_by_class_name("pv-entity__date-range").text.encode('utf-8').strip()
-                from_date, to_date, duration = time_divide(times)
-            except:
-                from_date, to_date = (None, None)
-            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date)
-            experience.institution_name = company
-            self.add_experience(experience)
+        if (exp is not None):
+            for position in exp.find_elements_by_class_name("pv-position-entity"):
+                position_title = position.find_element_by_tag_name("h3").text.encode('utf-8').strip()
+
+                try:
+                    company = position.find_element_by_class_name("pv-entity__secondary-title").text.encode('utf-8').strip()
+                    times = position.find_element_by_class_name("pv-entity__date-range").text.encode('utf-8').strip()
+                    from_date, to_date, duration = time_divide(times)
+                except:
+                    company = None
+                    from_date, to_date = (None, None)
+                experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date)
+                experience.institution_name = company
+                self.add_experience(experience)
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));")
 
         _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "education-section")))
 
         # get education
-        edu = driver.find_element_by_id("education-section")
-        for school in edu.find_elements_by_class_name("pv-profile-section__sortable-item"):
-            university = school.find_element_by_class_name("pv-entity__school-name").text.encode('utf-8').strip()
-            degree = None
-            try:
-                degree = school.find_element_by_class_name("pv-entity__degree-name").text.encode('utf-8').strip()
-                times = school.find_element_by_class_name("pv-entity__dates").text.encode('utf-8').strip()
-                from_date, to_date, duration = time_divide(times)
-            except:
-                from_date, to_date = (None, None)
-            education = Education(from_date = from_date, to_date = to_date, degree=degree)
-            education.institution_name = university
-            self.add_education(education)
+        try:
+            _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "education-section")))
+            edu = driver.find_element_by_id("education-section")
+        except:
+            edu = None
+        
+        if (edu is not None):
+            for school in edu.find_elements_by_class_name("pv-profile-section__sortable-item"):
+                university = school.find_element_by_class_name("pv-entity__school-name").text.encode('utf-8').strip()
+                
+                try:
+                    degree = school.find_element_by_class_name("pv-entity__degree-name").text.encode('utf-8').strip()
+                    times = school.find_element_by_class_name("pv-entity__dates").text.encode('utf-8').strip()
+                    from_date, to_date, duration = time_divide(times)
+                except:
+                    degree = None
+                    from_date, to_date = (None, None)
+                education = Education(from_date = from_date, to_date = to_date, degree=degree)
+                education.institution_name = university
+                self.add_education(education)
 
+        # get interest
+        try:
+            _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, "//*[@class='pv-profile-section pv-interests-section artdeco-container-card ember-view']")))
+            int = driver.find_element_by_xpath("//*[@class='pv-profile-section pv-interests-section artdeco-container-card ember-view']")
+            for interest in int.find_elements_by_xpath("//*[@class='pv-entity__summary-info ember-view']"):
+                interest = Interest(interest.find_element_by_tag_name("h3").text.encode('utf-8').strip())
+                self.add_interest(interest)
+        except:
+            pass
+
+		# get accomplishment
+        try:
+            _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card ember-view']")))
+            acc = driver.find_element_by_xpath("//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card ember-view']")
+            for block in acc.find_elements_by_xpath("//div[@class='pv-accomplishments-block__content break-words']"):
+                category = block.find_element_by_tag_name("h3")
+                for title in block.find_element_by_tag_name("ul").find_elements_by_tag_name("li"):
+                    accomplishment = Accomplishment(category.text, title.text)
+                    self.add_accomplishment(accomplishment)
+        except:
+            pass
+			
         if close_on_complete:
-            driver.close()
+            driver.quit()
 
 
     def scrape_not_logged_in(self, close_on_complete=True, retry_limit = 10):
@@ -144,4 +188,4 @@ class Person(Scraper):
             driver.close()
 
     def __repr__(self):
-        return "{name}\n\nExperience\n{exp}\n\nEducation\n{edu}".format(name = self.name, exp = self.experiences, edu = self.educations)
+        return "{name}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}".format(name = self.name, exp = self.experiences, edu = self.educations, int = self.interests, acc = self.accomplishments)

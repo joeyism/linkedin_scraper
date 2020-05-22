@@ -66,7 +66,7 @@ class Person(Scraper):
     def scrape_logged_in(self, close_on_complete = True):
         driver = self.driver
         top_card = driver.find_element_by_css_selector('ul.pv-top-card--list')
-	self.name = top_card.find_element_by_css_selector('li.inline').text.encode('utf-8').strip()
+        self.name = top_card.find_element_by_css_selector('li.inline').text.encode('utf-8').strip()
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 

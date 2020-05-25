@@ -9,13 +9,6 @@ from .objects import Experience, Education, Scraper
 import os
 
 class Person(Scraper):
-    name = None
-    experiences = []
-    educations = []
-    interests = []
-    accomplishments = []
-    also_viewed_urls = []
-    linkedin_url = None
 
     def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], interests = [], accomplishments = [], driver = None, get = True, scrape = True):
         self.linkedin_url = linkedin_url
@@ -24,6 +17,7 @@ class Person(Scraper):
         self.educations = educations
         self.interests = interests
         self.accomplishments = accomplishments
+	self.also_viewed_urls = []
 
         if driver is None:
             try:

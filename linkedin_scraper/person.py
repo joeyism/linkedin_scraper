@@ -10,33 +10,35 @@ import os
 
 class Person(Scraper):
 
-    def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], interests = [], accomplishments = [], driver = None, get = True, scrape = True):
-        self.linkedin_url = linkedin_url
-        self.name = name
-        self.experiences = experiences
-        self.educations = educations
-        self.interests = interests
-        self.accomplishments = accomplishments
-	self.also_viewed_urls = []
+    __TOP_CARD = "pv-top-card"
 
-        if driver is None:
-            try:
-                if os.getenv("CHROMEDRIVER") == None:
-                    driver_path = os.path.join(os.path.dirname(__file__), 'drivers/chromedriver')
-                else:
-                    driver_path = os.getenv("CHROMEDRIVER")
+    def __init__(self, linkedin_url = None, name = None, experiences = [], educations = [], interests = [], accomplishments = [], driver = None, get = True, scrape = True, close_on_complete = True):
+      self.linkedin_url = linkedin_url
+      self.name = name
+      self.experiences = experiences
+      self.educations = educations
+      self.interests = interests
+      self.accomplishments = accomplishments
+      self.also_viewed_urls = []
 
-                driver = webdriver.Chrome(driver_path)
-            except:
-                driver = webdriver.Chrome()
+      if driver is None:
+          try:
+              if os.getenv("CHROMEDRIVER") == None:
+                  driver_path = os.path.join(os.path.dirname(__file__), 'drivers/chromedriver')
+              else:
+                  driver_path = os.getenv("CHROMEDRIVER")
 
-        if get:
-            driver.get(linkedin_url)
+              driver = webdriver.Chrome(driver_path)
+          except:
+              driver = webdriver.Chrome()
 
-        self.driver = driver
+      if get:
+          driver.get(linkedin_url)
 
-        if scrape:
-            self.scrape()
+      self.driver = driver
+
+      if scrape:
+          self.scrape(close_on_complete)
 
 
     def add_experience(self, experience):
@@ -51,16 +53,20 @@ class Person(Scraper):
     def add_accomplishment(self, accomplishment):
         self.accomplishments.append(accomplishment)
 
-    def scrape(self, close_on_complete = True):
+    def add_location(self, location):
+        self.location=location
+    
+    def scrape(self, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete = close_on_complete)
         else:
             self.scrape_not_logged_in(close_on_complete = close_on_complete)
 
-    def scrape_logged_in(self, close_on_complete = True):
+    def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
-        top_card = driver.find_element_by_css_selector('ul.pv-top-card--list')
-        self.name = top_card.find_element_by_css_selector('li.inline').text.encode('utf-8').strip()
+
+        root = driver.find_element_by_class_name(self.__TOP_CARD)
+        self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 
@@ -82,13 +88,20 @@ class Person(Scraper):
                 except:
                     company = None
                     from_date, to_date = (None, None)
-                experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date)
+                try:
+                    location = position.find_element_by_class_name("pv-entity__location").text.strip()
+                except:
+                    location = None
+                experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
                 experience.institution_name = company
                 self.add_experience(experience)
+        
+        # get location
+        location = driver.find_element_by_class_name(f'{self.__TOP_CARD}--list-bullet')
+        location = location.find_element_by_tag_name('li').text
+        self.add_location(location)
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));")
-
-        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "education-section")))
 
         # get education
         try:
@@ -122,7 +135,7 @@ class Person(Scraper):
         except:
             pass
 
-		# get accomplishment
+        # get accomplishment
         try:
             _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card ember-view']")))
             acc = driver.find_element_by_xpath("//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card ember-view']")
@@ -133,44 +146,47 @@ class Person(Scraper):
                     self.add_accomplishment(accomplishment)
         except:
             pass
-			
+
         if close_on_complete:
             driver.quit()
 
-
-    def scrape_not_logged_in(self, close_on_complete=True, retry_limit = 10):
+    def scrape_not_logged_in(self, close_on_complete=True, retry_limit=10):
         driver = self.driver
         retry_times = 0
         while self.is_signed_in() and retry_times <= retry_limit:
             page = driver.get(self.linkedin_url)
             retry_times = retry_times + 1
 
-
         # get name
-        self.name = driver.find_element_by_id("name").text.encode('utf-8').strip()
+        self.name = driver.find_element_by_id("name").text.strip()
 
         # get experience
         exp = driver.find_element_by_id("experience")
         for position in exp.find_elements_by_class_name("position"):
-            position_title = position.find_element_by_class_name("item-title").text.encode('utf-8').strip()
-            company = position.find_element_by_class_name("item-subtitle").text.encode('utf-8').strip()
+            position_title = position.find_element_by_class_name("item-title").text.strip()
+            company = position.find_element_by_class_name("item-subtitle").text.strip()
 
             try:
-                times = position.find_element_by_class_name("date-range").text.encode('utf-8').strip()
+                times = position.find_element_by_class_name("date-range").text.strip()
                 from_date, to_date, duration = time_divide(times)
             except:
-                from_date, to_date = (None, None)
-            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date)
+                from_date, to_date, duration = (None, None, None)
+
+            try:
+                location = position.find_element_by_class_name("location").text.strip()
+            except:
+                location = None
+            experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
             experience.institution_name = company
             self.add_experience(experience)
 
         # get education
         edu = driver.find_element_by_id("education")
         for school in edu.find_elements_by_class_name("school"):
-            university = school.find_element_by_class_name("item-title").text.encode('utf-8').strip()
-            degree = school.find_element_by_class_name("original").text.encode('utf-8').strip()
+            university = school.find_element_by_class_name("item-title").text.strip()
+            degree = school.find_element_by_class_name("original").text.strip()
             try:
-                times = school.find_element_by_class_name("date-range").text.encode('utf-8').strip()
+                times = school.find_element_by_class_name("date-range").text.strip()
                 from_date, to_date, duration = time_divide(times)
             except:
                 from_date, to_date = (None, None)
@@ -178,7 +194,6 @@ class Person(Scraper):
             education.institution_name = university
             self.add_education(education)
 
-        # get
         if close_on_complete:
             driver.close()
 

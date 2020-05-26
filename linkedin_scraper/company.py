@@ -84,7 +84,7 @@ class Company(Scraper):
         try:
             return Person(
                 linkedin_url = employee_raw.find_element_by_class_name("search-result__result-link").get_attribute("href"),
-                name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text.encode('utf-8').strip(),
+                name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text.strip(),
                 driver = self.driver,
                 get = False,
                 scrape = False
@@ -93,25 +93,27 @@ class Company(Scraper):
             return None
 
     def get_employees(self, wait_time=10):
+        list_css = "search-results"
+        next_xpath = '//button[@aria-label="Next"]'
         driver = self.driver
 
-        see_all_employees = driver.find_element_by_xpath('//span[@data-control-name="topcard_see_all_employees"]')
-        driver.get(see_all_employees.find_elements_by_css_selector("*")[0].get_attribute("href"))
+        see_all_employees = driver.find_element_by_xpath('//a[@data-control-name="topcard_see_all_employees"]')
+        driver.get(see_all_employees.get_attribute("href"))
 
-        _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, "results-list")))
+        _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, list_css)))
 
         total = []
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
         time.sleep(1)
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
-        results_list = driver.find_element_by_class_name("results-list")
+        results_list = driver.find_element_by_class_name(list_css)
         results_li = results_list.find_elements_by_tag_name("li")
         for res in results_li:
             total.append(self.__parse_employee__(res))
 
-        while self.__find_element_by_class_name__("next"):
-            driver.find_element_by_class_name("next").click()
-            _ = WebDriverWait(driver, wait_time).until(EC.staleness_of(driver.find_element_by_class_name("search-result")), 'visible')
+        while self.__find_element_by_xpath__(next_xpath):
+            driver.find_element_by_xpath(next_xpath).click()
+            _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, list_css)))
 
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/4));")
             time.sleep(1)
@@ -123,7 +125,7 @@ class Company(Scraper):
             time.sleep(1)
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
 
-            results_list = driver.find_element_by_class_name("results-list")
+            results_list = driver.find_element_by_class_name(list_css)
             results_li = results_list.find_elements_by_tag_name("li")
             for res in results_li:
                 _ = WebDriverWait(driver, wait_time).until(EC.visibility_of(res))
@@ -137,16 +139,25 @@ class Company(Scraper):
         driver.get(self.linkedin_url)
 
         _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'nav-main__content')))
-        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, '//h1[@dir="ltr"]')))
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.XPATH, '//span[@dir="ltr"]')))
 
-        self.name = driver.find_element_by_xpath('//h1[@dir="ltr"]').text.encode('utf-8').strip()
-        self.about_us = driver.find_element_by_class_name("org-about-us-organization-description__text").text.encode('utf-8').strip()
+        navigation = driver.find_element_by_class_name("org-page-navigation__items ")
 
-        self.specialties = "\n".join(driver.find_element_by_class_name("org-about-company-module__specialities").text.encode('utf-8').strip().split(", "))
-        self.website = driver.find_element_by_class_name("org-about-us-company-module__website").text.encode('utf-8').strip()
-        self.headquarters = driver.find_element_by_class_name("org-about-company-module__headquarters").text.encode('utf-8').strip()
-        self.industry = driver.find_element_by_class_name("company-industries").text.encode('utf-8').strip()
-        self.company_size = driver.find_element_by_class_name("org-about-company-module__company-staff-count-range").text.encode('utf-8').strip()
+        self.name = driver.find_element_by_xpath('//span[@dir="ltr"]').text.strip()
+        navigation.find_elements_by_xpath("//a[@data-control-name='page_member_main_nav_about_tab']")[0].click()
+
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'section')))
+        time.sleep(3)
+
+        grid = driver.find_elements_by_tag_name("section")[3]
+        self.about_us = grid.find_elements_by_tag_name("p")[0].text.strip()
+
+        values = grid.find_elements_by_tag_name("dd")
+        self.specialties = "\n".join(values[-1].text.strip().split(", "))
+        self.website = values[0].text.strip()
+        self.headquarters = values[5].text.strip()
+        self.industry = values[2].text.strip()
+        self.company_size = values[3].text.strip()
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 
@@ -160,8 +171,8 @@ class Company(Scraper):
             for showcase_company in showcase.find_elements_by_class_name("org-company-card"):
                 companySummary = CompanySummary(
                         linkedin_url = showcase_company.find_element_by_class_name("company-name-link").get_attribute("href"),
-                        name = showcase_company.find_element_by_class_name("company-name-link").text.encode('utf-8').strip(),
-                        followers = showcase_company.find_element_by_class_name("company-followers-count").text.encode('utf-8').strip()
+                        name = showcase_company.find_element_by_class_name("company-name-link").text.strip(),
+                        followers = showcase_company.find_element_by_class_name("company-followers-count").text.strip()
                     )
                 self.showcase_pages.append(companySummary)
 
@@ -170,8 +181,8 @@ class Company(Scraper):
             for affiliated_company in showcase.find_elements_by_class_name("org-company-card"):
                 companySummary = CompanySummary(
                          linkedin_url = affiliated_company.find_element_by_class_name("company-name-link").get_attribute("href"),
-                        name = affiliated_company.find_element_by_class_name("company-name-link").text.encode('utf-8').strip(),
-                        followers = affiliated_company.find_element_by_class_name("company-followers-count").text.encode('utf-8').strip()
+                        name = affiliated_company.find_element_by_class_name("company-name-link").text.strip(),
+                        followers = affiliated_company.find_element_by_class_name("company-followers-count").text.strip()
                         )
                 self.affiliated_companies.append(companySummary)
 
@@ -193,14 +204,14 @@ class Company(Scraper):
             page = driver.get(self.linkedin_url)
             retry_times = retry_times + 1
 
-        self.name = driver.find_element_by_class_name("name").text.encode('utf-8').strip()
+        self.name = driver.find_element_by_class_name("name").text.strip()
 
-        self.about_us = driver.find_element_by_class_name("basic-info-description").text.encode('utf-8').strip()
+        self.about_us = driver.find_element_by_class_name("basic-info-description").text.strip()
         self.specialties = self.__get_text_under_subtitle_by_class(driver, "specialties")
         self.website = self.__get_text_under_subtitle_by_class(driver, "website")
-        self.headquarters = driver.find_element_by_class_name("adr").text.encode('utf-8').strip()
-        self.industry = driver.find_element_by_class_name("industry").text.encode('utf-8').strip()
-        self.company_size = driver.find_element_by_class_name("company-size").text.encode('utf-8').strip()
+        self.headquarters = driver.find_element_by_class_name("adr").text.strip()
+        self.industry = driver.find_element_by_class_name("industry").text.strip()
+        self.company_size = driver.find_element_by_class_name("company-size").text.strip()
         self.company_type = self.__get_text_under_subtitle_by_class(driver, "type")
         self.founded = self.__get_text_under_subtitle_by_class(driver, "founded")
 
@@ -214,8 +225,8 @@ class Company(Scraper):
                 name_elem = showcase_company.find_element_by_class_name("name")
                 companySummary = CompanySummary(
                     linkedin_url = name_elem.find_element_by_tag_name("a").get_attribute("href"),
-                    name = name_elem.text.encode('utf-8').strip(),
-                    followers = showcase_company.text.encode('utf-8').strip().split("\n")[1]
+                    name = name_elem.text.strip(),
+                    followers = showcase_company.text.strip().split("\n")[1]
                 )
                 self.showcase_pages.append(companySummary)
             driver.find_element_by_class_name("dialog-close").click()
@@ -231,7 +242,7 @@ class Company(Scraper):
 
                 companySummary = CompanySummary(
                     linkedin_url = affiliated_page.find_element_by_tag_name("a").get_attribute("href"),
-                    name = affiliated_page.text.encode('utf-8').strip()
+                    name = affiliated_page.text.strip()
                 )
                 self.affiliated_companies.append(companySummary)
         except:

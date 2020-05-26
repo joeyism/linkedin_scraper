@@ -21,15 +21,18 @@ class Experience(Institution):
     to_date = None
     description = None
     position_title = None
+    duration = None
 
-    def __init__(self, from_date = None, to_date = None, description = None, position_title = None):
+    def __init__(self, from_date = None, to_date = None, description = None, position_title = None, duration = None, location = None):
         self.from_date = from_date
         self.to_date = to_date
         self.description = description
         self.position_title = position_title
+        self.duration = duration
+        self.location = location
 
     def __repr__(self):
-        return "{position_title} at {company} from {from_date} to {to_date}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name)
+        return "{position_title} at {company} from {from_date} to {to_date} for {duration} based at {location}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name, duration = self.duration, location = self.location)
 
 class Education(Institution):
     from_date = None
@@ -80,6 +83,14 @@ class Scraper(object):
     def __find_element_by_class_name__(self, class_name):
         try:
             self.driver.find_element_by_class_name(class_name)
+            return True
+        except:
+            pass
+        return False
+
+    def __find_element_by_xpath__(self, tag_name):
+        try:
+            self.driver.find_element_by_xpath(tag_name)
             return True
         except:
             pass

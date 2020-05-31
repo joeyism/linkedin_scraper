@@ -64,6 +64,7 @@ class Person(Scraper):
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
+        duration = None
 
         root = driver.find_element_by_class_name(self.__TOP_CARD)
         self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
@@ -92,7 +93,7 @@ class Person(Scraper):
                     location = position.find_element_by_class_name("pv-entity__location").text.strip()
                 except:
                     location = None
-                experience = Experience( position_title = position_title , from_date = from_date , to_date = to_date, duration = duration, location = location)
+                experience = Experience(position_title=position_title, from_date=from_date, to_date=to_date, duration=duration, location=location)
                 experience.institution_name = company
                 self.add_experience(experience)
         

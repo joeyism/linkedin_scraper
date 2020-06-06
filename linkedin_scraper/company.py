@@ -111,7 +111,7 @@ class Company(Scraper):
         for res in results_li:
             total.append(self.__parse_employee__(res))
 
-        while self.__find_element_by_xpath__(next_xpath):
+        while self.__find_enabled_element_by_xpath__(next_xpath):
             driver.find_element_by_xpath(next_xpath).click()
             _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, list_css)))
 
@@ -130,6 +130,7 @@ class Company(Scraper):
             for res in results_li:
                 _ = WebDriverWait(driver, wait_time).until(EC.visibility_of(res))
                 total.append(self.__parse_employee__(res))
+        return total
 
 
 
@@ -190,7 +191,7 @@ class Company(Scraper):
             pass
 
         if get_employees:
-            self.get_employees()
+            self.employees = self.get_employees()
 
         driver.get(self.linkedin_url)
 
@@ -249,7 +250,7 @@ class Company(Scraper):
             pass
 
         if get_employees:
-            self.get_employees()
+            self.employees = self.get_employees()
 
         driver.get(self.linkedin_url)
 

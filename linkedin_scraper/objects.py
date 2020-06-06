@@ -95,3 +95,11 @@ class Scraper(object):
         except:
             pass
         return False
+
+    def __find_enabled_element_by_xpath__(self, tag_name):
+        try:
+            elem = self.driver.find_element_by_xpath(tag_name)
+            return elem.is_enabled()
+        except:
+            pass
+        return False

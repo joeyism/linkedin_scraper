@@ -19,7 +19,7 @@ export CHROMEDRIVER=~/chromedriver
 ## Usage
 To use it, just create the class.
 
-SAMPLE USAGE
+### Sample Usage
 ```python
 from linkedin_scraper import Person, actions
 from selenium import webdriver

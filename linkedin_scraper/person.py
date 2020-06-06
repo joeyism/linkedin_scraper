@@ -83,11 +83,11 @@ class Person(Scraper):
                 position_title = position.find_element_by_tag_name("h3").text.encode('utf-8').strip()
 
                 try:
-                    company = position.find_element_by_class_name("pv-entity__secondary-title").text.encode('utf-8').strip()
+                    company = position.find_elements_by_tag_name("p")[1].text.encode('utf-8').strip()
                     times = position.find_element_by_class_name("pv-entity__date-range").text.encode('utf-8').strip()
                     from_date, to_date, duration = time_divide(times)
                 except:
-                    company = None
+                    # company = None
                     from_date, to_date = (None, None)
                 try:
                     location = position.find_element_by_class_name("pv-entity__location").text.strip()
@@ -112,15 +112,16 @@ class Person(Scraper):
             edu = None
         
         if (edu is not None):
-            for school in edu.find_elements_by_class_name("pv-profile-section__sortable-item"):
+            for school in edu.find_elements_by_class_name("pv-profile-section__list-item"):
                 university = school.find_element_by_class_name("pv-entity__school-name").text.encode('utf-8').strip()
+                deginfo = school.find_element_by_class_name("pv-entity__degree-info")
                 
                 try:
-                    degree = school.find_element_by_class_name("pv-entity__degree-name").text.encode('utf-8').strip()
+                    degree = deginfo.find_element_by_class_name("pv-entity__degree-name").text.encode('utf-8').strip()
                     times = school.find_element_by_class_name("pv-entity__dates").text.encode('utf-8').strip()
                     from_date, to_date, duration = time_divide(times)
                 except:
-                    degree = None
+                    # degree = None
                     from_date, to_date = (None, None)
                 education = Education(from_date = from_date, to_date = to_date, degree=degree)
                 education.institution_name = university

@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .functions import time_divide
-from .objects import Experience, Education, Scraper
+from .objects import Experience, Education, Scraper,Interest,Accomplishment
 import os
 
 class Person(Scraper):
@@ -84,15 +84,15 @@ class Person(Scraper):
 
                 try:
                     company = position.find_elements_by_tag_name("p")[1].text.encode('utf-8').strip()
-                    times = position.find_element_by_class_name("pv-entity__date-range").text.encode('utf-8').strip()
-                    from_date, to_date, duration = time_divide(times)
+                    times = str(position.find_elements_by_tag_name("h4")[0].find_elements_by_tag_name("span")[1].text.strip())
+                    from_date = " ".join(times.split(' ')[:2])
+                    to_date = " ".join(times.split(' ')[3:])
+                    duration = position.find_elements_by_tag_name("h4")[1].find_elements_by_tag_name("span")[1].text.strip()
+                    location = position.find_elements_by_tag_name("h4")[2].find_elements_by_tag_name("span")[1].text.strip()
                 except:
-                    # company = None
-                    from_date, to_date = (None, None)
-                try:
-                    location = position.find_element_by_class_name("pv-entity__location").text.strip()
-                except:
-                    location = None
+                    company = None
+                    from_date, to_date,duration,location = (None, None, None, None)
+                
                 experience = Experience(position_title=position_title, from_date=from_date, to_date=to_date, duration=duration, location=location)
                 experience.institution_name = company
                 self.add_experience(experience)
@@ -114,14 +114,13 @@ class Person(Scraper):
         if (edu is not None):
             for school in edu.find_elements_by_class_name("pv-profile-section__list-item"):
                 university = school.find_element_by_class_name("pv-entity__school-name").text.encode('utf-8').strip()
-                deginfo = school.find_element_by_class_name("pv-entity__degree-info")
                 
                 try:
-                    degree = deginfo.find_element_by_class_name("pv-entity__degree-name").text.encode('utf-8').strip()
-                    times = school.find_element_by_class_name("pv-entity__dates").text.encode('utf-8').strip()
-                    from_date, to_date, duration = time_divide(times)
+                    degree = school.find_element_by_class_name("pv-entity__degree-name").find_elements_by_tag_name("span")[1].text.encode('utf-8').strip()
+                    times = school.find_element_by_class_name("pv-entity__dates").find_elements_by_tag_name("span")[1].text.strip()
+                    from_date, to_date = (times.split(" ")[0],times.split(" ")[2])
                 except:
-                    # degree = None
+                    degree = None
                     from_date, to_date = (None, None)
                 education = Education(from_date = from_date, to_date = to_date, degree=degree)
                 education.institution_name = university
@@ -130,9 +129,9 @@ class Person(Scraper):
         # get interest
         try:
             _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, "//*[@class='pv-profile-section pv-interests-section artdeco-container-card ember-view']")))
-            int = driver.find_element_by_xpath("//*[@class='pv-profile-section pv-interests-section artdeco-container-card ember-view']")
-            for interest in int.find_elements_by_xpath("//*[@class='pv-entity__summary-info ember-view']"):
-                interest = Interest(interest.find_element_by_tag_name("h3").text.encode('utf-8').strip())
+            interestContainer = driver.find_element_by_xpath("//*[@class='pv-profile-section pv-interests-section artdeco-container-card ember-view']")
+            for interestElement in interestContainer.find_elements_by_xpath("//*[@class='pv-entity__summary-info ember-view']"):
+                interest = Interest(interestElement.find_element_by_tag_name("h3").text.encode('utf-8').strip())
                 self.add_interest(interest)
         except:
             pass

@@ -184,8 +184,7 @@ class Person(Scraper):
             retry_times = retry_times + 1
 
         # get name
-        self.name = driver.find_element_by_xpath(
-            "/html/body/main/section[1]/section/section[1]/div/div[1]/div[1]/h1").text.strip()
+        self.name = driver.find_element_by_class_name("top-card-layout__title").text.strip()
 
         # get experience
         try:

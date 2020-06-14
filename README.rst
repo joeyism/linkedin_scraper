@@ -27,7 +27,8 @@ Usage
 
 To use it, just create the class.
 
-SAMPLE USAGE
+Sample Usage
+^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -129,6 +130,16 @@ This is the past experiences they have. A list of ``linkedin_scraper.scraper.Exp
 
 This is the past educations they have. A list of ``linkedin_scraper.scraper.Education``
 
+``interests``
+~~~~~~~~~~~~~~~~~
+
+This is the interests they have. A list of ``linkedin_scraper.scraper.Interest``
+
+``accomplishment``
+~~~~~~~~~~~~~~~~~~~~~~
+
+This is the accomplishments they have. A list of ``linkedin_scraper.scraper.Accomplishment``
+
 ``driver``
 ~~~~~~~~~~~~~~
 
@@ -156,7 +167,7 @@ Company
 
 .. code-block:: python
 
-   Company(linkedin_url=None, name=None, about_us=one, website=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
+   Company(linkedin_url=None, name=None, about_us=None, website=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=[], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
 
 ``linkedin_url``
 ~~~~~~~~~~~~~~~~~~~~

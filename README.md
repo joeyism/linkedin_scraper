@@ -89,7 +89,7 @@ person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=dr
 ## API
 
 ### Person
-Overall, to a Person object can be created with the following inputs:
+A Person object can be created with the following inputs:
 
 ```python
 Person(linkedin_url=None, experiences=[], educations=[], company=None, job_title=None, driver=None, scrape=True)

@@ -140,6 +140,16 @@ This is the interests they have. A list of ``linkedin_scraper.scraper.Interest``
 
 This is the accomplishments they have. A list of ``linkedin_scraper.scraper.Accomplishment``
 
+``company``
+~~~~~~~~~~~~~
+
+This the most recent company or institution they have worked at. 
+
+``job_title``
+~~~~~~~~~~~~~
+
+This the most recent job title they have. 
+
 ``driver``
 ~~~~~~~~~~~~~~
 

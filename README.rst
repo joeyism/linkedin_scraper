@@ -117,7 +117,7 @@ Overall, to a Person object can be created with the following inputs:
 
 ``linkedin_url``
 ~~~~~~~~~~~~~~~~~~~~
-company=None
+
 This is the linkedin url of their profile
 
 ``experiences``

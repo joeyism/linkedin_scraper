@@ -89,10 +89,10 @@ person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=dr
 ## API
 
 ### Person
-Overall, to a Person object can be created with the following inputs:
+A Person object can be created with the following inputs:
 
 ```python
-Person(linkedin_url=None, experiences=[], educations=[], driver=None, scrape=True)
+Person(linkedin_url=None, experiences=[], educations=[], company=None, job_title=None, driver=None, scrape=True)
 ```
 #### `linkedin_url`
 This is the linkedin url of their profile
@@ -108,6 +108,12 @@ This is the interests they have. A list of `linkedin_scraper.scraper.Interest`
 
 #### `accomplishment`
 This is the accomplishments they have. A list of `linkedin_scraper.scraper.Accomplishment`
+
+### `company`
+This the most recent company or institution they have worked at. 
+
+### `job_title`
+This the most recent job title they have. 
 
 #### `driver`
 This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.

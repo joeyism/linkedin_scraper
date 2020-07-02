@@ -113,11 +113,11 @@ Overall, to a Person object can be created with the following inputs:
 
 .. code-block:: python
 
-   Person(linkedin_url=None, experiences=[], educations=[], driver=None, scrape=True)
+   Person(linkedin_url=None, experiences=[], educations=[], company=None, job_title=None, driver=None, scrape=True)
 
 ``linkedin_url``
 ~~~~~~~~~~~~~~~~~~~~
-
+company=None
 This is the linkedin url of their profile
 
 ``experiences``

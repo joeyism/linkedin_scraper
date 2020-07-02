@@ -11,11 +11,9 @@ class Person(Scraper):
 
     __TOP_CARD = "pv-top-card"
 
-    def __init__(self, linkedin_url=None, name=None, companies=[], job_titles=[], experiences=[], educations=[], interests=[], accomplishments=[], driver=None, get=True, scrape=True, close_on_complete=True):
+    def __init__(self, linkedin_url=None, name=None, experiences=[], educations=[], interests=[], accomplishments=[], driver=None, get=True, scrape=True, close_on_complete=True):
         self.linkedin_url = linkedin_url
         self.name = name
-        self.companies = companies
-        self.job_titles = job_titles
         self.experiences = experiences
         self.educations = educations
         self.interests = interests
@@ -107,11 +105,6 @@ class Person(Scraper):
                     from_date, to_date, duration, location = (
                         None, None, None, None)
                 
-                # update job and company
-                if company and position_title: 
-                    self.companies.append(company.decode("utf-8"))
-                    self.job_titles.append(position_title.decode("utf-8"))
-
                 experience = Experience(position_title=position_title, from_date=from_date,
                                         to_date=to_date, duration=duration, location=location)
                 experience.institution_name = company
@@ -259,12 +252,11 @@ class Person(Scraper):
 
     @property
     def company(self):
-        return self.companies[0] if self.companies else None
+        return self.experiences[0].institution_name.decode('utf-8') if self.experiences else None
     
     @property
     def job_title(self):
-        return self.job_titles[0] if self.job_titles else None
-
+        return self.experiences[0].position_title.decode('utf-8') if self.experiences else None
 
     def __repr__(self):
         return "{name}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}".format(name=self.name, exp=self.experiences, edu=self.educations, int=self.interests, acc=self.accomplishments)

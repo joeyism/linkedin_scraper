@@ -10,7 +10,7 @@ class Person(Scraper):
 
     __TOP_CARD = "pv-top-card"
 
-    def __init__(self, linkedin_url=None, name=None, experiences=[], educations=[], interests=[], accomplishments=[], driver=None, get=True, scrape=True, close_on_complete=True):
+    def __init__(self, linkedin_url=None, name=None, experiences=[], educations=[], interests=[], accomplishments=[], company=None, job_title=None, driver=None, get=True, scrape=True, close_on_complete=True):
         self.linkedin_url = linkedin_url
         self.name = name
         self.experiences = experiences
@@ -248,6 +248,28 @@ class Person(Scraper):
 
         if close_on_complete:
             driver.close()
+
+    @property
+    def company(self):
+        if self.experiences:
+            return (
+                self.experiences[0].institution_name.decode("utf-8")
+                if self.experiences[0].institution_name
+                else None
+            )
+        else:
+            return None
+
+    @property
+    def job_title(self):
+        if self.experiences:
+            return (
+                self.experiences[0].position_title.decode("utf-8")
+                if self.experiences[0].position_title
+                else None
+            )
+        else:
+            return None
 
     def __repr__(self):
         return "{name}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}".format(name=self.name, exp=self.experiences, edu=self.educations, int=self.interests, acc=self.accomplishments)

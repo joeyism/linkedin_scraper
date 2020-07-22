@@ -1,3 +1,6 @@
+.. role:: raw-html-m2r(raw)
+   :format: html
+
 
 Linkedin Scraper
 ================
@@ -109,7 +112,7 @@ API
 Person
 ^^^^^^
 
-Overall, to a Person object can be created with the following inputs:
+A Person object can be created with the following inputs:
 
 .. code-block:: python
 
@@ -141,12 +144,12 @@ This is the interests they have. A list of ``linkedin_scraper.scraper.Interest``
 This is the accomplishments they have. A list of ``linkedin_scraper.scraper.Accomplishment``
 
 ``company``
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 
 This the most recent company or institution they have worked at. 
 
 ``job_title``
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 This the most recent job title they have. 
 
@@ -300,3 +303,8 @@ Versions
 
 
 * first publish and fixes
+
+Contribution
+------------
+
+:raw-html-m2r:`<a href="https://www.buymeacoffee.com/joeyism" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>`

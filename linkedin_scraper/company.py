@@ -145,7 +145,12 @@ class Company(Scraper):
         navigation = driver.find_element_by_class_name("org-page-navigation__items ")
 
         self.name = driver.find_element_by_xpath('//span[@dir="ltr"]').text.strip()
-        navigation.find_elements_by_xpath("//a[@data-control-name='page_member_main_nav_about_tab']")[0].click()
+
+        # Click About Tab or View All Link
+        self.__find_first_available_element__(
+          navigation.find_elements_by_xpath("//a[@data-control-name='page_member_main_nav_about_tab']"),
+          navigation.find_elements_by_xpath("//a[@data-control-name='org_about_module_see_all_view_link']"),
+        ).click()
 
         _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'section')))
         time.sleep(3)

@@ -103,3 +103,9 @@ class Scraper(object):
         except:
             pass
         return False
+
+    def __find_first_available_element__(self, *args):
+        for elem in args:
+            if elem:
+                return elem[0]
+

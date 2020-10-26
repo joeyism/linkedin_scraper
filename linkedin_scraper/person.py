@@ -15,6 +15,7 @@ class Person(Scraper):
         self,
         linkedin_url=None,
         name=None,
+        abouts=[],
         experiences=[],
         educations=[],
         interests=[],
@@ -28,6 +29,7 @@ class Person(Scraper):
     ):
         self.linkedin_url = linkedin_url
         self.name = name
+        self.abouts = abouts
         self.experiences = experiences
         self.educations = educations
         self.interests = interests
@@ -54,6 +56,9 @@ class Person(Scraper):
 
         if scrape:
             self.scrape(close_on_complete)
+
+    def add_about(self, about):
+        self.abouts.append(about)
 
     def add_experience(self, experience):
         self.experiences.append(experience)
@@ -87,6 +92,31 @@ class Person(Scraper):
         self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[
             0
         ].text.strip()
+
+        # get about
+        try:
+            see_more = WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//*[@class='lt-line-clamp__more']",
+                    )
+                )
+            )
+            driver.execute_script("arguments[0].click();", see_more)
+
+            about = WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//*[@class='lt-line-clamp__raw-line']",
+                    )
+                )
+            )
+        except:
+            about = None
+        if about:
+            self.add_about(about.text.strip())
 
         driver.execute_script(
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"

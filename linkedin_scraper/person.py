@@ -229,7 +229,7 @@ class Person(Scraper):
                 "//*[@class='pv-profile-section pv-interests-section artdeco-container-card artdeco-card ember-view']"
             )
             for interestElement in interestContainer.find_elements_by_xpath(
-                "//*[@class='pv-entity__summary-info ember-view']"
+                "//*[@class='pv-interest-entity pv-profile-section__card-item ember-view']"
             ):
                 interest = Interest(
                     interestElement.find_element_by_tag_name("h3").text.strip()

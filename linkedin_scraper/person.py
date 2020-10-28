@@ -15,7 +15,7 @@ class Person(Scraper):
         self,
         linkedin_url=None,
         name=None,
-        abouts=[],
+        about=[],
         experiences=[],
         educations=[],
         interests=[],
@@ -29,7 +29,7 @@ class Person(Scraper):
     ):
         self.linkedin_url = linkedin_url
         self.name = name
-        self.abouts = abouts
+        self.about = about
         self.experiences = experiences
         self.educations = educations
         self.interests = interests
@@ -58,7 +58,7 @@ class Person(Scraper):
             self.scrape(close_on_complete)
 
     def add_about(self, about):
-        self.abouts.append(about)
+        self.about.append(about)
 
     def add_experience(self, experience):
         self.experiences.append(experience)
@@ -133,16 +133,10 @@ class Person(Scraper):
 
         if exp is not None:
             for position in exp.find_elements_by_class_name("pv-position-entity"):
-                position_title = (
-                    position.find_element_by_tag_name("h3").text.encode("utf-8").strip()
-                )
+                position_title = position.find_element_by_tag_name("h3").text.strip()
 
                 try:
-                    company = (
-                        position.find_elements_by_tag_name("p")[1]
-                        .text.encode("utf-8")
-                        .strip()
-                    )
+                    company = position.find_elements_by_tag_name("p")[1].text.strip()
                     times = str(
                         position.find_elements_by_tag_name("h4")[0]
                         .find_elements_by_tag_name("span")[1]
@@ -191,23 +185,19 @@ class Person(Scraper):
             edu = driver.find_element_by_id("education-section")
         except:
             edu = None
-
-        if edu is not None:
+        if edu:
             for school in edu.find_elements_by_class_name(
                 "pv-profile-section__list-item"
             ):
-                university = (
-                    school.find_element_by_class_name("pv-entity__school-name")
-                    .text.encode("utf-8")
-                    .strip()
-                )
+                university = school.find_element_by_class_name(
+                    "pv-entity__school-name"
+                ).text.strip()
 
                 try:
                     degree = (
                         school.find_element_by_class_name("pv-entity__degree-name")
                         .find_elements_by_tag_name("span")[1]
-                        .text.encode("utf-8")
-                        .strip()
+                        .text.strip()
                     )
                     times = (
                         school.find_element_by_class_name("pv-entity__dates")
@@ -242,9 +232,7 @@ class Person(Scraper):
                 "//*[@class='pv-entity__summary-info ember-view']"
             ):
                 interest = Interest(
-                    interestElement.find_element_by_tag_name("h3")
-                    .text.encode("utf-8")
-                    .strip()
+                    interestElement.find_element_by_tag_name("h3").text.strip()
                 )
                 self.add_interest(interest)
         except:
@@ -365,6 +353,7 @@ class Person(Scraper):
             except:
                 from_date, to_date = (None, None)
             education = Education(from_date=from_date, to_date=to_date, degree=degree)
+
             education.institution_name = university
             self.add_education(education)
 
@@ -375,7 +364,7 @@ class Person(Scraper):
     def company(self):
         if self.experiences:
             return (
-                self.experiences[0].institution_name.decode("utf-8")
+                self.experiences[0].institution_name
                 if self.experiences[0].institution_name
                 else None
             )
@@ -386,7 +375,7 @@ class Person(Scraper):
     def job_title(self):
         if self.experiences:
             return (
-                self.experiences[0].position_title.decode("utf-8")
+                self.experiences[0].position_title
                 if self.experiences[0].position_title
                 else None
             )
@@ -394,8 +383,9 @@ class Person(Scraper):
             return None
 
     def __repr__(self):
-        return "{name}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}".format(
+        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}".format(
             name=self.name,
+            about=self.about,
             exp=self.experiences,
             edu=self.educations,
             int=self.interests,

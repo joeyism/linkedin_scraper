@@ -179,7 +179,11 @@ class Company(Scraper):
         _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'section')))
         time.sleep(3)
 
-        grid = driver.find_elements_by_tag_name("section")[3]
+        if 'Cookie Policy' in driver.find_elements_by_tag_name("section")[1].text:
+            section_id = 4
+        else:
+            section_id = 3
+        grid = driver.find_elements_by_tag_name("section")[section_id]
         self.about_us = grid.find_elements_by_tag_name("p")[0].text.strip()
 
         values = grid.find_elements_by_tag_name("dd")

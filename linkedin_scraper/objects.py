@@ -7,7 +7,16 @@ class Institution(object):
     company_size = None
     founded = None
 
-    def __init__(self, name=None, website=None, industry=None, type=None, headquarters=None, company_size=None, founded=None):
+    def __init__(
+        self,
+        name=None,
+        website=None,
+        industry=None,
+        type=None,
+        headquarters=None,
+        company_size=None,
+        founded=None,
+    ):
         self.name = name
         self.website = website
         self.industry = industry
@@ -16,6 +25,7 @@ class Institution(object):
         self.company_size = company_size
         self.founded = founded
 
+
 class Experience(Institution):
     from_date = None
     to_date = None
@@ -23,7 +33,15 @@ class Experience(Institution):
     position_title = None
     duration = None
 
-    def __init__(self, from_date = None, to_date = None, description = None, position_title = None, duration = None, location = None):
+    def __init__(
+        self,
+        from_date=None,
+        to_date=None,
+        description=None,
+        position_title=None,
+        duration=None,
+        location=None,
+    ):
         self.from_date = from_date
         self.to_date = to_date
         self.description = description
@@ -32,7 +50,15 @@ class Experience(Institution):
         self.location = location
 
     def __repr__(self):
-        return "{position_title} at {company} from {from_date} to {to_date} for {duration} based at {location}".format( from_date = self.from_date, to_date = self.to_date, position_title = self.position_title, company = self.institution_name, duration = self.duration, location = self.location)
+        return "{position_title} at {company} from {from_date} to {to_date} for {duration} based at {location}".format(
+            from_date=self.from_date,
+            to_date=self.to_date,
+            position_title=self.position_title,
+            company=self.institution_name,
+            duration=self.duration,
+            location=self.location,
+        )
+
 
 class Education(Institution):
     from_date = None
@@ -40,34 +66,42 @@ class Education(Institution):
     description = None
     degree = None
 
-    def __init__(self, from_date = None, to_date = None, description = None, degree = None):
+    def __init__(self, from_date=None, to_date=None, description=None, degree=None):
         self.from_date = from_date
         self.to_date = to_date
         self.description = description
         self.degree = degree
 
     def __repr__(self):
-        return "{degree} at {company} from {from_date} to {to_date}".format( from_date = self.from_date, to_date = self.to_date, degree = self.degree, company = self.institution_name)
+        return "{degree} at {company} from {from_date} to {to_date}".format(
+            from_date=self.from_date,
+            to_date=self.to_date,
+            degree=self.degree,
+            company=self.institution_name,
+        )
+
 
 class Interest(Institution):
     title = None
-    
-    def __init__(self, title = None):
-        self.title = title.decode('utf-8')
-    
+
+    def __init__(self, title=None):
+        self.title = title
+
     def __repr__(self):
         return self.title
+
 
 class Accomplishment(Institution):
     category = None
     title = None
-    
-    def __init__(self, category = None, title = None):
+
+    def __init__(self, category=None, title=None):
         self.category = category
         self.title = title
-    
+
     def __repr__(self):
         return self.category + ": " + self.title
+
 
 class Scraper(object):
     driver = None
@@ -109,4 +143,3 @@ class Scraper(object):
         for elem in args:
             if elem:
                 return elem[0]
-

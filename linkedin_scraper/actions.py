@@ -1,4 +1,5 @@
 import getpass
+from linkedin_scraper.objects import Scraper
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC

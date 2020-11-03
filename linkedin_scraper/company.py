@@ -74,7 +74,7 @@ class Company(Scraper):
     def __get_text_under_subtitle_by_class(self, driver, class_name):
         return self.__get_text_under_subtitle(driver.find_element_by_class_name(class_name))
 
-    def scrape(self, get_employees = True, close_on_complete = True):
+    def scrape(self, get_employees=True, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(get_employees = get_employees, close_on_complete = close_on_complete)
         else:
@@ -83,8 +83,8 @@ class Company(Scraper):
     def __parse_employee__(self, employee_raw):
         try:
             return Person(
-                linkedin_url = employee_raw.find_element_by_class_name("search-result__result-link").get_attribute("href"),
-                name = employee_raw.find_elements_by_class_name("search-result__result-link")[1].text.strip(),
+                linkedin_url = employee_raw.find_element_by_tag_name("a").get_attribute("href"),
+                name = (employee_raw.text.split("\n") or [""])[0].strip(),
                 driver = self.driver,
                 get = False,
                 scrape = False
@@ -93,43 +93,64 @@ class Company(Scraper):
             return None
 
     def get_employees(self, wait_time=10):
-        list_css = "search-results"
+        total = []
+        list_css = "org-people-profiles-module__profile-list"
         next_xpath = '//button[@aria-label="Next"]'
         driver = self.driver
 
-        see_all_employees = driver.find_element_by_xpath('//a[@data-control-name="topcard_see_all_employees"]')
-        driver.get(see_all_employees.get_attribute("href"))
+        try:
+            see_all_employees = driver.find_element_by_xpath('//a[@data-control-name="topcard_see_all_employees"]')
+        except:
+            pass
+        driver.get(os.path.join(self.linkedin_url, "people"))
 
-        _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, list_css)))
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'nav-main__content')))
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.XPATH, '//span[@dir="ltr"]')))
 
-        total = []
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
         time.sleep(1)
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
+
         results_list = driver.find_element_by_class_name(list_css)
         results_li = results_list.find_elements_by_tag_name("li")
         for res in results_li:
             total.append(self.__parse_employee__(res))
 
-        while self.__find_enabled_element_by_xpath__(next_xpath):
-            driver.find_element_by_xpath(next_xpath).click()
+        def is_loaded(previous_results):
+          loop = 0
+          driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight));")
+          results_li = results_list.find_elements_by_tag_name("li")
+          while len(results_li) == previous_results and loop <= 5:
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight));")
+            results_li = results_list.find_elements_by_tag_name("li")
+            loop += 1
+          return loop <= 5
+
+        def get_data(previous_results):
+            results_li = results_list.find_elements_by_tag_name("li")
+            for res in results_li[previous_results:]:
+                total.append(self.__parse_employee__(res))
+
+        results_li_len = len(results_li)
+        while is_loaded(results_li_len):
+            try:
+                driver.find_element_by_xpath(next_xpath).click()
+            except:
+                pass
             _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, list_css)))
 
-            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/4));")
-            time.sleep(1)
-            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/3));")
-            time.sleep(1)
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
             time.sleep(1)
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*2/3));")
             time.sleep(1)
             driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight));")
+            time.sleep(1)
 
-            results_list = driver.find_element_by_class_name(list_css)
-            results_li = results_list.find_elements_by_tag_name("li")
-            for res in results_li:
-                _ = WebDriverWait(driver, wait_time).until(EC.visibility_of(res))
-                total.append(self.__parse_employee__(res))
+            get_data(results_li_len)
+            results_li_len = len(total)
         return total
 
 
@@ -147,10 +168,13 @@ class Company(Scraper):
         self.name = driver.find_element_by_xpath('//span[@dir="ltr"]').text.strip()
 
         # Click About Tab or View All Link
-        self.__find_first_available_element__(
-          navigation.find_elements_by_xpath("//a[@data-control-name='page_member_main_nav_about_tab']"),
-          navigation.find_elements_by_xpath("//a[@data-control-name='org_about_module_see_all_view_link']"),
-        ).click()
+        try:
+          self.__find_first_available_element__(
+            navigation.find_elements_by_xpath("//a[@data-control-name='page_member_main_nav_about_tab']"),
+            navigation.find_elements_by_xpath("//a[@data-control-name='org_about_module_see_all_view_link']"),
+          ).click()
+        except:
+          driver.get(os.path.join(self.linkedin_url, "about"))
 
         _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'section')))
         time.sleep(3)

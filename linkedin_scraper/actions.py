@@ -1,4 +1,5 @@
 import getpass
+from linkedin_scraper.objects import Scraper
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -24,6 +25,9 @@ def login(driver, email=None, password=None):
 
   password_elem = driver.find_element_by_id("password")
   password_elem.send_keys(password)
-  driver.find_element_by_tag_name("button").click()
+
+  Scraper.__find_first_available_element__(
+    driver.find_elements_by_xpath("//button[@aria-label='Sign in']")
+  ).click()
 
   element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "profile-nav-item")))

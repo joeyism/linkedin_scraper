@@ -198,7 +198,8 @@ class Company(Scraper):
                 self.industry = values[i+xOff].text.strip()
             elif txt == 'Company size':
                 self.company_size = values[i+xOff].text.strip()
-                xOff = 1
+                if len(values) > len(labels):
+                    xOff = 1
             elif txt == 'Type':
                 self.company_type = values[i+xOff].text.strip()
             elif txt == 'Founded':

@@ -186,12 +186,25 @@ class Company(Scraper):
         grid = driver.find_elements_by_tag_name("section")[section_id]
         self.about_us = grid.find_elements_by_tag_name("p")[0].text.strip()
 
+        labels = grid.find_elements_by_tag_name("dt")
         values = grid.find_elements_by_tag_name("dd")
-        self.specialties = "\n".join(values[-1].text.strip().split(", "))
-        self.website = values[0].text.strip()
-        self.headquarters = values[5].text.strip()
-        self.industry = values[2].text.strip()
-        self.company_size = values[3].text.strip()
+        numAttributes = min(len(labels), len(values))
+        xOff = 0
+        for i in range(numAttributes):
+            txt = labels[i].text.strip()
+            if txt == 'Website':
+                self.website = values[i+xOff].text.strip()
+            elif txt == 'Industry':
+                self.industry = values[i+xOff].text.strip()
+            elif txt == 'Company size':
+                self.company_size = values[i+xOff].text.strip()
+                xOff = 1
+            elif txt == 'Type':
+                self.company_type = values[i+xOff].text.strip()
+            elif txt == 'Founded':
+                self.founded = values[i+xOff].text.strip()
+            elif txt == 'Specialties':
+                self.specialties = "\n".join(values[i+xOff].text.strip().split(", "))
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 

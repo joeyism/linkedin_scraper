@@ -184,7 +184,9 @@ class Company(Scraper):
         else:
             section_id = 3
         grid = driver.find_elements_by_tag_name("section")[section_id]
-        self.about_us = grid.find_elements_by_tag_name("p")[0].text.strip()
+        descWrapper = grid.find_elements_by_tag_name("p")
+        if len(descWrapper) > 0:
+            self.about_us = descWrapper[0].text.strip()
 
         labels = grid.find_elements_by_tag_name("dt")
         values = grid.find_elements_by_tag_name("dd")

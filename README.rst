@@ -116,12 +116,22 @@ A Person object can be created with the following inputs:
 
 .. code-block:: python
 
-   Person(linkedin_url=None, experiences=[], educations=[], company=None, job_title=None, driver=None, scrape=True)
+   Person(linkedin_url=None, name=None, about=[], experiences=[], educations=[], interests=[], accomplishments=[], company=None, job_title=None, driver=None, scrape=True)
 
 ``linkedin_url``
 ~~~~~~~~~~~~~~~~~~~~
 
 This is the linkedin url of their profile
+
+``name``
+~~~~~~~~~~~~
+
+This is the name of the person
+
+``about``
+~~~~~~~~~~~~~
+
+This is the small paragraph about the person
 
 ``experiences``
 ~~~~~~~~~~~~~~~~~~~
@@ -258,51 +268,6 @@ For example
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is the meat of the code, where execution of this function scrapes the company. If *close_on_complete* is True (which it is by default), then the browser will close upon completion. If scraping of other companies are desired, then you might want to set that to false so you can keep using the same driver.
-
-Versions
---------
-
-**2.4.0**
-
-
-* Added ``actions`` for login
-
-**2.3.1**
-
-
-* Fixed bugs
-
-**2.2.x**
-
-
-* Scraping employees allowed
-
-**2.1.x**
-
-
-* Scraping allowed after logged in
-
-**2.0.x**
-
-
-* Modified the way the objects are called
-* Added Company
-* Changed name from ``linkedin_user_scraper`` to ``linkedin_scraper``
-
-**1.2.x**
-
-
-* Allows scraping later
-
-**1.1.x**
-
-
-* Addes additional API where user can use their own webdriver
-
-**1.0.x**
-
-
-* first publish and fixes
 
 Contribution
 ------------

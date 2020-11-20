@@ -1,3 +1,20 @@
+class Contact(object):
+    name = None
+    occupation = None
+    url = None
+
+    def __init__(
+        self,
+        name=None,
+        occupation=None,
+        url=None
+    ):
+
+        self.name = name
+        self.occupation = occupation
+        self.url = url
+
+
 class Institution(object):
     institution_name = None
     website = None

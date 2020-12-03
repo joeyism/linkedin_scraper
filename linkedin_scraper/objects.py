@@ -14,6 +14,11 @@ class Contact(object):
         self.occupation = occupation
         self.url = url
 
+    def __repr__(self):
+        return "{name} ({occupation})".format(
+            name=self.name, occupation=self.occupation
+        )
+
 
 class Institution(object):
     institution_name = None

@@ -32,6 +32,8 @@ actions.login(driver, email, password) # if email and password isnt given, it'll
 person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=driver)
 ```
 
+**NOTE**: The account used to log-in should have it's language set English to make sure everything works as expected.
+
 ### User Scraping
 
 ```python

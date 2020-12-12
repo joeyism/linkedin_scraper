@@ -32,19 +32,21 @@ class Company(Scraper):
     website = None
     headquarters = None
     founded = None
+    industry = None
     company_type = None
     company_size = None
     specialties = None
     showcase_pages =[]
     affiliated_companies = []
 
-    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
+    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
         self.linkedin_url = linkedin_url
         self.name = name
         self.about_us = about_us
         self.website = website
         self.headquarters = headquarters
         self.founded = founded
+        self.industry = industry
         self.company_type = company_type
         self.company_size = company_size
         self.specialties = specialties

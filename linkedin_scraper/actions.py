@@ -14,7 +14,7 @@ def page_has_loaded(driver):
     return page_state == 'complete'
 
 def login(driver, email=None, password=None):
-  if not email or not password:
+  if (not email or not password):
     email, password = __prompt_email_password()
 
   driver.get("https://www.linkedin.com/login")

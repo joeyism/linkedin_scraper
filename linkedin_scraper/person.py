@@ -12,21 +12,21 @@ class Person(Scraper):
     __TOP_CARD = "pv-top-card"
 
     def __init__(
-        self,
-        linkedin_url=None,
-        name=None,
-        about=[],
-        experiences=[],
-        educations=[],
-        interests=[],
-        accomplishments=[],
-        company=None,
-        job_title=None,
-        contacts=[],
-        driver=None,
-        get=True,
-        scrape=True,
-        close_on_complete=True,
+        self
+        linkedin_url=None
+        name=None
+        about=[]
+        experiences=[]
+        educations=[]
+        interests=[]
+        accomplishments=[]
+        company=None
+        job_title=None
+        contacts=[]
+        driver=None
+        get=True
+        scrape=True
+        close_on_complete=True
     ):
         self.linkedin_url = linkedin_url
         self.name = name
@@ -46,7 +46,6 @@ class Person(Scraper):
                     )
                 else:
                     driver_path = os.getenv("CHROMEDRIVER")
-
                 driver = webdriver.Chrome(driver_path)
             except:
                 driver = webdriver.Chrome()
@@ -86,7 +85,7 @@ class Person(Scraper):
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
             print("you are not logged in!")
-            x = input("please verify the capcha then press any key to continue...")
+            x = input("Please verify the captcha then press any key to continue...")
             self.scrape_not_logged_in(close_on_complete=close_on_complete)
 
     def scrape_logged_in(self, close_on_complete=True):
@@ -106,26 +105,24 @@ class Person(Scraper):
                         By.XPATH,
                         "//*[@class='lt-line-clamp__more']",
                     )
-                )
-            )
+            
             driver.execute_script("arguments[0].click();", see_more)
 
             about = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located(
                     (
-                        By.XPATH,
-                        "//*[@class='lt-line-clamp__raw-line']",
+                        By.XPATH
+                        "//*[@class='lt-line-clamp__raw-line']"
                     )
                 )
-            )
+        
         except:
             about = None
         if about:
             self.add_about(about.text.strip())
 
-        driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"
-        )
+        driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"
+                             )
 
         # get experience
         try:
@@ -142,17 +139,11 @@ class Person(Scraper):
 
                 try:
                     company = position.find_elements_by_tag_name("p")[1].text.strip()
-                    times = str(
-                        position.find_elements_by_tag_name("h4")[0]
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
+                    times = str(position.find_elements_by_tag_name("h4")[0].find_elements_by_tag_name("span")[1].text.strip()
                     )
                     from_date = " ".join(times.split(" ")[:2])
                     to_date = " ".join(times.split(" ")[3:])
-                    duration = (
-                        position.find_elements_by_tag_name("h4")[1]
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
+                    duration = (position.find_elements_by_tag_name("h4")[1].find_elements_by_tag_name("span")[1] .text.strip())
                     )
                     location = (
                         position.find_elements_by_tag_name("h4")[2]
@@ -345,16 +336,16 @@ class Person(Scraper):
                     from_date, to_date, duration, location = (None, None, None, None)
 
                 experience = Experience(
-                    position_title=position_title,
-                    from_date=from_date,
-                    to_date=to_date,
-                    duration=duration,
-                    location=location,
+                    position_title=position_title
+                    from_date=from_date
+                    to_date=to_date
+                    duration=duration
+                    location=location
                 )
                 experience.institution_name = company
                 self.add_experience(experience)
         driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));"
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5))"
         )
 
         # get education
@@ -407,12 +398,12 @@ class Person(Scraper):
             return None
 
     def __repr__(self):
-        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}\n\nContacts\n{conn}".format(
-            name=self.name,
-            about=self.about,
-            exp=self.experiences,
-            edu=self.educations,
-            int=self.interests,
-            acc=self.accomplishments,
-            conn=self.contacts,
+        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}\n\nContacts\n{conn}".format()
+            name=self.name
+            about=self.about
+            exp=self.experiences
+            edu=self.educations
+            int=self.interests
+            acc=self.accomplishments
+            conn=self.contacts
         )

@@ -3,13 +3,20 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
+from .objects import Experience, Education, Scraper, Interest, Accomplishment
 import os
 
 
 class Person(Scraper):
 
     __TOP_CARD = "pv-top-card"
+
+    def reset(self):
+        self.about.clear()
+        self.experiences.clear()
+        self.educations.clear()
+        self.interests.clear()
+        self.accomplishments.clear()
 
     def __init__(
         self,
@@ -22,7 +29,6 @@ class Person(Scraper):
         accomplishments=[],
         company=None,
         job_title=None,
-        contacts=[],
         driver=None,
         get=True,
         scrape=True,
@@ -36,7 +42,6 @@ class Person(Scraper):
         self.interests = interests
         self.accomplishments = accomplishments
         self.also_viewed_urls = []
-        self.contacts = contacts
 
         if driver is None:
             try:
@@ -76,9 +81,6 @@ class Person(Scraper):
 
     def add_location(self, location):
         self.location = location
-
-    def add_contact(self, contact):
-        self.contacts.append(contact)
 
     def scrape(self, close_on_complete=True):
 
@@ -268,25 +270,6 @@ class Person(Scraper):
         except:
             pass
 
-        # get connections
-        try:
-            driver.get("https://www.linkedin.com/mynetwork/invite-connect/connections/")
-            _ = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "mn-connections"))
-            )
-            connections = driver.find_element_by_class_name("mn-connections")
-            if connections is not None:
-                for conn in connections.find_elements_by_class_name("mn-connection-card"):
-                    anchor = conn.find_element_by_class_name("mn-connection-card__link")
-                    url = anchor.get_attribute("href")
-                    name = conn.find_element_by_class_name("mn-connection-card__details").find_element_by_class_name("mn-connection-card__name").text.strip()
-                    occupation = conn.find_element_by_class_name("mn-connection-card__details").find_element_by_class_name("mn-connection-card__occupation").text.strip()
-
-                    contact = Contact(name=name, occupation=occupation, url=url)
-                    self.add_contact(contact)
-        except:
-            connections = None
-
         if close_on_complete:
             driver.quit()
 
@@ -407,12 +390,11 @@ class Person(Scraper):
             return None
 
     def __repr__(self):
-        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}\n\nContacts\n{conn}".format(
+        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}".format(
             name=self.name,
             about=self.about,
             exp=self.experiences,
             edu=self.educations,
             int=self.interests,
             acc=self.accomplishments,
-            conn=self.contacts,
         )

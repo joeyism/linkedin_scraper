@@ -87,9 +87,7 @@ class Person(Scraper):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
-            print("you are not logged in!")
-            x = input("please verify the capcha then press any key to continue...")
-            self.scrape_not_logged_in(close_on_complete=close_on_complete)
+            raise ReferenceError("You are not logged in anymore! It's very likely that you're blocked. The scraping will stop. Please restart the process when ready.")
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver

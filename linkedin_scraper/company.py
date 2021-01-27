@@ -9,6 +9,9 @@ from .person import Person
 import time
 import os
 
+def getchildren(elem):
+    return elem.find_elements_by_xpath(".//*")
+
 class CompanySummary(object):
     linkedin_url = None
     name = None
@@ -112,6 +115,7 @@ class Company(Scraper):
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
         time.sleep(1)
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/4));")
+        time.sleep(1)
 
         results_list = driver.find_element_by_class_name(list_css)
         results_li = results_list.find_elements_by_tag_name("li")
@@ -181,7 +185,7 @@ class Company(Scraper):
         _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'section')))
         time.sleep(3)
 
-        if 'Cookie Policy' in driver.find_elements_by_tag_name("section")[1].text:
+        if 'Cookie Policy' in driver.find_elements_by_tag_name("section")[1].text or 'ad-banner-container' in driver.find_elements_by_tag_name("section")[1].get_attribute('class'):
             section_id = 4
         else:
             section_id = 3

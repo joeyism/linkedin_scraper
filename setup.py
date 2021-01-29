@@ -25,8 +25,8 @@ setup(
     long_description_content_type='text/markdown',
     author = 'Joey Sham', 
     author_email = 'sham.joey@gmail.com', 
-    url = 'https://github.com/joeyism/linkedin_scraper', # use the URL to the github repo 
-    download_url = 'https://github.com/joeyism/linkedin_scraper/dist/' + version + '.tar.gz', 
+    url = 'https://github.com/x-magic/linkedin_scraper', # use the URL to the github repo 
+    download_url = 'https://github.com/x-magic/linkedin_scraper/dist/' + version + '.tar.gz', 
     keywords = ['linkedin', 'scraping', 'scraper'],
     classifiers = [], 
     install_requires=[package.split("\n")[0] for package in open("requirements.txt", "r").readlines()]

@@ -20,27 +20,27 @@ class Person(Scraper):
     def __init__(
             self,
             linkedin_url=None,
-            name=None,
-            about=[],
-            experiences=[],
-            educations=[],
-            interests=[],
-            accomplishments=[],
-            company=None,
-            job_title=None,
+            # name=None,
+            # about=[],
+            # experiences=[],
+            # educations=[],
+            # interests=[],
+            # accomplishments=[],
+            # company=None,
+            # job_title=None,
             driver=None,
             get=True,
             scrape=True,
             close_on_complete=True,
     ):
         self.linkedin_url = linkedin_url
-        self.name = name
-        self.about = about
-        self.experiences = experiences
-        self.educations = educations
-        self.interests = interests
-        self.accomplishments = accomplishments
-        self.also_viewed_urls = []
+        self.name = ''
+        self.about = list()
+        self.experiences = list()
+        self.educations = list()
+        self.interests = list()
+        self.accomplishments = list()
+        self.also_viewed_urls = list()
 
         if driver is None:
             try:

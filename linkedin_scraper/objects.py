@@ -1,8 +1,5 @@
-class Contact(object):
-    name = None
-    occupation = None
-    url = None
-
+class Contact:
+    
     def __init__(
         self,
         name=None,
@@ -20,18 +17,11 @@ class Contact(object):
         )
 
 
-class Institution(object):
-    institution_name = None
-    website = None
-    industry = None
-    type = None
-    headquarters = None
-    company_size = None
-    founded = None
+class Institution:
 
     def __init__(
         self,
-        name=None,
+        institution_name=None,
         website=None,
         industry=None,
         type=None,
@@ -39,7 +29,7 @@ class Institution(object):
         company_size=None,
         founded=None,
     ):
-        self.name = name
+        self.institution_name = institution_name
         self.website = website
         self.industry = industry
         self.type = type
@@ -49,11 +39,6 @@ class Institution(object):
 
 
 class Experience(Institution):
-    from_date = None
-    to_date = None
-    description = None
-    position_title = None
-    duration = None
 
     def __init__(
         self,
@@ -70,6 +55,7 @@ class Experience(Institution):
         self.position_title = position_title
         self.duration = duration
         self.location = location
+        super().__init__(self)
 
     def __repr__(self):
         return "{position_title} at {company} from {from_date} to {to_date} for {duration} based at {location}".format(
@@ -83,16 +69,13 @@ class Experience(Institution):
 
 
 class Education(Institution):
-    from_date = None
-    to_date = None
-    description = None
-    degree = None
 
     def __init__(self, from_date=None, to_date=None, description=None, degree=None):
         self.from_date = from_date
         self.to_date = to_date
         self.description = description
         self.degree = degree
+        super().__init__(self)
 
     def __repr__(self):
         return "{degree} at {company} from {from_date} to {to_date}".format(
@@ -104,28 +87,27 @@ class Education(Institution):
 
 
 class Interest(Institution):
-    title = None
 
     def __init__(self, title=None):
         self.title = title
+        super().__init__(self)
 
     def __repr__(self):
         return self.title
 
 
 class Accomplishment(Institution):
-    category = None
-    title = None
 
     def __init__(self, category=None, title=None):
         self.category = category
         self.title = title
+        super().__init__(self)
 
     def __repr__(self):
         return self.category + ": " + self.title
 
 
-class Scraper(object):
+class Scraper:
     driver = None
 
     def is_signed_in(self):

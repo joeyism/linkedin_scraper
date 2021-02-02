@@ -29,32 +29,37 @@ class CompanySummary(object):
             return """ {name} {followers} """.format(name = self.name, followers = self.followers)
 
 class Company(Scraper):
-    linkedin_url = None
-    name = None
-    about_us =None
-    website = None
-    headquarters = None
-    founded = None
-    industry = None
-    company_type = None
-    company_size = None
-    specialties = None
-    showcase_pages =[]
-    affiliated_companies = []
 
-    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
+    def __init__(self, 
+                 linkedin_url = None, 
+                #  name = None, 
+                #  about_us =None, 
+                #  website = None, 
+                #  headquarters = None, 
+                #  founded = None, 
+                #  industry = None, 
+                #  company_type = None, 
+                #  company_size = None, 
+                #  specialties = None, 
+                #  showcase_pages =[], 
+                #  affiliated_companies = [], 
+                 driver = None, 
+                 scrape = True, 
+                 get_employees = True, 
+                 close_on_complete = True
+                 ):
         self.linkedin_url = linkedin_url
-        self.name = name
-        self.about_us = about_us
-        self.website = website
-        self.headquarters = headquarters
-        self.founded = founded
-        self.industry = industry
-        self.company_type = company_type
-        self.company_size = company_size
-        self.specialties = specialties
-        self.showcase_pages = showcase_pages
-        self.affiliated_companies = affiliated_companies
+        self.name = None
+        self.about_us = None
+        self.website = None
+        self.headquarters = None
+        self.founded = None
+        self.industry = None
+        self.company_type = None
+        self.company_size = None
+        self.specialties = None
+        self.showcase_pages = list()
+        self.affiliated_companies = list()
 
         if driver is None:
             try:
@@ -89,7 +94,7 @@ class Company(Scraper):
         try:
             return Person(
                 linkedin_url = employee_raw.find_element_by_tag_name("a").get_attribute("href"),
-                name = (employee_raw.text.split("\n") or [""])[0].strip(),
+                # name = (employee_raw.text.split("\n") or [""])[0].strip(),
                 driver = self.driver,
                 get = False,
                 scrape = False

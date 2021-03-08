@@ -9,6 +9,8 @@ from .person import Person
 import time
 import os
 
+AD_BANNER_CLASSNAME = ('ad-banner-container', '__ad')
+
 def getchildren(elem):
     return elem.find_elements_by_xpath(".//*")
 
@@ -185,7 +187,7 @@ class Company(Scraper):
         _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'section')))
         time.sleep(3)
 
-        if 'Cookie Policy' in driver.find_elements_by_tag_name("section")[1].text or 'ad-banner-container' in driver.find_elements_by_tag_name("section")[1].get_attribute('class'):
+        if 'Cookie Policy' in driver.find_elements_by_tag_name("section")[1].text or any(classname in driver.find_elements_by_tag_name("section")[1].get_attribute('class') for classname in AD_BANNER_CLASSNAME):
             section_id = 4
         else:
             section_id = 3
@@ -196,24 +198,24 @@ class Company(Scraper):
 
         labels = grid.find_elements_by_tag_name("dt")
         values = grid.find_elements_by_tag_name("dd")
-        numAttributes = min(len(labels), len(values))
-        xOff = 0
-        for i in range(numAttributes):
+        num_attributes = min(len(labels), len(values))
+        x_off = 0
+        for i in range(num_attributes):
             txt = labels[i].text.strip()
             if txt == 'Website':
-                self.website = values[i+xOff].text.strip()
+                self.website = values[i+x_off].text.strip()
             elif txt == 'Industry':
-                self.industry = values[i+xOff].text.strip()
+                self.industry = values[i+x_off].text.strip()
             elif txt == 'Company size':
-                self.company_size = values[i+xOff].text.strip()
+                self.company_size = values[i+x_off].text.strip()
                 if len(values) > len(labels):
-                    xOff = 1
+                    x_off = 1
             elif txt == 'Type':
-                self.company_type = values[i+xOff].text.strip()
+                self.company_type = values[i+x_off].text.strip()
             elif txt == 'Founded':
-                self.founded = values[i+xOff].text.strip()
+                self.founded = values[i+x_off].text.strip()
             elif txt == 'Specialties':
-                self.specialties = "\n".join(values[i+xOff].text.strip().split(", "))
+                self.specialties = "\n".join(values[i+x_off].text.strip().split(", "))
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 

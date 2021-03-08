@@ -89,6 +89,16 @@ class Person(Scraper):
             x = input("please verify the capcha then press any key to continue...")
             self.scrape_not_logged_in(close_on_complete=close_on_complete)
 
+    def _click_see_more_by_class_name(self, class_name):
+        try:
+            _ = WebDriverWait(self.driver, 3).until(
+                EC.presence_of_element_located((By.CLASS_NAME, class_name))
+            )
+            div = self.driver.find_element_by_class_name(class_name)
+            div.find_element_by_tag_name("button").click()
+        except Exception as e:
+            pass
+
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
         duration = None
@@ -128,6 +138,13 @@ class Person(Scraper):
         )
 
         # get experience
+        driver.execute_script(
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/5));"
+        )
+
+        ## Click SEE MORE
+        self._click_see_more_by_class_name("pv-experience-section__see-more")
+
         try:
             _ = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.ID, "experience-section"))
@@ -183,6 +200,8 @@ class Person(Scraper):
         )
 
         # get education
+        ## Click SEE MORE
+        self._click_see_more_by_class_name("pv-education-section__see-more")
         try:
             _ = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.ID, "education-section"))
@@ -310,6 +329,7 @@ class Person(Scraper):
             exp = driver.find_element_by_class_name("experience")
         except:
             exp = None
+        import ipdb; ipdb.set_trace()
 
         if exp is not None:
             for position in exp.find_elements_by_class_name(

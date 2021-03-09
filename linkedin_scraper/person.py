@@ -15,14 +15,14 @@ class Person(Scraper):
         self,
         linkedin_url=None,
         name=None,
-        about=[],
-        experiences=[],
-        educations=[],
-        interests=[],
-        accomplishments=[],
+        about=None,
+        experiences=None,
+        educations=None,
+        interests=None,
+        accomplishments=None,
         company=None,
         job_title=None,
-        contacts=[],
+        contacts=None,
         driver=None,
         get=True,
         scrape=True,
@@ -30,13 +30,13 @@ class Person(Scraper):
     ):
         self.linkedin_url = linkedin_url
         self.name = name
-        self.about = about
-        self.experiences = experiences
-        self.educations = educations
-        self.interests = interests
-        self.accomplishments = accomplishments
+        self.about = about or []
+        self.experiences = experiences or []
+        self.educations = educations or []
+        self.interests = interests or []
+        self.accomplishments = accomplishments or []
         self.also_viewed_urls = []
-        self.contacts = contacts
+        self.contacts = contacts or []
 
         if driver is None:
             try:
@@ -81,7 +81,6 @@ class Person(Scraper):
         self.contacts.append(contact)
 
     def scrape(self, close_on_complete=True):
-
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
@@ -104,9 +103,7 @@ class Person(Scraper):
         duration = None
 
         root = driver.find_element_by_class_name(self.__TOP_CARD)
-        self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[
-            0
-        ].text.strip()
+        self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
 
         # get about
         try:
@@ -329,7 +326,6 @@ class Person(Scraper):
             exp = driver.find_element_by_class_name("experience")
         except:
             exp = None
-        import ipdb; ipdb.set_trace()
 
         if exp is not None:
             for position in exp.find_elements_by_class_name(

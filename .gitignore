@@ -7,3 +7,5 @@ __pycache__
 *.pyc
 chromedriver
 .DS_Store
+.vscode/
+.env/

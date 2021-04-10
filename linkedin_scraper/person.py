@@ -102,7 +102,14 @@ class Person(Scraper):
         driver = self.driver
         duration = None
 
-        root = driver.find_element_by_class_name(self.__TOP_CARD)
+        root = WebDriverWait(driver, 3).until(
+            EC.presence_of_element_located(
+                (
+                    By.CLASS_NAME,
+                    self.__TOP_CARD,
+                )
+            )
+        )
         self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
 
         # get about

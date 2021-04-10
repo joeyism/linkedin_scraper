@@ -101,7 +101,7 @@ class Company(Scraper):
 
     def get_employees(self, wait_time=10):
         total = []
-        list_css = "org-people-profiles-module__profile-list"
+        list_css = "list-style-none"
         next_xpath = '//button[@aria-label="Next"]'
         driver = self.driver
 

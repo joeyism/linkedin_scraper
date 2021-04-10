@@ -10,6 +10,7 @@ import os
 class Person(Scraper):
 
     __TOP_CARD = "pv-top-card"
+    __WAIT_FOR_ELEMENT_TIMEOUT = 5
 
     def __init__(
         self,
@@ -90,7 +91,7 @@ class Person(Scraper):
 
     def _click_see_more_by_class_name(self, class_name):
         try:
-            _ = WebDriverWait(self.driver, 3).until(
+            _ = WebDriverWait(self.driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.CLASS_NAME, class_name))
             )
             div = self.driver.find_element_by_class_name(class_name)
@@ -102,7 +103,7 @@ class Person(Scraper):
         driver = self.driver
         duration = None
 
-        root = WebDriverWait(driver, 3).until(
+        root = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
             EC.presence_of_element_located(
                 (
                     By.CLASS_NAME,
@@ -114,7 +115,7 @@ class Person(Scraper):
 
         # get about
         try:
-            see_more = WebDriverWait(driver, 3).until(
+            see_more = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
@@ -124,7 +125,7 @@ class Person(Scraper):
             )
             driver.execute_script("arguments[0].click();", see_more)
 
-            about = WebDriverWait(driver, 3).until(
+            about = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
@@ -150,7 +151,7 @@ class Person(Scraper):
         self._click_see_more_by_class_name("pv-experience-section__see-more")
 
         try:
-            _ = WebDriverWait(driver, 3).until(
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.ID, "experience-section"))
             )
             exp = driver.find_element_by_id("experience-section")
@@ -207,7 +208,7 @@ class Person(Scraper):
         ## Click SEE MORE
         self._click_see_more_by_class_name("pv-education-section__see-more")
         try:
-            _ = WebDriverWait(driver, 3).until(
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.ID, "education-section"))
             )
             edu = driver.find_element_by_id("education-section")
@@ -245,7 +246,7 @@ class Person(Scraper):
         # get interest
         try:
 
-            _ = WebDriverWait(driver, 3).until(
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
@@ -268,7 +269,7 @@ class Person(Scraper):
 
         # get accomplishment
         try:
-            _ = WebDriverWait(driver, 3).until(
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
@@ -294,7 +295,7 @@ class Person(Scraper):
         # get connections
         try:
             driver.get("https://www.linkedin.com/mynetwork/invite-connect/connections/")
-            _ = WebDriverWait(driver, 5).until(
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "mn-connections"))
             )
             connections = driver.find_element_by_class_name("mn-connections")
@@ -327,7 +328,7 @@ class Person(Scraper):
 
         # get experience
         try:
-            _ = WebDriverWait(driver, 3).until(
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "experience"))
             )
             exp = driver.find_element_by_class_name("experience")

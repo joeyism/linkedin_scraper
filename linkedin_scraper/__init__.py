@@ -3,7 +3,7 @@ from .person import Person
 from .objects import Institution, Experience, Education, Contact
 from .company import Company
 
-__version__ = "2.7.6"
+__version__ = "2.7.7"
 
 import glob
 modules = glob.glob(dirname(__file__)+"/*.py")

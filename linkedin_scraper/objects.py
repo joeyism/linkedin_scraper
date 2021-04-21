@@ -1,3 +1,5 @@
+from . import constants as c
+
 class Contact(object):
     name = None
     occupation = None
@@ -130,7 +132,7 @@ class Scraper(object):
 
     def is_signed_in(self):
         try:
-            self.driver.find_element_by_id("profile-nav-item")
+            self.driver.find_element_by_id(c.VERIFY_LOGIN_ID)
             return True
         except:
             pass

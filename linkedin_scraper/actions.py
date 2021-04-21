@@ -1,5 +1,6 @@
 import getpass
 from linkedin_scraper.objects import Scraper
+from . import constants as c
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -13,7 +14,7 @@ def page_has_loaded(driver):
     page_state = driver.execute_script('return document.readyState;')
     return page_state == 'complete'
 
-def login(driver, email=None, password=None):
+def login(driver, email=None, password=None, timeout=10):
   if not email or not password:
     email, password = __prompt_email_password()
 
@@ -27,4 +28,4 @@ def login(driver, email=None, password=None):
   password_elem.send_keys(password)
   password_elem.submit()
 
-  element = WebDriverWait(driver, 300).until(EC.presence_of_element_located((By.ID, "profile-nav-item")))
+  element = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, c.VERIFY_LOGIN_ID)))

@@ -1,5 +1,4 @@
 import getpass
-from linkedin_scraper.objects import Scraper
 from . import constants as c
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -14,7 +13,10 @@ def page_has_loaded(driver):
     page_state = driver.execute_script('return document.readyState;')
     return page_state == 'complete'
 
-def login(driver, email=None, password=None, timeout=10):
+def login(driver, email=None, password=None, cookie = None, timeout=10):
+  if cookie is not None:
+    return _login_with_cookie(driver, cookie)
+
   if not email or not password:
     email, password = __prompt_email_password()
 
@@ -29,3 +31,10 @@ def login(driver, email=None, password=None, timeout=10):
   password_elem.submit()
 
   element = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, c.VERIFY_LOGIN_ID)))
+
+def _login_with_cookie(driver, cookie):
+  driver.get("https://www.linkedin.com/login")
+  driver.add_cookie({
+    "name": "li_at",
+    "value": cookie
+  })

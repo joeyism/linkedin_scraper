@@ -28,4 +28,9 @@ def login(driver, email=None, password=None, timeout=10):
   password_elem.send_keys(password)
   password_elem.submit()
 
-  element = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, c.VERIFY_LOGIN_ID)))
+  try:
+    element = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, c.VERIFY_LOGIN_ID)))
+    remember = driver.find_element_by_id(c.REMEMBER_PROMPT)
+    if remember:
+      remember.submit()
+  except: pass

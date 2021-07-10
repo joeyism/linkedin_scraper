@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
 import os
+from linkedin_scraper import selectors
 
 
 class Person(Scraper):
@@ -111,7 +112,8 @@ class Person(Scraper):
                 )
             )
         )
-        self.name = root.find_elements_by_xpath("//section/div/div/div/*/li")[0].text.strip()
+
+        self.name = root.find_element_by_class_name(selectors.NAME).text.strip()
 
         # get about
         try:

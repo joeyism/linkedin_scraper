@@ -9,3 +9,5 @@ chromedriver
 .DS_Store
 .vscode/
 .env/
+scrape.py
+creds.json

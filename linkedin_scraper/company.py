@@ -8,6 +8,7 @@ from .objects import Scraper
 from .person import Person
 import time
 import os
+import json
 
 AD_BANNER_CLASSNAME = ('ad-banner-container', '__ad')
 
@@ -88,15 +89,28 @@ class Company(Scraper):
             self.scrape_not_logged_in(get_employees = get_employees, close_on_complete = close_on_complete)
 
     def __parse_employee__(self, employee_raw):
+
         try:
-            return Person(
-                linkedin_url = employee_raw.find_element_by_tag_name("a").get_attribute("href"),
-                name = (employee_raw.text.split("\n") or [""])[0].strip(),
-                driver = self.driver,
-                get = False,
-                scrape = False
-                )
-        except:
+            # print()
+            employee_object = {}
+            employee_object['name'] = (employee_raw.text.split("\n") or [""])[0].strip()
+            employee_object['designation'] = (employee_raw.text.split("\n") or [""])[3].strip()
+            employee_object['linkedin_url'] = employee_raw.find_element_by_tag_name("a").get_attribute("href")
+            # print(employee_raw.text, employee_object)
+            # _person = Person(
+            #     # linkedin_url = employee_raw.find_element_by_tag_name("a").get_attribute("href"),
+            #     linkedin_url = employee_raw.find_element_by_tag_name("a").get_attribute("href"),
+            #     name = (employee_raw.text.split("\n") or [""])[0].strip(),
+            #     driver = self.driver,
+            #     get = True,
+            #     scrape = False,
+            #     designation = (employee_raw.text.split("\n") or [""])[3].strip()
+            #     )
+            # print(_person, employee_object)
+            # return _person
+            return employee_object
+        except Exception as e:
+            # print(e)
             return None
 
     def get_employees(self, wait_time=10):
@@ -315,35 +329,18 @@ class Company(Scraper):
             driver.close()
 
     def __repr__(self):
-        return """
-{name}
+        _output = {}
+        _output['name'] = self.name
+        _output['about_us'] = self.about_us
+        _output['specialties'] = self.specialties
+        _output['website'] = self.website
+        _output['industry'] = self.industry
+        _output['company_type'] = self.name
+        _output['headquarters'] = self.headquarters
+        _output['company_size'] = self.company_size
+        _output['founded'] = self.founded
+        _output['affiliated_companies'] = self.affiliated_companies
+        _output['employees'] = self.employees
+        
+        return json.dumps(_output).replace('\n', '')
 
-{about_us}
-
-Specialties: {specialties}
-
-Website: {website}
-Industry: {industry}
-Type: {company_type}
-Headquarters: {headquarters}
-Company Size: {company_size}
-Founded: {founded}
-
-Showcase Pages
-{showcase_pages}
-
-Affiliated Companies
-{affiliated_companies}
-    """.format(
-        name = self.name,
-        about_us = self.about_us,
-        specialties = self.specialties,
-        website= self.website,
-        industry= self.industry,
-        company_type= self.company_type,
-        headquarters= self.headquarters,
-        company_size= self.company_size,
-        founded= self.founded,
-        showcase_pages = self.showcase_pages,
-        affiliated_companies = self.affiliated_companies
-    )

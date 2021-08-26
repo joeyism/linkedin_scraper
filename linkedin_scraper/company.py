@@ -203,14 +203,19 @@ class Company(Scraper):
             section_id = 4
         else:
             section_id = 3
-        grid = driver.find_elements_by_tag_name("section")[section_id]
+       #section ID is no longer needed, we are using class name now.
+        #grid = driver.find_elements_by_tag_name("section")[section_id]
+        grid = driver.find_element_by_class_name("artdeco-card.p4.mb3")
+        print(grid)
         descWrapper = grid.find_elements_by_tag_name("p")
         if len(descWrapper) > 0:
             self.about_us = descWrapper[0].text.strip()
-
         labels = grid.find_elements_by_tag_name("dt")
         values = grid.find_elements_by_tag_name("dd")
         num_attributes = min(len(labels), len(values))
+        #print("The length of the labels is " + str(len(labels)), "The length of the values is " + str(len(values)))
+        # if num_attributes == 0:
+        #     exit()
         x_off = 0
         for i in range(num_attributes):
             txt = labels[i].text.strip()

@@ -115,28 +115,34 @@ class Person(Scraper):
 
         self.name = root.find_element_by_class_name(selectors.NAME).text.strip()
 
+        driver.execute_script(
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.2));"
+        )
+
         # get about
         try:
             see_more = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
-                        "//*[@class='lt-line-clamp__more']",
+                        '//*[@id="ember90"]/div/span/button',
                     )
                 )
             )
             driver.execute_script("arguments[0].click();", see_more)
 
-            about = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
+        except:
+            pass
+
+        about = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
-                        "//*[@class='lt-line-clamp__raw-line']",
+                        '//*[@id="ember99"]/div',
                     )
                 )
             )
-        except:
-            about = None
+            
         if about:
             self.add_about(about.text.strip())
 

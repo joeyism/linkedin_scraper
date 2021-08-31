@@ -125,7 +125,7 @@ class Person(Scraper):
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
-                        '//*[@id="ember90"]/div/span/button',
+                        '//*[@class="profile-detail"]/div/section/div/span/button',
                     )
                 )
             )
@@ -133,16 +133,19 @@ class Person(Scraper):
 
         except:
             pass
-
-        about = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
-                EC.presence_of_element_located(
-                    (
-                        By.XPATH,
-                        '//*[@id="ember99"]/div',
+        
+        try:
+            about = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            '//*[@class="profile-detail"]/div/section/div',
+                        )
                     )
-                )
             )
-            
+        except:
+            about = None
+
         if about:
             self.add_about(about.text.strip())
 
@@ -258,15 +261,16 @@ class Person(Scraper):
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
-                        "//*[@class='pv-profile-section pv-interests-section artdeco-container-card artdeco-card ember-view']",
+                        '//*[@class="profile-detail"]//section[@class="pv-profile-section pv-interests-section artdeco-card mt4 p5 ember-view"]',
                     )
                 )
             )
             interestContainer = driver.find_element_by_xpath(
-                "//*[@class='pv-profile-section pv-interests-section artdeco-container-card artdeco-card ember-view']"
+                '//*[@class="profile-detail"]//section[@class="pv-profile-section pv-interests-section artdeco-card mt4 p5 ember-view"]'
             )
+
             for interestElement in interestContainer.find_elements_by_xpath(
-                "//*[@class='pv-interest-entity pv-profile-section__card-item ember-view']"
+                "//li[@class='pv-interest-entity pv-profile-section__card-item ember-view']"
             ):
                 interest = Interest(
                     interestElement.find_element_by_tag_name("h3").text.strip()
@@ -274,31 +278,49 @@ class Person(Scraper):
                 self.add_interest(interest)
         except:
             pass
+        
+        driver.execute_script(
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.7));"
+        )
 
-        # get accomplishment
+        # get accomplishment        
         try:
             _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
-                        "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card artdeco-card ember-view']",
+                        '//*[@class="profile-detail"]//section[@class="pv-profile-section pv-accomplishments-section artdeco-card mv4 ember-view"]',
                     )
                 )
             )
+
             acc = driver.find_element_by_xpath(
-                "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card artdeco-card ember-view']"
+                '//*[@class="profile-detail"]//section[@class="pv-profile-section pv-accomplishments-section artdeco-card mv4 ember-view"]'
             )
+
             for block in acc.find_elements_by_xpath(
-                "//div[@class='pv-accomplishments-block__content break-words']"
-            ):
+                    "//div[@class='pv-accomplishments-block__content break-words']"
+                ):
                 category = block.find_element_by_tag_name("h3")
+
                 for title in block.find_element_by_tag_name(
-                    "ul"
-                ).find_elements_by_tag_name("li"):
-                    accomplishment = Accomplishment(category.text, title.text)
-                    self.add_accomplishment(accomplishment)
+                        "ul"
+                    ).find_elements_by_tag_name("li"):
+                        accomplishment = Accomplishment(category.text, title.text)
+                        self.add_accomplishment(accomplishment)
         except:
             pass
+
+        # for block in acc.find_elements_by_xpath('/div[@class="ember-view"]'):
+        #     # category = block.find_element_by_tag_name("h3")
+        #     print(block.get_attribute('innerHTML'))
+        #     print('-'*50)
+        #     for title in block.find_element_by_tag_name(
+        #         "ul"
+        #     ).find_elements_by_tag_name("li"):
+        #         accomplishment = Accomplishment(category.text, title.text)
+        #         self.add_accomplishment(accomplishment)
+
 
         # get connections
         try:

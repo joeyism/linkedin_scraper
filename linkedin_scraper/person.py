@@ -130,7 +130,6 @@ class Person(Scraper):
                 )
             )
             driver.execute_script("arguments[0].click();", see_more)
-
         except:
             pass
         
@@ -143,11 +142,10 @@ class Person(Scraper):
                         )
                     )
             )
-        except:
-            about = None
 
-        if about:
             self.add_about(about.text.strip())
+        except:
+            pass
 
         driver.execute_script(
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"
@@ -256,7 +254,6 @@ class Person(Scraper):
 
         # get interest
         try:
-
             _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located(
                     (
@@ -310,17 +307,6 @@ class Person(Scraper):
                         self.add_accomplishment(accomplishment)
         except:
             pass
-
-        # for block in acc.find_elements_by_xpath('/div[@class="ember-view"]'):
-        #     # category = block.find_element_by_tag_name("h3")
-        #     print(block.get_attribute('innerHTML'))
-        #     print('-'*50)
-        #     for title in block.find_element_by_tag_name(
-        #         "ul"
-        #     ).find_elements_by_tag_name("li"):
-        #         accomplishment = Accomplishment(category.text, title.text)
-        #         self.add_accomplishment(accomplishment)
-
 
         # get connections
         try:

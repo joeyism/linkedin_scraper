@@ -290,10 +290,14 @@ class Person(Scraper):
                     expiry_date = None
             
                 # print each certification here
-                print(f'{certificate_title} issued by {issue_authority} on {issue_date} with {expiry_date}.')
+                self.add_certifications(f'{certificate_title} issued by {issue_authority} on {issue_date} with {expiry_date}.')
 
         except:
             cert = None
+
+        driver.execute_script(
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.9));"
+        )
 
         # get interest
         try:
@@ -320,7 +324,7 @@ class Person(Scraper):
             pass
         
         driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.7));"
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.72));"
         )
 
         # get accomplishment        

@@ -20,6 +20,7 @@ class Person(Scraper):
         about=None,
         experiences=None,
         educations=None,
+        certifications=None,
         interests=None,
         accomplishments=None,
         company=None,
@@ -35,6 +36,7 @@ class Person(Scraper):
         self.about = about or []
         self.experiences = experiences or []
         self.educations = educations or []
+        self.certifications = certifications or []
         self.interests = interests or []
         self.accomplishments = accomplishments or []
         self.also_viewed_urls = []
@@ -69,6 +71,9 @@ class Person(Scraper):
 
     def add_education(self, education):
         self.educations.append(education)
+    
+    def add_certifications(self, certifications):
+        self.certifications.append(certifications)
 
     def add_interest(self, interest):
         self.interests.append(interest)
@@ -112,7 +117,8 @@ class Person(Scraper):
                 )
             )
         )
-
+        
+        # get pv info
         self.name = root.find_element_by_class_name(selectors.NAME).text.strip()
 
         driver.execute_script(
@@ -148,12 +154,12 @@ class Person(Scraper):
             pass
 
         driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.5));"
         )
 
         # get experience
         driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/5));"
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.6));"
         )
 
         ## Click SEE MORE
@@ -251,6 +257,43 @@ class Person(Scraper):
                 )
                 education.institution_name = university
                 self.add_education(education)
+
+        # get licenses and certifications
+        driver.execute_script(
+            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*0.65));"
+        )
+
+        try:
+            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
+                EC.presence_of_element_located((By.ID, "certifications-section"))
+            )
+            cert = driver.find_element_by_id("certifications-section")
+
+            try:
+                see_more = cert.find_element_by_tag_name('button')
+                driver.execute_script("arguments[0].click();", see_more)
+            except:
+                pass
+                
+            for certification in cert.find_elements_by_class_name("pv-certifications__summary-info"):
+
+                certificate_title = certification.find_element_by_tag_name('h3').text.strip()
+
+                issue_authority = certification.find_elements_by_tag_name('span')[1].text.strip()
+
+                try:
+                    issue_date = certification.find_elements_by_tag_name('span')[3].get_attribute('innerHTML').split('<')[0].replace('Issued', '').strip()
+                    expiry_date = certification.find_element_by_class_name('pv-entity__bullet-item-v2').text.strip()
+                    
+                except:
+                    issue_date = None
+                    expiry_date = None
+            
+                # print each certification here
+                print(f'{certificate_title} issued by {issue_authority} on {issue_date} with {expiry_date}.')
+
+        except:
+            cert = None
 
         # get interest
         try:

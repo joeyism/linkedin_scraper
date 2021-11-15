@@ -11,3 +11,4 @@ chromedriver
 .env/
 scrape.py
 creds.json
+venv

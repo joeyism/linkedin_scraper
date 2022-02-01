@@ -205,7 +205,7 @@ class Company(Scraper):
             section_id = 3
        #section ID is no longer needed, we are using class name now.
         #grid = driver.find_elements_by_tag_name("section")[section_id]
-        grid = driver.find_element_by_class_name("artdeco-card.p4.mb3")
+        grid = driver.find_element_by_class_name("artdeco-card.p5.mb4")
         print(grid)
         descWrapper = grid.find_elements_by_tag_name("p")
         if len(descWrapper) > 0:
@@ -346,6 +346,6 @@ class Company(Scraper):
         _output['founded'] = self.founded
         _output['affiliated_companies'] = self.affiliated_companies
         _output['employees'] = self.employees
-        
+
         return json.dumps(_output).replace('\n', '')
 

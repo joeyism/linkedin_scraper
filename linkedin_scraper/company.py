@@ -42,8 +42,10 @@ class Company(Scraper):
     company_type = None
     company_size = None
     specialties = None
-    showcase_pages =[]
+    showcase_pages = []
     affiliated_companies = []
+    employees = []
+    headcount = None
 
     def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
         self.linkedin_url = linkedin_url
@@ -205,7 +207,7 @@ class Company(Scraper):
             section_id = 3
        #section ID is no longer needed, we are using class name now.
         #grid = driver.find_elements_by_tag_name("section")[section_id]
-        grid = driver.find_element_by_class_name("artdeco-card.p4.mb3")
+        grid = driver.find_element_by_class_name("artdeco-card.p5.mb4")
         print(grid)
         descWrapper = grid.find_elements_by_tag_name("p")
         if len(descWrapper) > 0:
@@ -235,6 +237,13 @@ class Company(Scraper):
                 self.founded = values[i+x_off].text.strip()
             elif txt == 'Specialties':
                 self.specialties = "\n".join(values[i+x_off].text.strip().split(", "))
+
+        grid = driver.find_element_by_class_name("mt1")
+        spans = grid.find_elements_by_tag_name("span")
+        for span in spans:
+            txt = span.text.strip()
+            if "See all" in txt and "employees on LinkedIn" in txt:
+                self.headcount = int(txt.replace("See all", "").replace("employees on LinkedIn", "").strip())
 
         driver.execute_script("window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));")
 
@@ -346,6 +355,7 @@ class Company(Scraper):
         _output['founded'] = self.founded
         _output['affiliated_companies'] = self.affiliated_companies
         _output['employees'] = self.employees
+        _output['headcount'] = self.headcount
         
         return json.dumps(_output).replace('\n', '')
 

@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
 import os
-from linkedin_scraper import selectors
+import selectors
 
 
 class Person(Scraper):

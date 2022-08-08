@@ -58,7 +58,9 @@ class Scraper:
 
     def is_signed_in(self):
         try:
-            self.driver.find_element(By.ID, "global-nav-search")
+            self.driver.maximize_window() # For maximizing window
+            self.driver.implicitly_wait(20) # gives an implicit wait for 20 seconds
+            self.driver.find_element(By.ID, c.VERIFY_LOGIN_ID)
             return True
         except:
             pass

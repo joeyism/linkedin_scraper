@@ -325,7 +325,7 @@ class Person(Scraper):
 
         # get name
         self.name = driver.find_element(By.CLASS_NAME,
-            "top-card-layout__title"
+            "text-heading-xlarge inline t-24 v-align-middle break-words"
         ).text.strip()
 
         # get experience

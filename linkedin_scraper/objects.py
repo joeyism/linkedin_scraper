@@ -54,7 +54,7 @@ class Accomplishment(Institution):
 
 @dataclass
 class Scraper:
-    driver: Chrome = None
+    driver: Chrome = self.driver
 
     def is_signed_in(self):
         try:

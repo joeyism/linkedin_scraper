@@ -58,7 +58,7 @@ class Scraper:
 
     def is_signed_in(self):
         try:
-            self.driver.find_element(BY.ID, c.VERIFY_LOGIN_ID)
+            self.driver.find_element(By.ID, c.VERIFY_LOGIN_ID)
             return True
         except:
             pass
@@ -66,7 +66,7 @@ class Scraper:
 
     def __find_element_by_class_name__(self, class_name):
         try:
-            self.driver.find_element(BY.CLASS_NAME, class_name)
+            self.driver.find_element(By.CLASS_NAME, class_name)
             return True
         except:
             pass
@@ -74,7 +74,7 @@ class Scraper:
 
     def __find_element_by_xpath__(self, tag_name):
         try:
-            self.driver.find_element(BY.XPATH, tag_name)
+            self.driver.find_element(By.XPATH, tag_name)
             return True
         except:
             pass
@@ -82,7 +82,7 @@ class Scraper:
 
     def __find_enabled_element_by_xpath__(self, tag_name):
         try:
-            elem = self.driver.find_element(BY.XPATH, tag_name)
+            elem = self.driver.find_element(By.XPATH, tag_name)
             return elem.is_enabled()
         except:
             pass

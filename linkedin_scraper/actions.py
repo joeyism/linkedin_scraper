@@ -23,16 +23,16 @@ def login(driver, email=None, password=None, cookie = None, timeout=10):
   driver.get("https://www.linkedin.com/login")
   element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "username")))
 
-  email_elem = driver.find_element_by_id("username")
+  email_elem = driver.find_element(By.ID,"username")
   email_elem.send_keys(email)
 
-  password_elem = driver.find_element_by_id("password")
+  password_elem = driver.find_element(By.ID,"password")
   password_elem.send_keys(password)
   password_elem.submit()
 
   try:
     if driver.url == 'https://www.linkedin.com/checkpoint/lg/login-submit':
-      remember = driver.find_element_by_id(c.REMEMBER_PROMPT)
+      remember = driver.find_element(By.ID,c.REMEMBER_PROMPT)
       if remember:
         remember.submit()
 

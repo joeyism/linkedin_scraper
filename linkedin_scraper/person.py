@@ -155,8 +155,8 @@ class Person(Scraper):
         try:
             _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.ID, "experience-section"))
-            )
-            exp = driver.find_element_by_id("experience-section")
+            )            
+            exp = driver.find_element(By.ID, "experience-section")
         except:
             exp = None
 
@@ -213,7 +213,7 @@ class Person(Scraper):
             _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.ID, "education-section"))
             )
-            edu = driver.find_element_by_id("education-section")
+            edu = driver.find_element(By.ID, "education-section")
         except:
             edu = None
         if edu:
@@ -256,7 +256,7 @@ class Person(Scraper):
                     )
                 )
             )
-            interestContainer = driver.find_element_by_xpath(
+            interestContainer = driver.find_element(By.XPATH,
                 "//*[@class='pv-profile-section pv-interests-section artdeco-container-card artdeco-card ember-view']"
             )
             for interestElement in interestContainer.find_elements_by_xpath(
@@ -279,7 +279,7 @@ class Person(Scraper):
                     )
                 )
             )
-            acc = driver.find_element_by_xpath(
+            acc = driver.find_element(By.XPATH,
                 "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card artdeco-card ember-view']"
             )
             for block in acc.find_elements_by_xpath(

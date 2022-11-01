@@ -120,7 +120,7 @@ class Company(Scraper):
         driver = self.driver
 
         try:
-            see_all_employees = driver.find_element_by_xpath('//a[@data-control-name="topcard_see_all_employees"]')
+            see_all_employees = driver.find_element(By.XPATH,'//a[@data-control-name="topcard_see_all_employees"]')
         except:
             pass
         driver.get(os.path.join(self.linkedin_url, "people"))
@@ -156,7 +156,7 @@ class Company(Scraper):
         results_li_len = len(results_li)
         while is_loaded(results_li_len):
             try:
-                driver.find_element_by_xpath(next_xpath).click()
+                driver.find_element(By.XPATH,next_xpath).click()
             except:
                 pass
             _ = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, list_css)))
@@ -185,7 +185,7 @@ class Company(Scraper):
 
         navigation = driver.find_element_by_class_name("org-page-navigation__items ")
 
-        self.name = driver.find_element_by_xpath('//span[@dir="ltr"]').text.strip()
+        self.name = driver.find_element(By.XPATH,'//span[@dir="ltr"]').text.strip()
 
         # Click About Tab or View All Link
         try:
@@ -242,7 +242,7 @@ class Company(Scraper):
         try:
             _ = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'company-list')))
             showcase, affiliated = driver.find_elements_by_class_name("company-list")
-            driver.find_element_by_id("org-related-companies-module__show-more-btn").click()
+            driver.find_element(By.ID,"org-related-companies-module__show-more-btn").click()
 
             # get showcase
             for showcase_company in showcase.find_elements_by_class_name("org-company-card"):
@@ -294,7 +294,7 @@ class Company(Scraper):
 
         # get showcase
         try:
-            driver.find_element_by_id("view-other-showcase-pages-dialog").click()
+            driver.find_element(By.ID,"view-other-showcase-pages-dialog").click()
             WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'dialog')))
 
             showcase_pages = driver.find_elements_by_class_name("company-showcase-pages")[1]

@@ -18,6 +18,7 @@ class Person(Scraper):
         linkedin_url=None,
         name=None,
         about=None,
+        work_status=None,
         experiences=None,
         educations=None,
         interests=None,
@@ -33,6 +34,7 @@ class Person(Scraper):
         self.linkedin_url = linkedin_url
         self.name = name
         self.about = about or []
+        self.work_status = work_status = []
         self.experiences = experiences or []
         self.educations = educations or []
         self.interests = interests or []
@@ -100,6 +102,10 @@ class Person(Scraper):
         except Exception as e:
             pass
 
+    def _get_work_status(self, driver):
+        work_status_outer_box = driver.find_element(By.CLASS_NAME, "pv-open-to-carousel")
+        self.work_status += work_status_outer_box.text.split("\n")[:-1]
+
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
         duration = None
@@ -114,6 +120,10 @@ class Person(Scraper):
         )
 
         self.name = root.find_element_by_class_name(selectors.NAME).text.strip()
+
+        # get work status
+        self._get_work_status(driver)
+
 
         # get about
         try:
@@ -307,7 +317,6 @@ class Person(Scraper):
                     url = anchor.get_attribute("href")
                     name = conn.find_element_by_class_name("mn-connection-card__details").find_element_by_class_name("mn-connection-card__name").text.strip()
                     occupation = conn.find_element_by_class_name("mn-connection-card__details").find_element_by_class_name("mn-connection-card__occupation").text.strip()
-
                     contact = Contact(name=name, occupation=occupation, url=url)
                     self.add_contact(contact)
         except:

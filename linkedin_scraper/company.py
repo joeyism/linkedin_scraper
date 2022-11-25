@@ -306,7 +306,7 @@ class Company(Scraper):
             driver.find_element(By.ID,"view-other-showcase-pages-dialog").click()
             WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'dialog')))
 
-            showcase_pages = driver.find_element(By.CLASS_NAME, "company-showcase-pages")[1]
+            showcase_pages = driver.find_elements(By.CLASS_NAME, "company-showcase-pages")[1]
             for showcase_company in showcase_pages.find_elements(By.TAG_NAME, "li"):
                 name_elem = showcase_company.find_element(By.CLASS_NAME, "name")
                 companySummary = CompanySummary(
@@ -322,7 +322,7 @@ class Company(Scraper):
         # affiliated company
         try:
             affiliated_pages = driver.find_element(By.CLASS_NAME, "affiliated-companies")
-            for i, affiliated_page in enumerate(affiliated_pages.find_element(By.CLASS_NAME, "affiliated-company-name")):
+            for i, affiliated_page in enumerate(affiliated_pages.find_elements(By.CLASS_NAME, "affiliated-company-name")):
                 if i % 3 == 0:
                     affiliated_pages.find_element(By.CLASS_NAME, "carousel-control-next").click()
 

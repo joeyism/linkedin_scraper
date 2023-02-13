@@ -29,6 +29,7 @@ class Person(Scraper):
         get=True,
         scrape=True,
         close_on_complete=True,
+        time_to_wait_after_login=0,
     ):
         self.linkedin_url = linkedin_url
         self.name = name

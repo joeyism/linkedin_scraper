@@ -5,6 +5,8 @@ from selenium.webdriver import Chrome
 from . import constants as c
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 @dataclass
@@ -57,12 +59,38 @@ class Accomplishment(Institution):
 @dataclass
 class Scraper:
     driver: Chrome = None
+    WAIT_FOR_ELEMENT_TIMEOUT = 5
+    TOP_CARD = "pv-top-card"
+
+    def focus(self):
+        self.driver.execute_script('alert("Focus window")')
+        self.driver.switch_to.alert.accept()
+
+    def wait_for_element_to_load(self, by=By.CLASS_NAME, name="pv-top-card"):
+        return WebDriverWait(self.driver, self.WAIT_FOR_ELEMENT_TIMEOUT).until(
+            EC.presence_of_element_located(
+                (
+                    by,
+                    name
+                )
+            )
+        )
+
 
     def is_signed_in(self):
         try:
+            WebDriverWait(self.driver, self.WAIT_FOR_ELEMENT_TIMEOUT).until(
+                EC.presence_of_element_located(
+                    (
+                        By.CLASS_NAME,
+                        c.VERIFY_LOGIN_ID,
+                    )
+                )
+            )
+
             self.driver.find_element(By.CLASS_NAME, c.VERIFY_LOGIN_ID)
             return True
-        except:
+        except Exception as e:
             pass
         return False
 

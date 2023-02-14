@@ -2,6 +2,7 @@ from os.path import dirname, basename, isfile
 from .person import Person
 from .objects import Institution, Experience, Education, Contact
 from .company import Company
+from .jobs import Job
 
 __version__ = "2.9.2"
 

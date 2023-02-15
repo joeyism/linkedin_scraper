@@ -199,8 +199,7 @@ class Person(Scraper):
                 self.add_experience(experience)
 
         # get location
-        location = driver.find_element_by_class_name(f"{self.__TOP_CARD}--list-bullet")
-        location = location.find_element_by_tag_name("li").text
+        location = driver.find_element_by_css_selector('div[class^="display-flex"] div.pb2 > span.text-body-small').text
         self.add_location(location)
 
         driver.execute_script(

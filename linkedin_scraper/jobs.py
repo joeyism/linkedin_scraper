@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+
 class Job(Scraper):
 
     def __init__(
@@ -36,11 +37,15 @@ class Job(Scraper):
         if scrape:
             self.scrape(close_on_complete)
 
+    def __repr__(self):
+        return f"{self.job_title} {self.company}"
+
     def scrape(self, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
             raise NotImplemented("This part is not implemented yet")
+
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
@@ -55,3 +60,6 @@ class Job(Scraper):
         self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
         self.job_description = self.wait_for_element_to_load(name="jobs-description").text.strip()
         self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()
+
+        if close_on_complete:
+            driver.close()

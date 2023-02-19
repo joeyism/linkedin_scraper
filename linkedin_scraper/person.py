@@ -99,6 +99,12 @@ class Person(Scraper):
         except Exception as e:
             pass
 
+    def is_open_to_work(self):
+        try:
+            return "#OPEN_TO_WORK" in self.driver.find_element_by_class_name("pv-top-card-profile-picture").find_element_by_tag_name("img").get_attribute("title")
+        except:
+            return False
+
     def get_experiences(self):
         url = os.path.join(self.linkedin_url, "details/experience")
         self.driver.get(url)
@@ -253,6 +259,8 @@ class Person(Scraper):
 
         # get name and location
         self.get_name_and_location()
+
+        self.open_to_work = self.is_open_to_work()
 
         # get about
         self.get_about()

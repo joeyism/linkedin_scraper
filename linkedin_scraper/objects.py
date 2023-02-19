@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from time import sleep
 
 from selenium.webdriver import Chrome
 
@@ -19,6 +20,7 @@ class Contact:
 @dataclass
 class Institution:
     institution_name: str = None
+    linkedin_url: str = None
     website: str = None
     industry: str = None
     type: str = None
@@ -61,6 +63,10 @@ class Scraper:
     driver: Chrome = None
     WAIT_FOR_ELEMENT_TIMEOUT = 5
     TOP_CARD = "pv-top-card"
+
+    @staticmethod
+    def wait(duration):
+        sleep(int(duration))
 
     def focus(self):
         self.driver.execute_script('alert("Focus window")')

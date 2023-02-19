@@ -88,8 +88,6 @@ class Person(Scraper):
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
             print("you are not logged in!")
-            x = input("please verify the capcha then press any key to continue...")
-            self.scrape_not_logged_in(close_on_complete=close_on_complete)
 
     def _click_see_more_by_class_name(self, class_name):
         try:
@@ -100,6 +98,143 @@ class Person(Scraper):
             div.find_element_by_tag_name("button").click()
         except Exception as e:
             pass
+
+    def get_experiences(self):
+        url = os.path.join(self.linkedin_url, "details/experience")
+        self.driver.get(url)
+        self.focus()
+        main = self.wait_for_element_to_load(by=By.ID, name="main")
+        self.scroll_to_half()
+        self.scroll_to_bottom()
+        main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
+        for position in main_list.find_elements_by_xpath("li"):
+            position = position.find_element_by_class_name("pvs-entity")
+            company_logo_elem, position_details = position.find_elements_by_xpath("*")
+
+            # company elem
+            company_linkedin_url = company_logo_elem.find_element_by_xpath("*").get_attribute("href")
+
+            # position details
+            position_details_list = position_details.find_elements_by_xpath("*")
+            position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
+            position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
+            outer_positions = position_summary_details.find_element_by_xpath("*").find_elements_by_xpath("*")
+
+            if len(outer_positions) == 4:
+                position_title = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
+                company = outer_positions[1].find_element_by_tag_name("span").text
+                work_times = outer_positions[2].find_element_by_tag_name("span").text
+                location = outer_positions[3].find_element_by_tag_name("span").text
+            elif len(outer_positions) == 3:
+                if "·" in outer_positions[2].text:
+                    position_title = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
+                    company = outer_positions[1].find_element_by_tag_name("span").text
+                    work_times = outer_positions[2].find_element_by_tag_name("span").text
+                    location = ""
+                else:
+                    position_title = ""
+                    company = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
+                    work_times = outer_positions[1].find_element_by_tag_name("span").text
+                    location = outer_positions[2].find_element_by_tag_name("span").text
+
+            times = work_times.split("·")[0].strip() if work_times else ""
+            duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+
+            from_date = " ".join(times.split(" ")[:2]) if times else ""
+            to_date = " ".join(times.split(" ")[3:]) if times else ""
+
+            if position_summary_text and len(position_summary_text.find_element_by_class_name("pvs-list").find_element_by_class_name("pvs-list").find_elements_by_xpath("li")) > 1:
+                descriptions = position_summary_text.find_element_by_class_name("pvs-list").find_element_by_class_name("pvs-list").find_elements_by_xpath("li")
+                for description in descriptions:
+                    res = description.find_element_by_tag_name("a").find_elements_by_xpath("*")
+                    position_title_elem = res[0] if len(res) > 0 else None
+                    work_times_elem = res[1] if len(res) > 1 else None
+                    location_elem = res[2] if len(res) > 2 else None
+
+
+                    location = location_elem.find_element_by_xpath("*").text if location_elem else None
+                    position_title = position_title_elem.find_element_by_xpath("*").find_element_by_tag_name("*").text if position_title_elem else ""
+                    work_times = work_times_elem.find_element_by_xpath("*").text if work_times_elem else ""
+                    times = work_times.split("·")[0].strip() if work_times else ""
+                    duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+                    from_date = " ".join(times.split(" ")[:2]) if times else ""
+                    to_date = " ".join(times.split(" ")[3:]) if times else ""
+
+                    experience = Experience(
+                        position_title=position_title,
+                        from_date=from_date,
+                        to_date=to_date,
+                        duration=duration,
+                        location=location,
+                        description=description,
+                        institution_name=company,
+                        linkedin_url=company_linkedin_url
+                    )
+                    self.add_experience(experience)
+            else:
+                description = position_summary_text.text if position_summary_text else ""
+
+                experience = Experience(
+                    position_title=position_title,
+                    from_date=from_date,
+                    to_date=to_date,
+                    duration=duration,
+                    location=location,
+                    description=description,
+                    institution_name=company,
+                    linkedin_url=company_linkedin_url
+                )
+                self.add_experience(experience)
+
+    def get_educations(self):
+        url = os.path.join(self.linkedin_url, "details/education")
+        self.driver.get(url)
+        self.focus()
+        main = self.wait_for_element_to_load(by=By.ID, name="main")
+        self.scroll_to_half()
+        self.scroll_to_bottom()
+        main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
+        for position in main_list.find_elements_by_class_name("pvs-entity"):
+            institution_logo_elem, position_details = position.find_elements_by_xpath("*")
+
+            # company elem
+            institution_linkedin_url = institution_logo_elem.find_element_by_xpath("*").get_attribute("href")
+
+            # position details
+            position_details_list = position_details.find_elements_by_xpath("*")
+            position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
+            position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
+            outer_positions = position_summary_details.find_element_by_xpath("*").find_elements_by_xpath("*")
+
+            institution_name = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
+            degree = outer_positions[1].find_element_by_tag_name("span").text
+            times = outer_positions[2].find_element_by_tag_name("span").text
+
+            from_date = " ".join(times.split(" ")[:2])
+            to_date = " ".join(times.split(" ")[3:])
+
+            description = position_summary_text.text if position_summary_text else ""
+
+            education = Education(
+                from_date=from_date,
+                to_date=to_date,
+                description=description,
+                degree=degree,
+                institution_name=institution_name,
+                linkedin_url=institution_linkedin_url
+            )
+            self.add_education(education)
+
+    def get_name_and_location(self):
+        top_panels = self.driver.find_elements_by_class_name("pv-text-details__left-panel")
+        self.name = top_panels[0].find_elements_by_xpath("*")[0].text
+        self.location = top_panels[1].find_element_by_tag_name("span").text
+
+
+    def get_about(self):
+        about = self.driver.find_element_by_id("about").find_element_by_xpath("..").find_element_by_class_name("display-flex").text
+        self.about = about
+
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
@@ -113,138 +248,29 @@ class Person(Scraper):
                 )
             )
         )
+        self.focus()
+        self.wait(5)
 
-        self.name = root.find_element_by_class_name(selectors.NAME).text.strip()
+        # get name and location
+        self.get_name_and_location()
 
         # get about
-        try:
-            see_more = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
-                EC.presence_of_element_located(
-                    (
-                        By.XPATH,
-                        "//*[@class='lt-line-clamp__more']",
-                    )
-                )
-            )
-            driver.execute_script("arguments[0].click();", see_more)
-
-            about = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
-                EC.presence_of_element_located(
-                    (
-                        By.XPATH,
-                        "//*[@class='lt-line-clamp__raw-line']",
-                    )
-                )
-            )
-        except:
-            about = None
-        if about:
-            self.add_about(about.text.strip())
-
+        self.get_about()
         driver.execute_script(
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"
         )
-
-        # get experience
-        driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight*3/5));"
-        )
-
-        ## Click SEE MORE
-        self._click_see_more_by_class_name("pv-experience-section__see-more")
-
-        try:
-            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
-                EC.presence_of_element_located((By.ID, "experience-section"))
-            )            
-            exp = driver.find_element(By.ID, "experience-section")
-        except:
-            exp = None
-
-        if exp is not None:
-            for position in exp.find_elements_by_class_name("pv-position-entity"):
-                position_title = position.find_element_by_tag_name("h3").text.strip()
-
-                try:
-                    company = position.find_elements_by_tag_name("p")[1].text.strip()
-                    times = str(
-                        position.find_elements_by_tag_name("h4")[0]
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
-                    )
-                    from_date = " ".join(times.split(" ")[:2])
-                    to_date = " ".join(times.split(" ")[3:])
-                    duration = (
-                        position.find_elements_by_tag_name("h4")[1]
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
-                    )
-                    location = (
-                        position.find_elements_by_tag_name("h4")[2]
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
-                    )
-                except:
-                    company = None
-                    from_date, to_date, duration, location = (None, None, None, None)
-
-                experience = Experience(
-                    position_title=position_title,
-                    from_date=from_date,
-                    to_date=to_date,
-                    duration=duration,
-                    location=location,
-                )
-                experience.institution_name = company
-                self.add_experience(experience)
-
-        # get location
-        location = driver.find_element_by_class_name(f"{self.__TOP_CARD}--list-bullet")
-        location = location.find_element_by_tag_name("li").text
-        self.add_location(location)
-
         driver.execute_script(
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));"
         )
 
-        # get education
-        ## Click SEE MORE
-        self._click_see_more_by_class_name("pv-education-section__see-more")
-        try:
-            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
-                EC.presence_of_element_located((By.ID, "education-section"))
-            )
-            edu = driver.find_element(By.ID, "education-section")
-        except:
-            edu = None
-        if edu:
-            for school in edu.find_elements_by_class_name(
-                "pv-profile-section__list-item"
-            ):
-                university = school.find_element_by_class_name(
-                    "pv-entity__school-name"
-                ).text.strip()
+        # get experience
+        self.get_experiences()
 
-                try:
-                    degree = (
-                        school.find_element_by_class_name("pv-entity__degree-name")
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
-                    )
-                    times = (
-                        school.find_element_by_class_name("pv-entity__dates")
-                        .find_elements_by_tag_name("span")[1]
-                        .text.strip()
-                    )
-                    from_date, to_date = (times.split(" ")[0], times.split(" ")[2])
-                except:
-                    degree = None
-                    from_date, to_date = (None, None)
-                education = Education(
-                    from_date=from_date, to_date=to_date, degree=degree
-                )
-                education.institution_name = university
-                self.add_education(education)
+        # get education
+        self.get_educations()
+
+
+        driver.get(self.linkedin_url)
 
         # get interest
         try:
@@ -316,100 +342,6 @@ class Person(Scraper):
 
         if close_on_complete:
             driver.quit()
-
-    def scrape_not_logged_in(self, close_on_complete=True, retry_limit=10):
-        driver = self.driver
-        retry_times = 0
-        while self.is_signed_in() and retry_times <= retry_limit:
-            page = driver.get(self.linkedin_url)
-            retry_times = retry_times + 1
-
-        # get name
-        self.name = driver.find_element_by_class_name(
-            "top-card-layout__title"
-        ).text.strip()
-
-        # get experience
-        try:
-            _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "experience"))
-            )
-            exp = driver.find_element_by_class_name("experience")
-        except:
-            exp = None
-
-        if exp is not None:
-            for position in exp.find_elements_by_class_name(
-                "experience-item__contents"
-            ):
-                position_title = position.find_element_by_class_name(
-                    "experience-item__title"
-                ).text.strip()
-                company = position.find_element_by_class_name(
-                    "experience-item__subtitle"
-                ).text.strip()
-
-                try:
-                    times = position.find_element_by_class_name(
-                        "experience-item__duration"
-                    )
-                    from_date = times.find_element_by_class_name(
-                        "date-range__start-date"
-                    ).text.strip()
-                    try:
-                        to_date = times.find_element_by_class_name(
-                            "date-range__end-date"
-                        ).text.strip()
-                    except:
-                        to_date = "Present"
-                    duration = position.find_element_by_class_name(
-                        "date-range__duration"
-                    ).text.strip()
-                    location = position.find_element_by_class_name(
-                        "experience-item__location"
-                    ).text.strip()
-                except:
-                    from_date, to_date, duration, location = (None, None, None, None)
-
-                experience = Experience(
-                    position_title=position_title,
-                    from_date=from_date,
-                    to_date=to_date,
-                    duration=duration,
-                    location=location,
-                )
-                experience.institution_name = company
-                self.add_experience(experience)
-        driver.execute_script(
-            "window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));"
-        )
-
-        # get education
-        edu = driver.find_element_by_class_name("education__list")
-        for school in edu.find_elements_by_class_name("result-card"):
-            university = school.find_element_by_class_name(
-                "result-card__title"
-            ).text.strip()
-            degree = school.find_element_by_class_name(
-                "education__item--degree-info"
-            ).text.strip()
-            try:
-                times = school.find_element_by_class_name("date-range")
-                from_date = times.find_element_by_class_name(
-                    "date-range__start-date"
-                ).text.strip()
-                to_date = times.find_element_by_class_name(
-                    "date-range__end-date"
-                ).text.strip()
-            except:
-                from_date, to_date = (None, None)
-            education = Education(from_date=from_date, to_date=to_date, degree=degree)
-
-            education.institution_name = university
-            self.add_education(education)
-
-        if close_on_complete:
-            driver.close()
 
     @property
     def company(self):

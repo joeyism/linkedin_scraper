@@ -2,6 +2,48 @@
 
 Scrapes Linkedin User Data
 
+[Linkedin Scraper](#linkedin-scraper)
+* [Installation](#installation)
+* [Setup](#setup)
+* [Usage](#usage)
+  + [Sample Usage](#sample-usage)
+  + [User Scraping](#user-scraping)
+  + [Company Scraping](#company-scraping)
+  + [Job Scraping](#job-scraping)
+  + [Job Search Scraping](#job-search-scraping)
+  + [Scraping sites where login is required first](#scraping-sites-where-login-is-required-first)
+  + [Scraping sites and login automatically](#scraping-sites-and-login-automatically)
+* [API](#api)
+  + [Person](#person)
+    - [`linkedin_url`](#linkedin_url)
+    - [`name`](#name)
+    - [`about`](#about)
+    - [`experiences`](#experiences)
+    - [`educations`](#educations)
+    - [`interests`](#interests)
+    - [`accomplishment`](#accomplishment)
+    - [`company`](#company)
+    - [`job_title`](#job_title)
+    - [`driver`](#driver)
+    - [`scrape`](#scrape)
+    - [`scrape(close_on_complete=True)`](#scrapeclose_on_completetrue)
+  + [Company](#company)
+    - [`linkedin_url`](#linkedin_url-1)
+    - [`name`](#name-1)
+    - [`about_us`](#about_us)
+    - [`website`](#website)
+    - [`headquarters`](#headquarters)
+    - [`founded`](#founded)
+    - [`company_type`](#company_type)
+    - [`company_size`](#company_size)
+    - [`specialties`](#specialties)
+    - [`showcase_pages`](#showcase_pages)
+    - [`affiliated_companies`](#affiliated_companies)
+    - [`driver`](#driver-1)
+    - [`get_employees`](#get_employees)
+    - [`scrape(close_on_complete=True)`](#scrapeclose_on_completetrue-1)
+* [Contribution](#contribution)
+
 ## Installation
 
 ```bash
@@ -29,23 +71,53 @@ driver = webdriver.Chrome()
 email = "some-email@email.address"
 password = "password123"
 actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
-person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=driver)
+person = Person("https://www.linkedin.com/in/joey-sham-aa2a50122", driver=driver)
 ```
 
 **NOTE**: The account used to log-in should have it's language set English to make sure everything works as expected.
 
 ### User Scraping
-
 ```python
 from linkedin_scraper import Person
 person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
 ```
 
 ### Company Scraping
-
 ```python
 from linkedin_scraper import Company
 company = Company("https://ca.linkedin.com/company/google")
+```
+
+### Job Scraping
+```python
+from linkedin_scraper import JobSearch, actions
+from selenium import webdriver
+
+driver = webdriver.Chrome()
+email = "some-email@email.address"
+password = "password123"
+actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
+input("Press Enter")
+job = Job("https://www.linkedin.com/jobs/collections/recommended/?currentJobId=3456898261", driver=driver, close_on_complete=False)
+```
+
+### Job Search Scraping
+```python
+from linkedin_scraper import JobSearch, actions
+from selenium import webdriver
+
+driver = webdriver.Chrome()
+email = "some-email@email.address"
+password = "password123"
+actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
+input("Press Enter")
+job_search = JobSearch(driver=driver, close_on_complete=False, scrape=False)
+# job_search contains jobs from your logged in front page:
+# - job_search.recommended_jobs
+# - job_search.still_hiring
+# - job_search.more_jobs
+
+job_listings = job_search.search("Machine Learning Engineer") # returns the list of `Job` from the first page
 ```
 
 ### Scraping sites where login is required first
@@ -117,10 +189,10 @@ This is the interests they have. A list of `linkedin_scraper.scraper.Interest`
 #### `accomplishment`
 This is the accomplishments they have. A list of `linkedin_scraper.scraper.Accomplishment`
 
-### `company`
+#### `company`
 This the most recent company or institution they have worked at. 
 
-### `job_title`
+#### `job_title`
 This the most recent job title they have. 
 
 #### `driver`
@@ -136,7 +208,7 @@ person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = 
 When this is **True**, the scraping happens automatically. To scrape afterwards, that can be run by the `scrape()` function from the `Person` object.
 
 
-### `scrape(close_on_complete=True)`
+#### `scrape(close_on_complete=True)`
 This is the meat of the code, where execution of this function scrapes the profile. If *close_on_complete* is True (which it is by default), then the browser will close upon completion. If scraping of other profiles are desired, then you might want to set that to false so you can keep using the same driver.
 
  
@@ -194,7 +266,7 @@ company = Company("https://ca.linkedin.com/company/google", driver=driver)
 ```
 
 
-### `scrape(close_on_complete=True)`
+#### `scrape(close_on_complete=True)`
 This is the meat of the code, where execution of this function scrapes the company. If *close_on_complete* is True (which it is by default), then the browser will close upon completion. If scraping of other companies are desired, then you might want to set that to false so you can keep using the same driver.
 
 ## Contribution

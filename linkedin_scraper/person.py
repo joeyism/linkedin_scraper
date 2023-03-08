@@ -214,10 +214,17 @@ class Person(Scraper):
 
             institution_name = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
             degree = outer_positions[1].find_element_by_tag_name("span").text
-            times = outer_positions[2].find_element_by_tag_name("span").text
 
-            from_date = " ".join(times.split(" ")[:2])
-            to_date = " ".join(times.split(" ")[3:])
+            if len(outer_positions) > 2:
+                times = outer_positions[2].find_element_by_tag_name("span").text
+
+                from_date = " ".join(times.split(" ")[:2])
+                to_date = " ".join(times.split(" ")[3:])
+            else:
+                from_date = None
+                to_date = None
+
+
 
             description = position_summary_text.text if position_summary_text else ""
 

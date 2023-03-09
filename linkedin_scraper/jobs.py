@@ -1,4 +1,4 @@
-from selenium.common import TimeoutException
+from selenium.common.exceptions import TimeoutException
 
 from .objects import Scraper
 from . import constants as c

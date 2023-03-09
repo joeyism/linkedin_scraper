@@ -1,3 +1,5 @@
+from selenium.common import TimeoutException
+
 from .objects import Scraper
 from . import constants as c
 from selenium.webdriver.common.by import By
@@ -57,7 +59,10 @@ class Job(Scraper):
         self.company_linkedin_url = self.wait_for_element_to_load(name="jobs-unified-top-card__company-name").find_element_by_tag_name("a").get_attribute("href")
         self.location = self.wait_for_element_to_load(name="jobs-unified-top-card__bullet").text.strip()
         self.posted_date = self.wait_for_element_to_load(name="jobs-unified-top-card__posted-date").text.strip()
-        self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
+        try:
+            self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
+        except TimeoutException:
+            self.applicant_count = 0
         self.job_description = self.wait_for_element_to_load(name="jobs-description").text.strip()
         self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()
 

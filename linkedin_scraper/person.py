@@ -95,8 +95,8 @@ class Person(Scraper):
             _ = WebDriverWait(self.driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.CLASS_NAME, class_name))
             )
-            div = self.driver.find_element_by_class_name(class_name)
-            div.find_element_by_tag_name("button").click()
+            div = self.driver.find_element(By.CLASS_NAME, class_name)
+            div.find_element(By.TAG_NAME, "button").click()
         except Exception as e:
             pass
 
@@ -287,7 +287,6 @@ class Person(Scraper):
         # get education
         self.get_educations()
 
-
         driver.get(self.linkedin_url)
 
         # get interest
@@ -304,11 +303,11 @@ class Person(Scraper):
             interestContainer = driver.find_element(By.XPATH,
                 "//*[@class='pv-profile-section pv-interests-section artdeco-container-card artdeco-card ember-view']"
             )
-            for interestElement in interestContainer.find_elements_by_xpath(
+            for interestElement in interestContainer.find_elements(By.XPATH, 
                 "//*[@class='pv-interest-entity pv-profile-section__card-item ember-view']"
             ):
                 interest = Interest(
-                    interestElement.find_element_by_tag_name("h3").text.strip()
+                    interestElement.find_element(By.TAG_NAME, "h3").text.strip()
                 )
                 self.add_interest(interest)
         except:
@@ -327,13 +326,13 @@ class Person(Scraper):
             acc = driver.find_element(By.XPATH,
                 "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card artdeco-card ember-view']"
             )
-            for block in acc.find_elements_by_xpath(
+            for block in acc.find_elements(By.XPATH, 
                 "//div[@class='pv-accomplishments-block__content break-words']"
             ):
-                category = block.find_element_by_tag_name("h3")
-                for title in block.find_element_by_tag_name(
+                category = block.find_element(By.TAG_NAME, "h3")
+                for title in block.find_element(By.TAG_NAME, 
                     "ul"
-                ).find_elements_by_tag_name("li"):
+                ).find_elements(By.TAG_NAME, "li"):
                     accomplishment = Accomplishment(category.text, title.text)
                     self.add_accomplishment(accomplishment)
         except:
@@ -345,13 +344,13 @@ class Person(Scraper):
             _ = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "mn-connections"))
             )
-            connections = driver.find_element_by_class_name("mn-connections")
+            connections = driver.find_element(By.CLASS_NAME, "mn-connections")
             if connections is not None:
-                for conn in connections.find_elements_by_class_name("mn-connection-card"):
-                    anchor = conn.find_element_by_class_name("mn-connection-card__link")
+                for conn in connections.find_elements(By.CLASS_NAME, "mn-connection-card"):
+                    anchor = conn.find_element(By.CLASS_NAME, "mn-connection-card__link")
                     url = anchor.get_attribute("href")
-                    name = conn.find_element_by_class_name("mn-connection-card__details").find_element_by_class_name("mn-connection-card__name").text.strip()
-                    occupation = conn.find_element_by_class_name("mn-connection-card__details").find_element_by_class_name("mn-connection-card__occupation").text.strip()
+                    name = conn.find_element(By.CLASS_NAME, "mn-connection-card__details").find_element(By.CLASS_NAME, "mn-connection-card__name").text.strip()
+                    occupation = conn.find_element(By.CLASS_NAME, "mn-connection-card__details").find_element(By.CLASS_NAME, "mn-connection-card__occupation").text.strip()
 
                     contact = Contact(name=name, occupation=occupation, url=url)
                     self.add_contact(contact)

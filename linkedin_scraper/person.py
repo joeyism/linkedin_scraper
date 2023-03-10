@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
 import os
 from linkedin_scraper import selectors
@@ -214,10 +215,17 @@ class Person(Scraper):
 
             institution_name = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
             degree = outer_positions[1].find_element_by_tag_name("span").text
-            times = outer_positions[2].find_element_by_tag_name("span").text
 
-            from_date = " ".join(times.split(" ")[:2])
-            to_date = " ".join(times.split(" ")[3:])
+            if len(outer_positions) > 2:
+                times = outer_positions[2].find_element_by_tag_name("span").text
+
+                from_date = " ".join(times.split(" ")[:2])
+                to_date = " ".join(times.split(" ")[3:])
+            else:
+                from_date = None
+                to_date = None
+
+
 
             description = position_summary_text.text if position_summary_text else ""
 
@@ -238,9 +246,11 @@ class Person(Scraper):
 
 
     def get_about(self):
-        about = self.driver.find_element_by_id("about").find_element_by_xpath("..").find_element_by_class_name("display-flex").text
+        try:
+            about = self.driver.find_element_by_id("about").find_element_by_xpath("..").find_element_by_class_name("display-flex").text
+        except NoSuchElementException :
+            about=None
         self.about = about
-
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver

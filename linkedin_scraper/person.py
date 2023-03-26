@@ -29,6 +29,17 @@ class Person(Scraper):
         scrape=True,
         close_on_complete=True,
         time_to_wait_after_login=0,
+        certifications=None,
+        skills=None,
+        projects=None,
+        test_scores=None,
+        languages=None,
+        volunteering=None,
+        recommendations=None,
+        publications=None,
+        courses=None,
+        awards=None,
+
     ):
         self.linkedin_url = linkedin_url
         self.name = name
@@ -39,6 +50,16 @@ class Person(Scraper):
         self.accomplishments = accomplishments or []
         self.also_viewed_urls = []
         self.contacts = contacts or []
+        self.certifications = certifications or []
+        self.skills = skills or []
+        self.projects = projects or []
+        self.test_scores = test_scores or []
+        self.languages = languages or []
+        self.volunteering = volunteering or []
+        self.recommendations = recommendations or []
+        self.publications = publications or []
+        self.courses = courses or []
+        self.awards = awards or []
 
         if driver is None:
             try:
@@ -81,6 +102,36 @@ class Person(Scraper):
 
     def add_contact(self, contact):
         self.contacts.append(contact)
+
+    def add_certifications(self, certification):
+        self.certifications.append(certification)
+
+    def add_skills(self, skill):
+        self.skills.append(skill)
+
+    def add_projects(self, project):
+        self.projects.append(project)
+
+    def add_test_scores(self, test_score):
+        self.test_scores.append(test_score)
+
+    def add_languages(self, language):
+        self.languages.append(language)
+
+    def add_volunteering(self, volunteer):
+        self.volunteering.append(volunteer)
+
+    def add_recommendations(self, recommendation):
+        self.recommendations.append(recommendation)
+
+    def add_publications(self, publication):
+        self.publications.append(publication)
+
+    def add_courses(self, course):
+        self.courses.append(course)
+
+    def add_awards(self, award):
+        self.awards.append(award)
 
     def scrape(self, close_on_complete=True):
         if self.is_signed_in():
@@ -160,8 +211,8 @@ class Person(Scraper):
                     location = location_elem.find_element(By.XPATH,"*").text if location_elem else None
                     position_title = position_title_elem.find_element(By.XPATH,"*").find_element(By.TAG_NAME,"*").text if position_title_elem else ""
                     work_times = work_times_elem.find_element(By.XPATH,"*").text if work_times_elem else ""
-                    times = work_times.split("·")[0].strip() if work_times else ""
-                    duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+                    times = work_times.split("·")[0] if work_times else ""
+                    duration = work_times.split("·")[1] if len(work_times.split("·")) > 1 else None
                     from_date = " ".join(times.split(" ")[:2]) if times else ""
                     to_date = " ".join(times.split(" ")[3:]) if times else ""
 
@@ -171,7 +222,7 @@ class Person(Scraper):
                         to_date=to_date,
                         duration=duration,
                         location=location,
-                        description=description,
+                        description=" ".join(description.split("\n")),
                         institution_name=company,
                         linkedin_url=company_linkedin_url
                     )
@@ -185,7 +236,7 @@ class Person(Scraper):
                     to_date=to_date,
                     duration=duration,
                     location=location,
-                    description=description,
+                    description=" ".join(description.split("\n")),
                     institution_name=company,
                     linkedin_url=company_linkedin_url
                 )
@@ -242,13 +293,42 @@ class Person(Scraper):
         self.name = top_panels[0].find_elements(By.XPATH,"*")[0].text
         self.location = top_panels[1].find_element(By.TAG_NAME,"span").text
 
-
     def get_about(self):
         try:
             about = self.driver.find_element(By.ID,"about").find_element(By.XPATH,"..").find_element(By.CLASS_NAME,"display-flex").text
         except NoSuchElementException :
             about=None
         self.about = about
+
+    def get_certifications(self):
+        pass
+
+    def get_skills(self):
+        pass
+
+    def get_projects(self):
+        pass
+
+    def get_test_scores(self):
+        pass
+
+    def get_languages(self):
+        pass
+
+    def get_volunteering(self):
+        pass
+
+    def get_recommendations(self):
+        pass
+
+    def get_publications(self):
+        pass
+
+    def get_courses(self):
+        pass
+
+    def get_awards(self):
+        pass
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
@@ -265,8 +345,32 @@ class Person(Scraper):
         self.focus()
         self.wait(5)
 
-        # get name and location
-        self.get_name_and_location()
+        # get experience
+        self.get_experiences()
+
+        # get projects
+        self.get_projects()
+
+         # get test scores
+        self.get_test_scores()
+
+        # get languages
+        self.get_languages()
+
+        # get volunteering
+        self.get_volunteering()
+
+        # get recommendations
+        self.get_recommendations()
+
+         # get publications
+        self.get_publications()
+
+        # get courses
+        self.get_courses()
+
+        # get awards
+        self.get_awards()
 
         self.open_to_work = self.is_open_to_work()
 
@@ -279,11 +383,17 @@ class Person(Scraper):
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));"
         )
 
-        # get experience
-        self.get_experiences()
+        # get certifications
+        self.get_certifications()
 
-        # get education
-        self.get_educations()
+        # get skills
+        self.get_skills()
+
+        # get certifications
+        self.get_certifications()
+
+        # get skills
+        self.get_skills()
 
         driver.get(self.linkedin_url)
 
@@ -381,7 +491,24 @@ class Person(Scraper):
             return None
 
     def __repr__(self):
-        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}\n\nContacts\n{conn}".format(
+        return """
+        {name}
+        \n\nAbout\n{about}
+        \n\nExperience\n{exp}
+        \n\nEducation\n{edu}
+        \n\nInterest\n{int}
+        \n\nAccomplishments\n{acc}
+        \n\Certificates\n{cert}
+        \n\Skills\n{skill}
+        \n\Projects\n{proj}
+        \n\Test_Scores\n{scores}
+        \n\Languages\n{lang}
+        \n\Volunteering\n{voln}
+        \n\Recommendations\n{reco}
+        \n\Publications\n{pubs}
+        \n\Courses\n{course}
+        \n\Awards\n{award}
+        """.format(
             name=self.name,
             about=self.about,
             exp=self.experiences,
@@ -389,4 +516,14 @@ class Person(Scraper):
             int=self.interests,
             acc=self.accomplishments,
             conn=self.contacts,
+            cert=self.certifications,
+            skill=self.skills,
+            proj=self.projects,
+            scores=self.test_scores,
+            lang=self.languages,
+            voln=self.volunteering,
+            reco=self.recommendations,
+            pubs=self.publications,
+            course=self.courses,
+            award=self.awards,
         )

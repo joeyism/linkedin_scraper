@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
+from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact, Certification
 import os
 
 class Person(Scraper):
@@ -222,7 +222,7 @@ class Person(Scraper):
                         to_date=to_date,
                         duration=duration,
                         location=location,
-                        description=" ".join(description.split("\n")),
+                        description=" ".join(description.text.split("\n")),
                         institution_name=company,
                         linkedin_url=company_linkedin_url
                     )
@@ -301,7 +301,30 @@ class Person(Scraper):
         self.about = about
 
     def get_certifications(self):
-        pass
+        url = os.path.join(self.linkedin_url, "details/certifications")
+        self.driver.get(url)
+        self.focus()
+        main = self.wait_for_element_to_load(by=By.ID, name="main")
+        self.scroll_to_half()
+        self.scroll_to_bottom()
+        main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
+        for (i, certification) in enumerate(main_list.find_elements(By.XPATH, '//div[@class="display-flex flex-column full-width align-self-center"]')):
+            cert_tags = certification.find_elements(By.TAG_NAME, "span")
+            # we might want to check the length here.
+            certification_name = cert_tags[1].text
+            certification_body = cert_tags[4].text
+            certification_issued = cert_tags[7].text
+            certification_expires = None
+            certification_url = certification.find_element(By.XPATH, "*").get_attribute("href")
+            
+            certification = Certification(
+                cert = certification_name,
+                url = certification_url,
+                issuing_body = certification_body,
+                expires_date = certification_expires
+            )
+
+            self.add_certifications(certification)
 
     def get_skills(self):
         pass
@@ -388,9 +411,6 @@ class Person(Scraper):
 
         # get skills
         self.get_skills()
-
-        # get certifications
-        self.get_certifications()
 
         # get skills
         self.get_skills()

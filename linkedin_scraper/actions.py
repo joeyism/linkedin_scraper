@@ -13,7 +13,7 @@ def page_has_loaded(driver):
     page_state = driver.execute_script('return document.readyState;')
     return page_state == 'complete'
 
-def login(driver, email=None, password=None, cookie = None, timeout=10):
+def login(driver, email=None, password=None, cookie = None, timeout=20):
     if cookie is not None:
         return _login_with_cookie(driver, cookie)
   

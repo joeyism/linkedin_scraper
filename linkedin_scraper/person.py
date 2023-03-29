@@ -192,6 +192,9 @@ class Person(Scraper):
                     company = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
                     work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
                     location = outer_positions[2].find_element(By.TAG_NAME,"span").text
+            elif len(outer_positions) == 2:
+                company = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
 
             times = work_times.split("·")[0].strip() if work_times else ""
             duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
@@ -206,8 +209,6 @@ class Person(Scraper):
                     position_title_elem = res[0] if len(res) > 0 else None
                     work_times_elem = res[1] if len(res) > 1 else None
                     location_elem = res[2] if len(res) > 2 else None
-
-
                     location = location_elem.find_element(By.XPATH,"*").text if location_elem else None
                     position_title = position_title_elem.find_element(By.XPATH,"*").find_element(By.TAG_NAME,"*").text if position_title_elem else ""
                     work_times = work_times_elem.find_element(By.XPATH,"*").text if work_times_elem else ""

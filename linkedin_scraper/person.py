@@ -4,10 +4,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
+from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact, Certification
 import os
-from linkedin_scraper import selectors
-
 
 class Person(Scraper):
 
@@ -31,6 +29,17 @@ class Person(Scraper):
         scrape=True,
         close_on_complete=True,
         time_to_wait_after_login=0,
+        certifications=None,
+        skills=None,
+        projects=None,
+        test_scores=None,
+        languages=None,
+        volunteering=None,
+        recommendations=None,
+        publications=None,
+        courses=None,
+        awards=None,
+
     ):
         self.linkedin_url = linkedin_url
         self.name = name
@@ -41,6 +50,16 @@ class Person(Scraper):
         self.accomplishments = accomplishments or []
         self.also_viewed_urls = []
         self.contacts = contacts or []
+        self.certifications = certifications or []
+        self.skills = skills or []
+        self.projects = projects or []
+        self.test_scores = test_scores or []
+        self.languages = languages or []
+        self.volunteering = volunteering or []
+        self.recommendations = recommendations or []
+        self.publications = publications or []
+        self.courses = courses or []
+        self.awards = awards or []
 
         if driver is None:
             try:
@@ -84,6 +103,36 @@ class Person(Scraper):
     def add_contact(self, contact):
         self.contacts.append(contact)
 
+    def add_certifications(self, certification):
+        self.certifications.append(certification)
+
+    def add_skills(self, skill):
+        self.skills.append(skill)
+
+    def add_projects(self, project):
+        self.projects.append(project)
+
+    def add_test_scores(self, test_score):
+        self.test_scores.append(test_score)
+
+    def add_languages(self, language):
+        self.languages.append(language)
+
+    def add_volunteering(self, volunteer):
+        self.volunteering.append(volunteer)
+
+    def add_recommendations(self, recommendation):
+        self.recommendations.append(recommendation)
+
+    def add_publications(self, publication):
+        self.publications.append(publication)
+
+    def add_courses(self, course):
+        self.courses.append(course)
+
+    def add_awards(self, award):
+        self.awards.append(award)
+
     def scrape(self, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete)
@@ -102,7 +151,7 @@ class Person(Scraper):
 
     def is_open_to_work(self):
         try:
-            return "#OPEN_TO_WORK" in self.driver.find_element_by_class_name("pv-top-card-profile-picture").find_element_by_tag_name("img").get_attribute("title")
+            return "#OPEN_TO_WORK" in self.driver.find_element(By.CLASS_NAME,"pv-top-card-profile-picture").find_element(By.TAG_NAME,"img").get_attribute("title")
         except:
             return False
 
@@ -114,35 +163,38 @@ class Person(Scraper):
         self.scroll_to_half()
         self.scroll_to_bottom()
         main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
-        for position in main_list.find_elements_by_xpath("li"):
-            position = position.find_element_by_class_name("pvs-entity")
-            company_logo_elem, position_details = position.find_elements_by_xpath("*")
+        for position in main_list.find_elements(By.XPATH,"li"):
+            position = position.find_element(By.CLASS_NAME,"pvs-entity")
+            company_logo_elem, position_details = position.find_elements(By.XPATH,"*")
 
             # company elem
-            company_linkedin_url = company_logo_elem.find_element_by_xpath("*").get_attribute("href")
+            company_linkedin_url = company_logo_elem.find_element(By.XPATH,"*").get_attribute("href")
 
             # position details
-            position_details_list = position_details.find_elements_by_xpath("*")
+            position_details_list = position_details.find_elements(By.XPATH,"*")
             position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
             position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
-            outer_positions = position_summary_details.find_element_by_xpath("*").find_elements_by_xpath("*")
+            outer_positions = position_summary_details.find_element(By.XPATH,"*").find_elements(By.XPATH,"*")
 
             if len(outer_positions) == 4:
-                position_title = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
-                company = outer_positions[1].find_element_by_tag_name("span").text
-                work_times = outer_positions[2].find_element_by_tag_name("span").text
-                location = outer_positions[3].find_element_by_tag_name("span").text
+                position_title = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                company = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                work_times = outer_positions[2].find_element(By.TAG_NAME,"span").text
+                location = outer_positions[3].find_element(By.TAG_NAME,"span").text
             elif len(outer_positions) == 3:
                 if "·" in outer_positions[2].text:
-                    position_title = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
-                    company = outer_positions[1].find_element_by_tag_name("span").text
-                    work_times = outer_positions[2].find_element_by_tag_name("span").text
+                    position_title = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                    company = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                    work_times = outer_positions[2].find_element(By.TAG_NAME,"span").text
                     location = ""
                 else:
                     position_title = ""
-                    company = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
-                    work_times = outer_positions[1].find_element_by_tag_name("span").text
-                    location = outer_positions[2].find_element_by_tag_name("span").text
+                    company = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                    work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                    location = outer_positions[2].find_element(By.TAG_NAME,"span").text
+            elif len(outer_positions) == 2:
+                company = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
 
             times = work_times.split("·")[0].strip() if work_times else ""
             duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
@@ -150,20 +202,18 @@ class Person(Scraper):
             from_date = " ".join(times.split(" ")[:2]) if times else ""
             to_date = " ".join(times.split(" ")[3:]) if times else ""
 
-            if position_summary_text and len(position_summary_text.find_element_by_class_name("pvs-list").find_element_by_class_name("pvs-list").find_elements_by_xpath("li")) > 1:
-                descriptions = position_summary_text.find_element_by_class_name("pvs-list").find_element_by_class_name("pvs-list").find_elements_by_xpath("li")
+            if position_summary_text and len(position_summary_text.find_element(By.CLASS_NAME,"pvs-list").find_element(By.CLASS_NAME,"pvs-list").find_elements(By.XPATH,"li")) > 1:
+                descriptions = position_summary_text.find_element(By.CLASS_NAME,"pvs-list").find_element(By.CLASS_NAME,"pvs-list").find_elements(By.XPATH,"li")
                 for description in descriptions:
-                    res = description.find_element_by_tag_name("a").find_elements_by_xpath("*")
+                    res = description.find_element(By.TAG_NAME,"a").find_elements(By.XPATH,"*")
                     position_title_elem = res[0] if len(res) > 0 else None
                     work_times_elem = res[1] if len(res) > 1 else None
                     location_elem = res[2] if len(res) > 2 else None
-
-
-                    location = location_elem.find_element_by_xpath("*").text if location_elem else None
-                    position_title = position_title_elem.find_element_by_xpath("*").find_element_by_tag_name("*").text if position_title_elem else ""
-                    work_times = work_times_elem.find_element_by_xpath("*").text if work_times_elem else ""
-                    times = work_times.split("·")[0].strip() if work_times else ""
-                    duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+                    location = location_elem.find_element(By.XPATH,"*").text if location_elem else None
+                    position_title = position_title_elem.find_element(By.XPATH,"*").find_element(By.TAG_NAME,"*").text if position_title_elem else ""
+                    work_times = work_times_elem.find_element(By.XPATH,"*").text if work_times_elem else ""
+                    times = work_times.split("·")[0] if work_times else ""
+                    duration = work_times.split("·")[1] if len(work_times.split("·")) > 1 else None
                     from_date = " ".join(times.split(" ")[:2]) if times else ""
                     to_date = " ".join(times.split(" ")[3:]) if times else ""
 
@@ -173,7 +223,7 @@ class Person(Scraper):
                         to_date=to_date,
                         duration=duration,
                         location=location,
-                        description=description,
+                        description=" ".join(description.text.split("\n")),
                         institution_name=company,
                         linkedin_url=company_linkedin_url
                     )
@@ -187,7 +237,7 @@ class Person(Scraper):
                     to_date=to_date,
                     duration=duration,
                     location=location,
-                    description=description,
+                    description=" ".join(description.split("\n")),
                     institution_name=company,
                     linkedin_url=company_linkedin_url
                 )
@@ -201,23 +251,23 @@ class Person(Scraper):
         self.scroll_to_half()
         self.scroll_to_bottom()
         main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
-        for position in main_list.find_elements_by_class_name("pvs-entity"):
-            institution_logo_elem, position_details = position.find_elements_by_xpath("*")
+        for position in main_list.find_elements(By.CLASS_NAME,"pvs-entity"):
+            institution_logo_elem, position_details = position.find_elements(By.XPATH,"*")
 
             # company elem
-            institution_linkedin_url = institution_logo_elem.find_element_by_xpath("*").get_attribute("href")
+            institution_linkedin_url = institution_logo_elem.find_element(By.XPATH,"*").get_attribute("href")
 
             # position details
-            position_details_list = position_details.find_elements_by_xpath("*")
+            position_details_list = position_details.find_elements(By.XPATH,"*")
             position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
             position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
-            outer_positions = position_summary_details.find_element_by_xpath("*").find_elements_by_xpath("*")
+            outer_positions = position_summary_details.find_element(By.XPATH,"*").find_elements(By.XPATH,"*")
 
-            institution_name = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
-            degree = outer_positions[1].find_element_by_tag_name("span").text
+            institution_name = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+            degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
 
             if len(outer_positions) > 2:
-                times = outer_positions[2].find_element_by_tag_name("span").text
+                times = outer_positions[2].find_element(By.TAG_NAME,"span").text
 
                 from_date = " ".join(times.split(" ")[:2])
                 to_date = " ".join(times.split(" ")[3:])
@@ -240,17 +290,69 @@ class Person(Scraper):
             self.add_education(education)
 
     def get_name_and_location(self):
-        top_panels = self.driver.find_elements_by_class_name("pv-text-details__left-panel")
-        self.name = top_panels[0].find_elements_by_xpath("*")[0].text
-        self.location = top_panels[1].find_element_by_tag_name("span").text
-
+        top_panels = self.driver.find_elements(By.CLASS_NAME,"pv-text-details__left-panel")
+        self.name = top_panels[0].find_elements(By.XPATH,"*")[0].text
+        self.location = top_panels[1].find_element(By.TAG_NAME,"span").text
 
     def get_about(self):
         try:
-            about = self.driver.find_element_by_id("about").find_element_by_xpath("..").find_element_by_class_name("display-flex").text
+            about = self.driver.find_element(By.ID,"about").find_element(By.XPATH,"..").find_element(By.CLASS_NAME,"display-flex").text
         except NoSuchElementException :
             about=None
         self.about = about
+
+    def get_certifications(self):
+        url = os.path.join(self.linkedin_url, "details/certifications")
+        self.driver.get(url)
+        self.focus()
+        main = self.wait_for_element_to_load(by=By.ID, name="main")
+        self.scroll_to_half()
+        self.scroll_to_bottom()
+        main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
+        for (i, certification) in enumerate(main_list.find_elements(By.XPATH, '//div[@class="display-flex flex-column full-width align-self-center"]')):
+            cert_tags = certification.find_elements(By.TAG_NAME, "span")
+            # we might want to check the length here.
+            certification_name = cert_tags[1].text
+            certification_body = cert_tags[4].text
+            certification_issued = cert_tags[7].text
+            certification_expires = None
+            certification_url = certification.find_element(By.XPATH, "*").get_attribute("href")
+            
+            certification = Certification(
+                cert = certification_name,
+                url = certification_url,
+                issuing_body = certification_body,
+                expires_date = certification_expires
+            )
+
+            self.add_certifications(certification)
+
+    def get_skills(self):
+        pass
+
+    def get_projects(self):
+        pass
+
+    def get_test_scores(self):
+        pass
+
+    def get_languages(self):
+        pass
+
+    def get_volunteering(self):
+        pass
+
+    def get_recommendations(self):
+        pass
+
+    def get_publications(self):
+        pass
+
+    def get_courses(self):
+        pass
+
+    def get_awards(self):
+        pass
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
@@ -267,8 +369,32 @@ class Person(Scraper):
         self.focus()
         self.wait(5)
 
-        # get name and location
-        self.get_name_and_location()
+        # get experience
+        self.get_experiences()
+
+        # get projects
+        self.get_projects()
+
+         # get test scores
+        self.get_test_scores()
+
+        # get languages
+        self.get_languages()
+
+        # get volunteering
+        self.get_volunteering()
+
+        # get recommendations
+        self.get_recommendations()
+
+         # get publications
+        self.get_publications()
+
+        # get courses
+        self.get_courses()
+
+        # get awards
+        self.get_awards()
 
         self.open_to_work = self.is_open_to_work()
 
@@ -281,11 +407,14 @@ class Person(Scraper):
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/1.5));"
         )
 
-        # get experience
-        self.get_experiences()
+        # get certifications
+        self.get_certifications()
 
-        # get education
-        self.get_educations()
+        # get skills
+        self.get_skills()
+
+        # get skills
+        self.get_skills()
 
         driver.get(self.linkedin_url)
 
@@ -383,7 +512,24 @@ class Person(Scraper):
             return None
 
     def __repr__(self):
-        return "{name}\n\nAbout\n{about}\n\nExperience\n{exp}\n\nEducation\n{edu}\n\nInterest\n{int}\n\nAccomplishments\n{acc}\n\nContacts\n{conn}".format(
+        return """
+        {name}
+        \n\nAbout\n{about}
+        \n\nExperience\n{exp}
+        \n\nEducation\n{edu}
+        \n\nInterest\n{int}
+        \n\nAccomplishments\n{acc}
+        \n\Certificates\n{cert}
+        \n\Skills\n{skill}
+        \n\Projects\n{proj}
+        \n\Test_Scores\n{scores}
+        \n\Languages\n{lang}
+        \n\Volunteering\n{voln}
+        \n\Recommendations\n{reco}
+        \n\Publications\n{pubs}
+        \n\Courses\n{course}
+        \n\Awards\n{award}
+        """.format(
             name=self.name,
             about=self.about,
             exp=self.experiences,
@@ -391,4 +537,14 @@ class Person(Scraper):
             int=self.interests,
             acc=self.accomplishments,
             conn=self.contacts,
+            cert=self.certifications,
+            skill=self.skills,
+            proj=self.projects,
+            scores=self.test_scores,
+            lang=self.languages,
+            voln=self.volunteering,
+            reco=self.recommendations,
+            pubs=self.publications,
+            course=self.courses,
+            award=self.awards,
         )

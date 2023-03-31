@@ -48,6 +48,15 @@ class Education(Institution):
 
 
 @dataclass
+class Certification(Institution):
+    cert: str = None,
+    url: str = None,
+    issuing_body: str = None
+    issued_date: str = None
+    expires_date: str = None
+
+
+@dataclass
 class Interest(Institution):
     title = None
 

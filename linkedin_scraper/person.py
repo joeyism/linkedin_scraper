@@ -116,54 +116,80 @@ class Person(Scraper):
         main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
         for position in main_list.find_elements_by_xpath("li"):
             position = position.find_element_by_class_name("pvs-entity")
-            company_logo_elem, position_details = position.find_elements_by_xpath("*")
+            company_logo_elem, position_details = position.find_elements_by_xpath(
+                "*")
 
             # company elem
-            company_linkedin_url = company_logo_elem.find_element_by_xpath("*").get_attribute("href")
+            company_linkedin_url = company_logo_elem.find_element_by_xpath(
+                "*").get_attribute("href")
 
             # position details
             position_details_list = position_details.find_elements_by_xpath("*")
-            position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
-            position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
-            outer_positions = position_summary_details.find_element_by_xpath("*").find_elements_by_xpath("*")
+            position_summary_details = position_details_list[0] if len(
+                position_details_list) > 0 else None
+            position_summary_text = position_details_list[1] if len(
+                position_details_list) > 1 else None
+            outer_positions = position_summary_details.find_element_by_xpath(
+                "*").find_elements_by_xpath("*")
 
             if len(outer_positions) == 4:
-                position_title = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
+                position_title = outer_positions[0].find_element_by_tag_name(
+                    "span").find_element_by_tag_name("span").text
                 company = outer_positions[1].find_element_by_tag_name("span").text
-                work_times = outer_positions[2].find_element_by_tag_name("span").text
+                work_times = outer_positions[2].find_element_by_tag_name(
+                    "span").text
                 location = outer_positions[3].find_element_by_tag_name("span").text
             elif len(outer_positions) == 3:
                 if "·" in outer_positions[2].text:
-                    position_title = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
-                    company = outer_positions[1].find_element_by_tag_name("span").text
-                    work_times = outer_positions[2].find_element_by_tag_name("span").text
+                    position_title = outer_positions[0].find_element_by_tag_name(
+                        "span").find_element_by_tag_name("span").text
+                    company = outer_positions[1].find_element_by_tag_name(
+                        "span").text
+                    work_times = outer_positions[2].find_element_by_tag_name(
+                        "span").text
                     location = ""
                 else:
                     position_title = ""
-                    company = outer_positions[0].find_element_by_tag_name("span").find_element_by_tag_name("span").text
-                    work_times = outer_positions[1].find_element_by_tag_name("span").text
-                    location = outer_positions[2].find_element_by_tag_name("span").text
+                    company = outer_positions[0].find_element_by_tag_name(
+                        "span").find_element_by_tag_name("span").text
+                    company = company[:company.find("\n")]
+                    work_times = outer_positions[1].find_element_by_tag_name(
+                        "span").text
+                    location = outer_positions[2].find_element_by_tag_name(
+                        "span").text
+            else:
+                # len(outer_positions) == 2
+                company = outer_positions[0].find_element_by_tag_name(
+                    "span").text
+                work_times = outer_positions[1].find_element_by_tag_name(
+                    "span").text
+                position_title = ""
+                location = ""
 
-            times = work_times.split("·")[0].strip() if work_times else ""
-            duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
-
-            from_date = " ".join(times.split(" ")[:2]) if times else ""
-            to_date = " ".join(times.split(" ")[3:]) if times else ""
-
-            if position_summary_text and len(position_summary_text.find_element_by_class_name("pvs-list").find_element_by_class_name("pvs-list").find_elements_by_xpath("li")) > 1:
-                descriptions = position_summary_text.find_element_by_class_name("pvs-list").find_element_by_class_name("pvs-list").find_elements_by_xpath("li")
+            if position_summary_text and len(
+                    position_summary_text.find_element_by_class_name(
+                            "pvs-list").find_element_by_class_name(
+                            "pvs-list").find_elements_by_xpath("li")) > 1:
+                descriptions = position_summary_text.find_element_by_class_name(
+                    "pvs-list").find_element_by_class_name(
+                    "pvs-list").find_elements_by_xpath("li")
                 for description in descriptions:
-                    res = description.find_element_by_tag_name("a").find_elements_by_xpath("*")
+                    res = description.find_element_by_tag_name(
+                        "a").find_elements_by_xpath("*")
                     position_title_elem = res[0] if len(res) > 0 else None
                     work_times_elem = res[1] if len(res) > 1 else None
                     location_elem = res[2] if len(res) > 2 else None
 
-
-                    location = location_elem.find_element_by_xpath("*").text if location_elem else None
-                    position_title = position_title_elem.find_element_by_xpath("*").find_element_by_tag_name("*").text if position_title_elem else ""
-                    work_times = work_times_elem.find_element_by_xpath("*").text if work_times_elem else ""
+                    location = location_elem.find_element_by_xpath(
+                        "*").text if location_elem else None
+                    position_title = position_title_elem.find_element_by_xpath(
+                        "*").find_element_by_tag_name(
+                        "*").text if position_title_elem else ""
+                    work_times = work_times_elem.find_element_by_xpath(
+                        "*").text if work_times_elem else ""
                     times = work_times.split("·")[0].strip() if work_times else ""
-                    duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+                    duration = work_times.split("·")[1].strip() if len(
+                        work_times.split("·")) > 1 else None
                     from_date = " ".join(times.split(" ")[:2]) if times else ""
                     to_date = " ".join(times.split(" ")[3:]) if times else ""
 
@@ -180,6 +206,13 @@ class Person(Scraper):
                     self.add_experience(experience)
             else:
                 description = position_summary_text.text if position_summary_text else ""
+
+                times = work_times.split("·")[0].strip() if work_times else ""
+                duration = work_times.split("·")[1].strip() if len(
+                    work_times.split("·")) > 1 else None
+
+                from_date = " ".join(times.split(" ")[:2]) if times else ""
+                to_date = " ".join(times.split(" ")[3:]) if times else ""
 
                 experience = Experience(
                     position_title=position_title,

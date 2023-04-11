@@ -60,7 +60,7 @@ export CHROMEDRIVER=~/chromedriver
 ```
 
 ## Sponsor
-![rds-cost](https://raw.githubusercontent.com/joeyism/linkedin_scraper/master/docs/proxycurl.png)
+[![rds-cost](https://raw.githubusercontent.com/joeyism/linkedin_scraper/master/docs/proxycurl.png)](https://nubela.co/proxycurl/?utm_campaign=influencer%20marketing&utm_source=github&utm_medium=social&utm_term=-&utm_content=joeyism)
 
 Scrape public LinkedIn profile data at scale with [Proxycurl APIs](https://nubela.co/proxycurl/?utm_campaign=influencer%20marketing&utm_source=github&utm_medium=social&utm_term=-&utm_content=joeyism).
 

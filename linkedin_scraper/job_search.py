@@ -36,8 +36,8 @@ class JobSearch(Scraper):
         job_div = self.wait_for_element_to_load(name="job-card-list__title", base=base_element)
         job_title = job_div.text.strip()
         linkedin_url = job_div.get_attribute("href")
-        company = base_element.find_element_by_class_name("job-card-container__primary-description")
-        location = base_element.find_element_by_class_name("job-card-container__metadata-item")
+        company = base_element.find_element_by_class_name("job-card-container__primary-description").text
+        location = base_element.find_element_by_class_name("job-card-container__metadata-item").text
         job = Job(linkedin_url=linkedin_url, job_title=job_title, company=company, location=location, scrape=False, driver=self.driver)
         return job
 

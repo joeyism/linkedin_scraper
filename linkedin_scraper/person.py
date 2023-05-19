@@ -167,6 +167,8 @@ class Person(Scraper):
                     from_date = " ".join(times.split(" ")[:2]) if times else ""
                     to_date = " ".join(times.split(" ")[3:]) if times else ""
 
+                    # sometimes it returns WebElement if .text not used
+                    description = description.text 
                     experience = Experience(
                         position_title=position_title,
                         from_date=from_date,
@@ -213,8 +215,13 @@ class Person(Scraper):
             position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
             outer_positions = position_summary_details.find_element(By.XPATH,"*").find_elements(By.XPATH,"*")
 
-            institution_name = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
-            degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
+            # if outer_positions length is 0, return None
+            try:
+                institution_name = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
+            except IndexError:
+                institution_name = None
+                degree = None
 
             if len(outer_positions) > 2:
                 times = outer_positions[2].find_element(By.TAG_NAME,"span").text

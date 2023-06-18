@@ -12,3 +12,4 @@ chromedriver
 scrape.py
 creds.json
 venv
+*.zip

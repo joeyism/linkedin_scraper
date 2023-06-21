@@ -141,14 +141,15 @@ class Person(Scraper):
                 else:
                     position_title = ""
                     company = outer_positions[0].find_element(By.TAG_NAME,"span").find_element(By.TAG_NAME,"span").text
+                    company = company[:company.find("\n")]
                     work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
                     location = outer_positions[2].find_element(By.TAG_NAME,"span").text
-
-            times = work_times.split("·")[0].strip() if work_times else ""
-            duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
-
-            from_date = " ".join(times.split(" ")[:2]) if times else ""
-            to_date = " ".join(times.split(" ")[3:]) if times else ""
+            else:
+                # len(outer_positions) == 2
+                company = outer_positions[0].find_element(By.TAG_NAME,"span").text
+                work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                position_title = ""
+                location = ""
 
             if position_summary_text and len(position_summary_text.find_element(By.CLASS_NAME,"pvs-list").find_element(By.CLASS_NAME,"pvs-list").find_elements(By.XPATH,"li")) > 1:
                 descriptions = position_summary_text.find_element(By.CLASS_NAME,"pvs-list").find_element(By.CLASS_NAME,"pvs-list").find_elements(By.XPATH,"li")
@@ -157,7 +158,6 @@ class Person(Scraper):
                     position_title_elem = res[0] if len(res) > 0 else None
                     work_times_elem = res[1] if len(res) > 1 else None
                     location_elem = res[2] if len(res) > 2 else None
-
 
                     location = location_elem.find_element(By.XPATH,"*").text if location_elem else None
                     position_title = position_title_elem.find_element(By.XPATH,"*").find_element(By.TAG_NAME,"*").text if position_title_elem else ""
@@ -180,6 +180,12 @@ class Person(Scraper):
                     self.add_experience(experience)
             else:
                 description = position_summary_text.text if position_summary_text else ""
+
+                times = work_times.split("·")[0].strip() if work_times else ""
+                duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+
+                from_date = " ".join(times.split(" ")[:2]) if times else ""
+                to_date = " ".join(times.split(" ")[3:]) if times else ""
 
                 experience = Experience(
                     position_title=position_title,

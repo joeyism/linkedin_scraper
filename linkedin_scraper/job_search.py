@@ -24,23 +24,24 @@ class JobSearch(Scraper):
         if scrape:
             self.scrape(close_on_complete, scrape_recommended_jobs)
 
-
     def scrape(self, close_on_complete=True, scrape_recommended_jobs=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete, scrape_recommended_jobs=scrape_recommended_jobs)
         else:
             raise NotImplemented("This part is not implemented yet")
 
-
     def scrape_job_card(self, base_element) -> Job:
         job_div = self.wait_for_element_to_load(name="job-card-list__title", base=base_element)
         job_title = job_div.text.strip()
         linkedin_url = job_div.get_attribute("href")
-        company = base_element.find_element_by_class_name("artdeco-entity-lockup__subtitle").text
-        location = base_element.find_element_by_class_name("job-card-container__metadata-wrapper").text
-        job = Job(linkedin_url=linkedin_url, job_title=job_title, company=company, location=location, scrape=False, driver=self.driver)
+        locator = base_element.find_element_by_class_name if \
+            hasattr(base_element, "find_element_by_class_name") else \
+            lambda cls: base_element.find_element(By.CLASS_NAME, cls)
+        company = locator("artdeco-entity-lockup__subtitle").text
+        location = locator("job-card-container__metadata-wrapper").text
+        job = Job(linkedin_url=linkedin_url, job_title=job_title, company=company, location=location, scrape=False,
+                  driver=self.driver)
         return job
-
 
     def scrape_logged_in(self, close_on_complete=True, scrape_recommended_jobs=True):
         driver = self.driver
@@ -55,12 +56,14 @@ class JobSearch(Scraper):
                 if not area_name:
                     continue
                 area_results = []
-                for job_posting in area.find_elements_by_class_name("jobs-job-board-list__item"):
+                locator = area.find_elements_by_class_name if \
+                    hasattr(area, "find_elements_by_class_name") else \
+                    lambda cls: area.find_elements(By.CLASS_NAME, cls)
+                for job_posting in locator("jobs-job-board-list__item"):
                     job = self.scrape_job_card(job_posting)
                     area_results.append(job)
                 setattr(self, area_name, area_results)
         return
-
 
     def search(self, search_term: str) -> List[Job]:
         url = os.path.join(self.base_url, "search") + f"?keywords={urllib.parse.quote(search_term)}&refresh=true"

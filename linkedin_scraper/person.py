@@ -13,7 +13,10 @@ class Person(Scraper):
 
     __TOP_CARD = "pv-top-card"
     __WAIT_FOR_ELEMENT_TIMEOUT = 5
-
+    position_title = ''
+    company = ''
+    work_times = ''
+    location = ''
     def __init__(
         self,
         linkedin_url=None,
@@ -144,6 +147,30 @@ class Person(Scraper):
                     work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
                     location = outer_positions[2].find_element(By.TAG_NAME,"span").text
 
+            elif len(outer_positions) == 2:
+                position_title = ""
+                company = outer_positions[0].find_element(By.TAG_NAME,"span").text
+                work_times = ""
+                location = ""
+
+            else:
+                position_title = ''
+                company = ''
+                work_times = ''
+                location = ''
+
+            if len(outer_positions) > 2:
+                times = work_times.split("·")[0].strip() if work_times else ""
+                duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
+                from_date = " ".join(times.split(" ")[:2]) if times else ""
+                to_date = " ".join(times.split(" ")[3:]) if times else ""
+
+            else:
+                times = ""
+                duration =  None
+                from_date = ""
+                to_date = ""
+
             times = work_times.split("·")[0].strip() if work_times else ""
             duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
 
@@ -158,9 +185,12 @@ class Person(Scraper):
                     work_times_elem = res[1] if len(res) > 1 else None
                     location_elem = res[2] if len(res) > 2 else None
 
+                    if len(res) > 3:
+                        work_times_elem = res[2]
+                        location_elem = res[3]
 
                     location = location_elem.find_element(By.XPATH,"*").text if location_elem else None
-                    position_title = position_title_elem.find_element(By.XPATH,"*").find_element(By.TAG_NAME,"*").text if position_title_elem else ""
+                    position_title = position_title_elem.find_element(By.TAG_NAME,"span").text if position_title_elem else ""
                     work_times = work_times_elem.find_element(By.XPATH,"*").text if work_times_elem else ""
                     times = work_times.split("·")[0].strip() if work_times else ""
                     duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None

@@ -1,18 +1,23 @@
-import requests
+from typing import Dict, Any
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from .objects import Experience, Education, Scraper, Interest, Accomplishment, Contact
+from .utils import to_dict
 import os
 from linkedin_scraper import selectors
-
 
 class Person(Scraper):
 
     __TOP_CARD = "pv-top-card"
     __WAIT_FOR_ELEMENT_TIMEOUT = 5
+
+
+    linkedin_url: str
+    name: str
 
     def __init__(
         self,
@@ -392,3 +397,6 @@ class Person(Scraper):
             acc=self.accomplishments,
             conn=self.contacts,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return to_dict(self)

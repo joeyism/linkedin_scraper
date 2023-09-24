@@ -399,4 +399,12 @@ class Person(Scraper):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return to_dict(self)
+        return to_dict({
+            'name': self.name,
+            'about': self.about,
+            'experiences': self.experiences,
+            'educations': self.educations,
+            'interests': self.interests,
+            'accomplishments': self.accomplishments,
+            'contacts': self.contacts,
+        })

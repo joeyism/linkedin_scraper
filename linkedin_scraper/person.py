@@ -32,6 +32,7 @@ class Person(Scraper):
         close_on_complete=True,
         time_to_wait_after_login=0,
     ):
+        self.open_to_work = None
         self.linkedin_url = linkedin_url
         self.name = name
         self.about = about or []

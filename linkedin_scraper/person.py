@@ -115,7 +115,8 @@ class Person(Scraper):
         self.scroll_to_bottom()
         main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
         for position in main_list.find_elements(By.XPATH,"li"):
-            position = position.find_element(By.CLASS_NAME,"pvs-entity")
+            # position = position.find_element(By.CLASS_NAME,"pvs-entity")
+            position = position.find_element(By.CLASS_NAME,"pvs-entity--padded")
             company_logo_elem, position_details = position.find_elements(By.XPATH,"*")
 
             # company elem
@@ -240,9 +241,16 @@ class Person(Scraper):
             self.add_education(education)
 
     def get_name_and_location(self):
-        top_panels = self.driver.find_elements(By.CLASS_NAME,"pv-text-details__left-panel")
+        # top_panels = self.driver.find_elements(By.CLASS_NAME,"pv-text-details__left-panel")
+        # self.name = top_panels[0].find_elements(By.XPATH,"*")[0].text
+        # self.location = top_panels[1].find_element(By.TAG_NAME,"span").text
+
+        top_panels = self.driver.find_elements(By.CLASS_NAME,"pv-text-details__about-this-profile-entrypoint")
         self.name = top_panels[0].find_elements(By.XPATH,"*")[0].text
-        self.location = top_panels[1].find_element(By.TAG_NAME,"span").text
+        try:
+            self.location = self.driver.find_element(By.XPATH, '//*[@class="artdeco-card ember-view pv-top-card"]/div[2]/div[2]/div[2]/span[1]').text
+        except NoSuchElementException:
+            self.location = "Fail"
 
 
     def get_about(self):

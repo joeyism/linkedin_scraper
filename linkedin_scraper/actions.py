@@ -34,6 +34,17 @@ def login(driver, email=None, password=None, cookie = None, timeout=10):
         remember = driver.find_element(By.ID,c.REMEMBER_PROMPT)
         if remember:
             remember.submit()
+    if driver.current_url.startswith('https://www.linkedin.com/checkpoint/challenge/'):
+        verification_code_input = driver.find_element(By.ID,"input__email_verification_pin")
+        # Prompt the user to enter the verification code
+        verification_code = input("Please enter the 2-step verification code: ")
+
+# Enter the verification code into the input field
+        verification_code_input.send_keys(verification_code)
+
+# Press Enter or perform the action to submit the verification code
+        verification_code_input.submit()  # Or use other appropriate actions to submit the code
+          
   
     element = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, c.VERIFY_LOGIN_ID)))
   

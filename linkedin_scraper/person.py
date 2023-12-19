@@ -115,7 +115,7 @@ class Person(Scraper):
         self.scroll_to_bottom()
         main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
         for position in main_list.find_elements(By.XPATH,"li"):
-            position = position.find_element(By.CLASS_NAME,"pvs-entity")
+            position = position.find_element(By.CLASS_NAME,"pvs-entity--padded")
             company_logo_elem, position_details = position.find_elements(By.XPATH,"*")
 
             # company elem
@@ -130,20 +130,34 @@ class Person(Scraper):
             if len(outer_positions) == 4:
                 position_title = outer_positions[0].find_element(By.TAG_NAME,"span").text
                 company = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                if "·" in company:
+                    company = company.split(" ·", 1)[0]
+                work_times = outer_positions[2].find_element(By.TAG_NAME,"span").text
+                location = outer_positions[3].find_element(By.TAG_NAME,"span").text
                 work_times = outer_positions[2].find_element(By.TAG_NAME,"span").text
                 location = outer_positions[3].find_element(By.TAG_NAME,"span").text
             elif len(outer_positions) == 3:
                 if "·" in outer_positions[2].text:
                     position_title = outer_positions[0].find_element(By.TAG_NAME,"span").text
                     company = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                    if "·" in company:
+                        company = company.split(" ·", 1)[0]
                     work_times = outer_positions[2].find_element(By.TAG_NAME,"span").text
                     location = ""
                 else:
                     position_title = ""
                     company = outer_positions[0].find_element(By.TAG_NAME,"span").text
+                    if "·" in company:
+                        company = company.split(" ·", 1)[0]
                     work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
                     location = outer_positions[2].find_element(By.TAG_NAME,"span").text
-
+            elif len(outer_positions) == 2:
+                position_title = ""
+                company = outer_positions[0].find_element(By.TAG_NAME,"span").text
+                if "·" in company:
+                    company = company.split(" ·", 1)[0]
+                work_times = outer_positions[1].find_element(By.TAG_NAME,"span").text
+                location = ""
             times = work_times.split("·")[0].strip() if work_times else ""
             duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
 
@@ -155,17 +169,31 @@ class Person(Scraper):
                 for description in descriptions:
                     res = description.find_element(By.TAG_NAME,"a").find_elements(By.XPATH,"*")
                     position_title_elem = res[0] if len(res) > 0 else None
-                    work_times_elem = res[1] if len(res) > 1 else None
-                    location_elem = res[2] if len(res) > 2 else None
+                    #work_times_elem = res[1] if len(res) > 1 else None
+                    #location_elem = res[2] if len(res) > 2 else None
+                    if len(res) > 1 and "·" in res[1].text:
+                        work_times_elem = res[1] 
+                        location_elem = res[2] if len(res) > 2 else None
+                    elif len(res) > 2 and "·" in res[2].text:
+                        work_times_elem = res[2] 
+                        location_elem = res[3] if len(res) > 3 else None
+                    else:
+                        location_elem = res[3] if len(res) > 3 else None
 
-
+                    try:
+                        position_description = description.find_element(By.CLASS_NAME,"pvs-list__outer-container").find_element(By.XPATH,'.//ul/li[1]').find_element(By.XPATH,".//span[1]").text
+                    except NoSuchElementException:
+                        position_description = ""
                     location = location_elem.find_element(By.XPATH,"*").text if location_elem else None
                     position_title = position_title_elem.find_element(By.XPATH,"*").find_element(By.TAG_NAME,"*").text if position_title_elem else ""
                     work_times = work_times_elem.find_element(By.XPATH,"*").text if work_times_elem else ""
                     times = work_times.split("·")[0].strip() if work_times else ""
                     duration = work_times.split("·")[1].strip() if len(work_times.split("·")) > 1 else None
-                    from_date = " ".join(times.split(" ")[:2]) if times else ""
-                    to_date = " ".join(times.split(" ")[3:]) if times else ""
+                    #from_date = " ".join(times.split(" ")[:2]) if times else ""
+                    #to_date = " ".join(times.split(" ")[3:]) if times else ""
+                    if times != "":
+                        from_date = times.split(" ")[times.split(" ").index("-")-1] if len(times.split(" "))>3 else times.split(" ")[0]
+                        to_date = times.split(" ")[-1]
 
                     experience = Experience(
                         position_title=position_title,
@@ -173,13 +201,15 @@ class Person(Scraper):
                         to_date=to_date,
                         duration=duration,
                         location=location,
-                        description=description,
+                        #description=description,
+                        description=position_description,
                         institution_name=company,
                         linkedin_url=company_linkedin_url
                     )
                     self.add_experience(experience)
             else:
-                description = position_summary_text.text if position_summary_text else ""
+                #description = position_summary_text.text if position_summary_text else ""
+                description =  position_summary_text.find_element(By.XPATH,'.//ul/li[1]').find_element(By.XPATH,".//span[1]").text if position_summary_text else ""
 
                 experience = Experience(
                     position_title=position_title,
@@ -201,7 +231,8 @@ class Person(Scraper):
         self.scroll_to_half()
         self.scroll_to_bottom()
         main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
-        for position in main_list.find_elements(By.CLASS_NAME,"pvs-entity"):
+        #for position in main_list.find_elements(By.CLASS_NAME,"pvs-entity"):
+        for position in main_list.find_elements(By.CLASS_NAME,"pvs-entity--padded"):
             institution_logo_elem, position_details = position.find_elements(By.XPATH,"*")
 
             # company elem
@@ -214,18 +245,22 @@ class Person(Scraper):
             outer_positions = position_summary_details.find_element(By.XPATH,"*").find_elements(By.XPATH,"*")
 
             institution_name = outer_positions[0].find_element(By.TAG_NAME,"span").text
-            degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
+            #degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
+
+            if len(outer_positions)>1:
+                degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
+            else:
+                degree="NA"
 
             if len(outer_positions) > 2:
                 times = outer_positions[2].find_element(By.TAG_NAME,"span").text
+                if times != "":
+                    from_date = times.split(" ")[times.split(" ").index("-")-1] if len(times.split(" "))>3 else times.split(" ")[0]
+                    to_date = times.split(" ")[-1] 
 
-                from_date = " ".join(times.split(" ")[:2])
-                to_date = " ".join(times.split(" ")[3:])
             else:
                 from_date = None
                 to_date = None
-
-
 
             description = position_summary_text.text if position_summary_text else ""
 

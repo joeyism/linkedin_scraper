@@ -11,7 +11,7 @@ from linkedin_scraper import selectors
 
 class Person(Scraper):
 
-    __TOP_CARD = "pv-top-card"
+    __TOP_CARD = "scaffold-layout__main"
     __WAIT_FOR_ELEMENT_TIMEOUT = 5
 
     def __init__(
@@ -240,9 +240,9 @@ class Person(Scraper):
             self.add_education(education)
 
     def get_name_and_location(self):
-        top_panels = self.driver.find_elements(By.CLASS_NAME,"pv-text-details__left-panel")
-        self.name = top_panels[0].find_elements(By.XPATH,"*")[0].text
-        self.location = top_panels[1].find_element(By.TAG_NAME,"span").text
+        top_panel = self.__TOP_CARD.find_element(By.CLASS_NAME, ".mt2.relative")
+        self.name = top_panel.find_element(By.TAG_NAME, "h1").text
+        self.location = top_panel.find_element(By.CLASS_NAME,".text-body-small.inline.t-black--light.break-words").text
 
 
     def get_about(self):

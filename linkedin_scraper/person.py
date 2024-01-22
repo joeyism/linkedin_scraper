@@ -118,6 +118,9 @@ class Person(Scraper):
             position = position.find_element(By.CLASS_NAME,"pvs-entity--padded")
             company_logo_elem, position_details = position.find_elements(By.XPATH,"*")
             work_times = ""
+            position_title = ""
+            company = ""
+            location = ""
 
             # company elem
             company_linkedin_url = company_logo_elem.find_element(By.XPATH,"*").get_attribute("href")

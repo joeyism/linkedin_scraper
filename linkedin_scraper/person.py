@@ -113,10 +113,10 @@ class Person(Scraper):
         main = self.wait_for_element_to_load(by=By.TAG_NAME, name="main")
         self.scroll_to_half()
         self.scroll_to_bottom()
-        main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
-        for position in main_list.find_elements(By.XPATH,"li"):
-            position = position.find_element(By.CLASS_NAME,"pvs-entity--padded")
-            company_logo_elem, position_details = position.find_elements(By.XPATH,"*")
+        main_list = self.wait_for_element_to_load(name="pvs-list__container", base=main)
+        for position in main_list.find_elements(By.CLASS_NAME, "pvs-list__paged-list-item"):
+            position = position.find_element(By.XPATH, "//div[@data-view-name='profile-component-entity']")
+            company_logo_elem, position_details = position.find_elements(By.XPATH, "*")
 
             # company elem
             company_linkedin_url = company_logo_elem.find_element(By.XPATH,"*").get_attribute("href")
@@ -150,8 +150,8 @@ class Person(Scraper):
             from_date = " ".join(times.split(" ")[:2]) if times else ""
             to_date = " ".join(times.split(" ")[3:]) if times else ""
 
-            if position_summary_text and len(position_summary_text.find_element(By.CLASS_NAME,"pvs-list").find_element(By.CLASS_NAME,"pvs-list").find_elements(By.XPATH,"li")) > 1:
-                descriptions = position_summary_text.find_element(By.CLASS_NAME,"pvs-list").find_element(By.CLASS_NAME,"pvs-list").find_elements(By.XPATH,"li")
+            if position_summary_text and len(position_summary_text.find_element(By.CLASS_NAME,"pvs-list__container").find_element(By.CLASS_NAME,"pvs-list__container").find_elements(By.XPATH,"li")) > 1:
+                descriptions = position_summary_text.find_element(By.CLASS_NAME,"pvs-list__container").find_element(By.CLASS_NAME,"pvs-list__container").find_elements(By.XPATH,"li")
                 for description in descriptions:
                     res = description.find_element(By.TAG_NAME,"a").find_elements(By.XPATH,"*")
                     position_title_elem = res[0] if len(res) > 0 else None
@@ -200,8 +200,9 @@ class Person(Scraper):
         main = self.wait_for_element_to_load(by=By.TAG_NAME, name="main")
         self.scroll_to_half()
         self.scroll_to_bottom()
-        main_list = self.wait_for_element_to_load(name="pvs-list", base=main)
-        for position in main_list.find_elements(By.CLASS_NAME,"pvs-entity"):
+        main_list = self.wait_for_element_to_load(name="pvs-list__container", base=main)
+        for position in main_list.find_elements(By.CLASS_NAME,"pvs-list__paged-list-item"):
+            position = position.find_element(By.XPATH,"//div[@data-view-name='profile-component-entity']")
             institution_logo_elem, position_details = position.find_elements(By.XPATH,"*")
 
             # company elem
@@ -211,7 +212,7 @@ class Person(Scraper):
             position_details_list = position_details.find_elements(By.XPATH,"*")
             position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
             position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
-            outer_positions = position_summary_details.find_element(By.XPATH,"*").find_elements(By.XPATH,"*")
+            outer_positions = position_summary_details.find_element(By.XPATH,"*")
 
             institution_name = outer_positions[0].find_element(By.TAG_NAME,"span").text
             degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
@@ -303,7 +304,7 @@ class Person(Scraper):
             interestContainer = driver.find_element(By.XPATH,
                 "//*[@class='pv-profile-section pv-interests-section artdeco-container-card artdeco-card ember-view']"
             )
-            for interestElement in interestContainer.find_elements(By.XPATH, 
+            for interestElement in interestContainer.find_elements(By.XPATH,
                 "//*[@class='pv-interest-entity pv-profile-section__card-item ember-view']"
             ):
                 interest = Interest(
@@ -326,11 +327,11 @@ class Person(Scraper):
             acc = driver.find_element(By.XPATH,
                 "//*[@class='pv-profile-section pv-accomplishments-section artdeco-container-card artdeco-card ember-view']"
             )
-            for block in acc.find_elements(By.XPATH, 
+            for block in acc.find_elements(By.XPATH,
                 "//div[@class='pv-accomplishments-block__content break-words']"
             ):
                 category = block.find_element(By.TAG_NAME, "h3")
-                for title in block.find_element(By.TAG_NAME, 
+                for title in block.find_element(By.TAG_NAME,
                     "ul"
                 ).find_elements(By.TAG_NAME, "li"):
                     accomplishment = Accomplishment(category.text, title.text)

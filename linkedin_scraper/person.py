@@ -212,7 +212,7 @@ class Person(Scraper):
             position_details_list = position_details.find_elements(By.XPATH,"*")
             position_summary_details = position_details_list[0] if len(position_details_list) > 0 else None
             position_summary_text = position_details_list[1] if len(position_details_list) > 1 else None
-            outer_positions = position_summary_details.find_element(By.XPATH,"*")
+            outer_positions = position_summary_details.find_element(By.XPATH,"*").find_elements(By.XPATH,"*")
 
             institution_name = outer_positions[0].find_element(By.TAG_NAME,"span").text
             degree = outer_positions[1].find_element(By.TAG_NAME,"span").text
@@ -220,8 +220,9 @@ class Person(Scraper):
             if len(outer_positions) > 2:
                 times = outer_positions[2].find_element(By.TAG_NAME,"span").text
 
-                from_date = " ".join(times.split(" ")[:2])
-                to_date = " ".join(times.split(" ")[3:])
+                if times != "":
+                    from_date = times.split(" ")[times.split(" ").index("-")-1] if len(times.split(" "))>3 else times.split(" ")[0]
+                    to_date = times.split(" ")[-1]
             else:
                 from_date = None
                 to_date = None

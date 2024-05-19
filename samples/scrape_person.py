@@ -10,7 +10,7 @@ actions.login(driver, email, password)  # if email and password isnt given, it'l
 user_input = []
 urls = []
 while True:
-    user_input = input("Enter a comma-separated list of strings: ")
+    user_input = input("Enter a comma-separated list of linkedin urls: ")
     if user_input == "exit":
         break
     urls = user_input.split(",")
@@ -21,6 +21,7 @@ while True:
         company = Company(person.experiences[0].linkedin_url, get_employees=False, driver=driver, close_on_complete=False)
         results.append((person, company))
 
+    print('RESULTS:')
     print('name,location,exp_title,exp_company,exp_linkedin,company_industry,company_website,company_size')
     for person, company in results:
         experience = person.experiences[0]

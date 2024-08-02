@@ -1,5 +1,6 @@
 # Linkedin Scraper
 Forked from https://github.com/joeyism/linkedin_scraper
+
 Scrapes Linkedin User Data
 
 [Linkedin Scraper](#linkedin-scraper)

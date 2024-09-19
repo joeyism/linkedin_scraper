@@ -1,4 +1,5 @@
 # Linkedin Scraper
+Forked from https://github.com/joeyism/linkedin_scraper
 
 Scrapes Linkedin User Data
 
@@ -58,21 +59,6 @@ First, you must set your chromedriver location by
 ```bash
 export CHROMEDRIVER=~/chromedriver
 ```
-
-## Sponsor
-[![rds-cost](https://raw.githubusercontent.com/joeyism/linkedin_scraper/master/docs/proxycurl.png)](https://nubela.co/proxycurl/?utm_campaign=influencer%20marketing&utm_source=github&utm_medium=social&utm_term=-&utm_content=joeyism)
-
-Scrape public LinkedIn profile data at scale with [Proxycurl APIs](https://nubela.co/proxycurl/?utm_campaign=influencer%20marketing&utm_source=github&utm_medium=social&utm_term=-&utm_content=joeyism).
-
-• Scraping Public profiles are battle tested in court in HiQ VS LinkedIn case.<br/>
-• GDPR, CCPA, SOC2 compliant<br/>
-• High rate limit - 300 requests/minute<br/>
-• Fast - APIs respond in ~2s<br/>
-• Fresh data - 88% of data is scraped real-time, other 12% are not older than 29 days<br/>
-• High accuracy<br/>
-• Tons of data points returned per profile
-
-Built for developers, by developers.
 
 ## Usage
 To use it, just create the class.
@@ -283,7 +269,3 @@ company = Company("https://ca.linkedin.com/company/google", driver=driver)
 
 #### `scrape(close_on_complete=True)`
 This is the meat of the code, where execution of this function scrapes the company. If *close_on_complete* is True (which it is by default), then the browser will close upon completion. If scraping of other companies are desired, then you might want to set that to false so you can keep using the same driver.
-
-## Contribution
-
-<a href="https://www.buymeacoffee.com/joeyism" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>

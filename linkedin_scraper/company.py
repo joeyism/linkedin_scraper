@@ -184,11 +184,11 @@ class Company(Scraper):
 
         driver.get(self.linkedin_url)
 
-        _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.XPATH, '//span[@dir="ltr"]')))
+        _ = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.XPATH, '//div[@dir="ltr"]')))
 
         navigation = driver.find_element(By.CLASS_NAME, "org-page-navigation__items ")
 
-        self.name = driver.find_element(By.XPATH,'//span[@dir="ltr"]').text.strip()
+        self.name = driver.find_element(By.CLASS_NAME,"org-top-card-summary__title").text.strip()
 
         # Click About Tab or View All Link
         try:
@@ -360,6 +360,6 @@ class Company(Scraper):
         _output['affiliated_companies'] = self.affiliated_companies
         _output['employees'] = self.employees
         _output['headcount'] = self.headcount
-        
+
         return json.dumps(_output).replace('\n', '')
 

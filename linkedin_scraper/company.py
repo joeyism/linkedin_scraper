@@ -360,6 +360,6 @@ class Company(Scraper):
         _output['affiliated_companies'] = self.affiliated_companies
         _output['employees'] = self.employees
         _output['headcount'] = self.headcount
-
+        
         return json.dumps(_output).replace('\n', '')
 

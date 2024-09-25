@@ -48,7 +48,7 @@ class Company(Scraper):
     employees = []
     headcount = None
 
-    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
+    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True, post_event = None):
         self.linkedin_url = linkedin_url
         self.name = name
         self.about_us = about_us
@@ -61,6 +61,8 @@ class Company(Scraper):
         self.specialties = specialties
         self.showcase_pages = showcase_pages
         self.affiliated_companies = affiliated_companies
+
+        self.post_event = post_event
 
         if driver is None:
             try:
@@ -220,6 +222,10 @@ class Company(Scraper):
         # if num_attributes == 0:
         #     exit()
         x_off = 0
+
+        if self.post_event and callable(self.post_event):
+            self.post_event(driver, cls=self, data={'labels': labels, 'values': values, 'x_off': x_off})
+
         for i in range(num_attributes):
             txt = labels[i].text.strip()
             if txt == 'Website':

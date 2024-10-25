@@ -157,15 +157,14 @@ class Person(Scraper):
 
             from_date = " ".join(times.split(" ")[:2]) if times else ""
             to_date = " ".join(times.split(" ")[3:]) if times else ""
+            inner_positions = []
             if position_summary_text:
                 try:
                     inner_positions = (position_summary_text.find_element(By.CLASS_NAME,"pvs-list__container")
                                   .find_element(By.XPATH,"*").find_element(By.XPATH,"*").find_element(By.XPATH,"*")
                                   .find_elements(By.CLASS_NAME,"pvs-list__paged-list-item"))
                 except NoSuchElementException:
-                    inner_positions = []
-            else:
-                inner_positions = []
+                    pass
             if len(inner_positions) > 1: 
                 for inner_position in inner_positions:
                     res = inner_position.find_element(By.TAG_NAME,"a").find_elements(By.CSS_SELECTOR,'li span[aria-hidden="true"]')

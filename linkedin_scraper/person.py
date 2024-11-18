@@ -116,7 +116,7 @@ class Person(Scraper):
         main_list = self.wait_for_element_to_load(name="pvs-list__container", base=main)
         for position in main_list.find_elements(By.CLASS_NAME, "pvs-list__paged-list-item"):
             position = position.find_element(By.CSS_SELECTOR, "div[data-view-name='profile-component-entity']")
-            company_logo_elem, position_details = position.find_elements(By.XPATH, "*")
+            company_logo_elem, position_details, *_  = position.find_elements(By.XPATH, "*")
 
             # company elem
             company_linkedin_url = company_logo_elem.find_element(By.XPATH,"*").get_attribute("href")
@@ -216,7 +216,7 @@ class Person(Scraper):
         main_list = self.wait_for_element_to_load(name="pvs-list__container", base=main)
         for position in main_list.find_elements(By.CLASS_NAME,"pvs-list__paged-list-item"):
             position = position.find_element(By.XPATH,"//div[@data-view-name='profile-component-entity']")
-            institution_logo_elem, position_details = position.find_elements(By.XPATH,"*")
+            institution_logo_elem, position_details, *_ = position.find_elements(By.XPATH,"*")
 
             # company elem
             institution_linkedin_url = institution_logo_elem.find_element(By.XPATH,"*").get_attribute("href")

@@ -232,7 +232,7 @@ This is the meat of the code, where execution of this function scrapes the profi
 ### Company
 
 ```python
-Company(linkedin_url=None, name=None, about_us=None, website=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=[], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
+Company(linkedin_url=None, name=None, about_us=None, website=None, phone=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=[], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
 ```
 
 #### `linkedin_url`
@@ -246,6 +246,9 @@ The description of the company
 
 #### `website`
 The website of the company
+
+#### `phone`
+The phone of the company
 
 #### `headquarters`
 The headquarters location of the company

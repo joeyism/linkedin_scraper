@@ -35,6 +35,7 @@ class Experience(Institution):
     from_date: str = None
     to_date: str = None
     description: str = None
+    skills: list = None
     position_title: str = None
     duration: str = None
     location: str = None

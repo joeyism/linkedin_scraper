@@ -8,7 +8,7 @@ __pycache__
 chromedriver
 .DS_Store
 .vscode/
-.env/
+.env
 scrape.py
 creds.json
 venv

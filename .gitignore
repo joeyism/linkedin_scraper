@@ -13,3 +13,4 @@ scrape.py
 creds.json
 venv
 *.zip
+test/search_job.py

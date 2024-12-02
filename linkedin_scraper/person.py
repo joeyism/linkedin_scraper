@@ -11,7 +11,7 @@ from linkedin_scraper import selectors
 
 class Person(Scraper):
 
-    __TOP_CARD = "scaffold-layout__main"
+    __TOP_CARD = "main"
     __WAIT_FOR_ELEMENT_TIMEOUT = 5
 
     def __init__(
@@ -276,7 +276,7 @@ class Person(Scraper):
         root = WebDriverWait(driver, self.__WAIT_FOR_ELEMENT_TIMEOUT).until(
             EC.presence_of_element_located(
                 (
-                    By.CLASS_NAME,
+                    By.TAG_NAME,
                     self.__TOP_CARD,
                 )
             )

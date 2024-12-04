@@ -105,7 +105,7 @@ company = Company("https://ca.linkedin.com/company/google")
 
 ### Job Scraping
 ```python
-from linkedin_scraper import JobSearch, actions
+from linkedin_scraper import Job, actions
 from selenium import webdriver
 
 driver = webdriver.Chrome()

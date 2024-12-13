@@ -5,7 +5,7 @@ from .company import Company
 from .jobs import Job
 from .job_search import JobSearch
 
-__version__ = "2.11.4"
+__version__ = "2.11.5"
 
 import glob
 modules = glob.glob(dirname(__file__)+"/*.py")

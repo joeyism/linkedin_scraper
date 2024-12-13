@@ -67,19 +67,22 @@ class Job(Scraper):
         
         driver.get(self.linkedin_url)
         self.focus()
-        self.job_title = self.wait_for_element_to_load(name="jobs-unified-top-card__job-title").text.strip()
-        self.company = self.wait_for_element_to_load(name="jobs-unified-top-card__company-name").text.strip()
-        self.company_linkedin_url = self.wait_for_element_to_load(name="jobs-unified-top-card__company-name").find_element_by_tag_name("a").get_attribute("href")
-        self.location = self.wait_for_element_to_load(name="jobs-unified-top-card__bullet").text.strip()
-        self.posted_date = self.wait_for_element_to_load(name="jobs-unified-top-card__posted-date").text.strip()
+        self.job_title = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__job-title").text.strip()
+        self.company = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__company-name").text.strip()
+        self.company_linkedin_url = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__company-name").find_element(By.TAG_NAME,"a").get_attribute("href")
+        primary_descriptions = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__primary-description-container").find_elements(By.TAG_NAME, "span")
+        texts = [span.text for span in primary_descriptions if span.text.strip() != ""]
+        self.location = texts[0]
+        self.posted_date = texts[3]
+        
         try:
             self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
         except TimeoutException:
             self.applicant_count = 0
         job_description_elem = self.wait_for_element_to_load(name="jobs-description")
-        self.mouse_click(job_description_elem.find_element_by_tag_name("button"))
+        self.mouse_click(job_description_elem.find_element(By.TAG_NAME, "button"))
         job_description_elem = self.wait_for_element_to_load(name="jobs-description")
-        job_description_elem.find_element_by_tag_name("button").click()
+        job_description_elem.find_element(By.TAG_NAME, "button").click()
         self.job_description = job_description_elem.text.strip()
         try:
             self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()

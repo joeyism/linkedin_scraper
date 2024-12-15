@@ -36,8 +36,8 @@ class JobSearch(Scraper):
         job_div = self.wait_for_element_to_load(name="job-card-list__title", base=base_element)
         job_title = job_div.text.strip()
         linkedin_url = job_div.get_attribute("href")
-        company = base_element.find_element_by_class_name("artdeco-entity-lockup__subtitle").text
-        location = base_element.find_element_by_class_name("job-card-container__metadata-wrapper").text
+        company = base_element.find_element(By.CLASS_NAME, "artdeco-entity-lockup__subtitle").text
+        location = base_element.find_element(By.CLASS_NAME, "job-card-container__metadata-wrapper").text
         job = Job(linkedin_url=linkedin_url, job_title=job_title, company=company, location=location, scrape=False, driver=self.driver)
         return job
 
@@ -55,7 +55,7 @@ class JobSearch(Scraper):
                 if not area_name:
                     continue
                 area_results = []
-                for job_posting in area.find_elements_by_class_name("jobs-job-board-list__item"):
+                for job_posting in area.find_elements(By.CLASS_NAME, "jobs-job-board-list__item"):
                     job = self.scrape_job_card(job_posting)
                     area_results.append(job)
                 setattr(self, area_name, area_results)

@@ -60,19 +60,7 @@ export CHROMEDRIVER=~/chromedriver
 ```
 
 ## Sponsor
-[![rds-cost](https://raw.githubusercontent.com/joeyism/linkedin_scraper/master/docs/proxycurl.png)](https://nubela.co/proxycurl/?utm_campaign=influencer%20marketing&utm_source=github&utm_medium=social&utm_term=-&utm_content=joeyism)
-
-Scrape public LinkedIn profile data at scale with [Proxycurl APIs](https://nubela.co/proxycurl/?utm_campaign=influencer%20marketing&utm_source=github&utm_medium=social&utm_term=-&utm_content=joeyism).
-
-• Scraping Public profiles are battle tested in court in HiQ VS LinkedIn case.<br/>
-• GDPR, CCPA, SOC2 compliant<br/>
-• High rate limit - 300 requests/minute<br/>
-• Fast - APIs respond in ~2s<br/>
-• Fresh data - 88% of data is scraped real-time, other 12% are not older than 29 days<br/>
-• High accuracy<br/>
-• Tons of data points returned per profile
-
-Built for developers, by developers.
+Message me if you'd like to sponsor me
 
 ## Usage
 To use it, just create the class.
@@ -105,7 +93,7 @@ company = Company("https://ca.linkedin.com/company/google")
 
 ### Job Scraping
 ```python
-from linkedin_scraper import JobSearch, actions
+from linkedin_scraper import Job, actions
 from selenium import webdriver
 
 driver = webdriver.Chrome()
@@ -232,7 +220,7 @@ This is the meat of the code, where execution of this function scrapes the profi
 ### Company
 
 ```python
-Company(linkedin_url=None, name=None, about_us=None, website=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=[], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
+Company(linkedin_url=None, name=None, about_us=None, website=None, phone=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=[], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
 ```
 
 #### `linkedin_url`
@@ -246,6 +234,9 @@ The description of the company
 
 #### `website`
 The website of the company
+
+#### `phone`
+The phone of the company
 
 #### `headquarters`
 The headquarters location of the company

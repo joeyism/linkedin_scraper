@@ -37,6 +37,7 @@ class Company(Scraper):
     name = None
     about_us =None
     website = None
+    phone = None
     headquarters = None
     founded = None
     industry = None
@@ -48,11 +49,12 @@ class Company(Scraper):
     employees = []
     headcount = None
 
-    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
+    def __init__(self, linkedin_url = None, name = None, about_us =None, website = None, phone = None, headquarters = None, founded = None, industry = None, company_type = None, company_size = None, specialties = None, showcase_pages =[], affiliated_companies = [], driver = None, scrape = True, get_employees = True, close_on_complete = True):
         self.linkedin_url = linkedin_url
         self.name = name
         self.about_us = about_us
         self.website = website
+        self.phone = phone
         self.headquarters = headquarters
         self.founded = founded
         self.industry = industry
@@ -224,6 +226,8 @@ class Company(Scraper):
             txt = labels[i].text.strip()
             if txt == 'Website':
                 self.website = values[i+x_off].text.strip()
+            if txt == 'Phone':
+                self.phone = values[i+x_off].text.strip()
             elif txt == 'Industry':
                 self.industry = values[i+x_off].text.strip()
             elif txt == 'Company size':
@@ -299,6 +303,7 @@ class Company(Scraper):
         self.about_us = driver.find_element(By.CLASS_NAME, "basic-info-description").text.strip()
         self.specialties = self.__get_text_under_subtitle_by_class(driver, "specialties")
         self.website = self.__get_text_under_subtitle_by_class(driver, "website")
+        self.phone = self.__get_text_under_subtitle_by_class(driver, "phone")
         self.headquarters = driver.find_element(By.CLASS_NAME, "adr").text.strip()
         self.industry = driver.find_element(By.CLASS_NAME, "industry").text.strip()
         self.company_size = driver.find_element(By.CLASS_NAME, "company-size").text.strip()
@@ -352,6 +357,7 @@ class Company(Scraper):
         _output['about_us'] = self.about_us
         _output['specialties'] = self.specialties
         _output['website'] = self.website
+        _output['phone'] = self.phone
         _output['industry'] = self.industry
         _output['company_type'] = self.name
         _output['headquarters'] = self.headquarters
@@ -362,4 +368,3 @@ class Company(Scraper):
         _output['headcount'] = self.headcount
         
         return json.dumps(_output).replace('\n', '')
-

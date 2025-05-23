@@ -4,6 +4,7 @@ from .objects import Institution, Experience, Education, Contact
 from .company import Company
 from .jobs import Job
 from .job_search import JobSearch
+from .people_search import PeopleSearch
 
 __version__ = "2.11.5"
 

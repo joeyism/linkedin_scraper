@@ -42,24 +42,44 @@ class JobSearch(Scraper):
         return job
 
 
+    def scrape_recommended_jobs(self):
+        """
+        Scrape recommended job listings.
+
+        Returns:
+            None
+        """
+        job_area = self.wait_for_element_to_load(name="scaffold-finite-scroll__content")
+        areas = self.wait_for_all_elements_to_load(name="artdeco-card", base=job_area)
+        for i, area in enumerate(areas):
+            area_name = self.AREAS[i]
+            if not area_name:
+                continue
+            area_results = []
+            for job_posting in area.find_elements_by_class_name("jobs-job-board-list__item"):
+                job = self.scrape_job_card(job_posting)
+                area_results.append(job)
+            setattr(self, area_name, area_results)
+        return
+    
+    
     def scrape_logged_in(self, close_on_complete=True, scrape_recommended_jobs=True):
+        """
+        Scrape job details after logging in.
+
+        Args:
+            close_on_complete: Whether to close the browser after scraping.
+            scrape_recommended_jobs: Whether to scrape recommended jobs.
+
+        Returns:
+            None
+        """
         driver = self.driver
         driver.get(self.base_url)
         if scrape_recommended_jobs:
-            self.focus()
-            sleep(self.WAIT_FOR_ELEMENT_TIMEOUT)
-            job_area = self.wait_for_element_to_load(name="scaffold-finite-scroll__content")
-            areas = self.wait_for_all_elements_to_load(name="artdeco-card", base=job_area)
-            for i, area in enumerate(areas):
-                area_name = self.AREAS[i]
-                if not area_name:
-                    continue
-                area_results = []
-                for job_posting in area.find_elements_by_class_name("jobs-job-board-list__item"):
-                    job = self.scrape_job_card(job_posting)
-                    area_results.append(job)
-                setattr(self, area_name, area_results)
+            self.scrape_recommended_jobs()
         return
+    
 
 
     def search(self, search_term: str) -> List[Job]:

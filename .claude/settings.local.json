@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.astral.sh)",
+      "WebFetch(domain:pre-commit.com)"
+    ],
+    "deny": []
+  }
+}

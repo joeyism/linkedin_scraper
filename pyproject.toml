@@ -1,0 +1,75 @@
+[project]
+name = "linkedin-scraper"
+version = "2.11.5"
+description = "Scrapes user data from LinkedIn"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Joey Sham", email = "sham.joey@gmail.com" }
+]
+keywords = ["linkedin", "scraping", "scraper"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "lxml>=6.0.0",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.4",
+    "selenium>=4.33.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/joeyism/linkedin_scraper"
+Repository = "https://github.com/joeyism/linkedin_scraper"
+Issues = "https://github.com/joeyism/linkedin_scraper/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pre-commit>=4.2.0",
+    "python-dotenv>=1.0.0",
+    "ruff>=0.12.1",
+]
+
+[tool.ruff]
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.10+
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+# Also enable pyupgrade (`UP`), flake8-bugbear (`B`), and isort (`I`)
+select = ["E4", "E7", "E9", "F", "UP", "B", "I"]
+ignore = ["E722"]  # Ignore bare except clauses for now
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"

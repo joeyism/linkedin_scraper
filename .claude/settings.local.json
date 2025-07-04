@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:docs.astral.sh)",
-      "WebFetch(domain:pre-commit.com)"
+      "WebFetch(domain:pre-commit.com)",
+      "Bash(uv run ruff check:*)"
     ],
     "deny": []
   }

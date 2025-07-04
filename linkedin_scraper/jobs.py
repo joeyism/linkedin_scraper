@@ -75,10 +75,20 @@ class Job(Scraper):
             .find_element(By.TAG_NAME, "a")
             .get_attribute("href")
         )
-        primary_descriptions = self.wait_for_element_to_load(
+        primary_descriptions_elem = self.wait_for_element_to_load(
             name="job-details-jobs-unified-top-card__primary-description-container"
-        ).find_elements(By.TAG_NAME, "span")
-        texts = [span.text for span in primary_descriptions if span.text.strip() != ""]
+        )
+        primary_descriptions = primary_descriptions_elem.find_elements(
+            By.TAG_NAME, "span"
+        )
+        texts = []
+        for span in primary_descriptions:
+            try:
+                text = span.text.strip()
+                if text:
+                    texts.append(text)
+            except:
+                continue
         self.location = texts[0]
         self.posted_date = texts[3]
 

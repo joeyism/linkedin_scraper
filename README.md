@@ -5,13 +5,12 @@ Scrapes Linkedin User Data
 [Linkedin Scraper](#linkedin-scraper)
 - [Linkedin Scraper](#linkedin-scraper)
   - [Installation](#installation)
-  - [Development](#development)
-    - [Running Scripts](#running-scripts)
-  - [Contributing](#contributing)
-    - [Development Workflow](#development-workflow)
   - [Setup](#setup)
     - [Environment Variables](#environment-variables)
     - [ChromeDriver](#chromedriver)
+    - [Running Scripts](#running-scripts)
+  - [Contributing](#contributing)
+    - [Development Workflow](#development-workflow)
   - [Sponsor](#sponsor)
   - [Usage](#usage)
     - [Sample Usage](#sample-usage)
@@ -64,17 +63,37 @@ cd linkedin_scraper
 uv sync
 ```
 
-## Development
+## Setup
+
+### Environment Variables
+Create a `.env` file (copy from `.env.example`) with your LinkedIn credentials:
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+```
+
+### ChromeDriver
+First, set your chromedriver location by running:
+
+```bash
+export CHROMEDRIVER=~/chromedriver
+```
 
 ### Running Scripts
 
 ```bash
-# Run a Python script with the project dependencies
-uv run your_script.py
-
-# Or activate the virtual environment
-uv shell
-python your_script.py
+# Try the working examples
+# Profile
+uv run python examples/person_contacts_example.py
+uv run python examples/person_profile_example.py
+# Company
+uv run python examples/company_profile_example.py
+# Job Search
+uv run python examples/job_search_example.py "python developer"
+# Recommended Jobs
+uv run python examples/recommended_jobs_example.py
+# Job Details of a specific job
+uv run python examples/job_details_example.py "https://www.linkedin.com/jobs/view/4097107717"
 ```
 
 ## Contributing
@@ -91,31 +110,10 @@ If you want to contribute to this project:
    uv run pre-commit install
    ```
 
-3. **Environment setup for testing**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your LinkedIn credentials for login
-   ```
-
 ### Development Workflow
 
 With pre-commit installed, your code will be automatically linted and formatted on every commit.
 
-## Setup
-
-### Environment Variables
-Create a `.env` file (copy from `.env.example`) with your LinkedIn credentials:
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-### ChromeDriver
-The project will automatically use chromedriver from your system PATH. If you need to specify a custom location:
-
-```bash
-export CHROMEDRIVER=~/chromedriver
-```
 
 ## Sponsor
 Message me if you'd like to sponsor me
@@ -124,23 +122,25 @@ Message me if you'd like to sponsor me
 To use it, just create the class.
 
 ### Sample Usage
-```python
-import os
-from dotenv import load_dotenv
-from linkedin_scraper import Person, actions
-from selenium import webdriver
+Try our working examples to get started quickly:
 
-# Load environment variables
-load_dotenv()
+```bash
+# Scrape a person's profile and contacts
+uv run python examples/person_profile_example.py
+uv run python examples/person_contacts_example.py
 
-driver = webdriver.Chrome()
+# Scrape company information and employees
+uv run python examples/company_profile_example.py
 
-# Use credentials from .env file
-email = os.getenv("LINKEDIN_EMAIL")
-password = os.getenv("LINKEDIN_PASSWORD")
-actions.login(driver, email, password)
-person = Person("https://www.linkedin.com/in/joey-sham-aa2a50122", driver=driver)
+# Search for jobs and get recommendations
+uv run python examples/job_search_example.py "python developer"
+uv run python examples/recommended_jobs_example.py
+
+# Get detailed information about a specific job
+uv run python examples/job_details_example.py "https://www.linkedin.com/jobs/view/1234567890"
 ```
+
+All examples use credentials from your `.env` file automatically.
 
 
 **NOTE**: The account used to log-in should have it's language set English to make sure everything works as expected.

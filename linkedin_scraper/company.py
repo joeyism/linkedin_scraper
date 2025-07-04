@@ -46,9 +46,9 @@ class Company(Scraper):
     company_type = None
     company_size = None
     specialties = None
-    showcase_pages = []
-    affiliated_companies = []
-    employees = []
+    showcase_pages: list = []
+    affiliated_companies: list = []
+    employees: list = []
     headcount = None
 
     def __init__(
@@ -153,13 +153,13 @@ class Company(Scraper):
             return None
 
     def get_employees(self, wait_time=10):
-        print("DEBUG: Starting get_employees")
+        # print("DEBUG: Starting get_employees")
         total = []
         list_css = "list-style-none"
         next_xpath = '//button[@aria-label="Next"]'
         driver = self.driver
 
-        print(f"DEBUG: Navigating to {os.path.join(self.linkedin_url, 'people')}")
+        # print(f"DEBUG: Navigating to {os.path.join(self.linkedin_url, 'people')}")
         try:
             driver.find_element(
                 By.XPATH, '//a[@data-control-name="topcard_see_all_employees"]'
@@ -168,12 +168,12 @@ class Company(Scraper):
             pass
         driver.get(os.path.join(self.linkedin_url, "people"))
 
-        print("DEBUG: Waiting for span elements to load")
+        # print("DEBUG: Waiting for span elements to load")
         try:
             _ = WebDriverWait(driver, 3).until(
                 EC.presence_of_all_elements_located((By.XPATH, '//span[@dir="ltr"]'))
             )
-            print("DEBUG: Span elements loaded successfully")
+            # print("DEBUG: Span elements loaded successfully")
         except:
             print(
                 "DEBUG: Failed to find span elements with dir='ltr', trying alternative wait"
@@ -182,9 +182,9 @@ class Company(Scraper):
                 _ = WebDriverWait(driver, 3).until(
                     EC.presence_of_element_located((By.TAG_NAME, "main"))
                 )
-                print("DEBUG: Main element loaded successfully")
+                #   print("DEBUG: Main element loaded successfully")
             except:
-                print("DEBUG: Failed to find main element, continuing anyway")
+                # print("DEBUG: Failed to find main element, continuing anyway")
                 time.sleep(2)
 
         driver.execute_script(

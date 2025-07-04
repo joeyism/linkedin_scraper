@@ -153,11 +153,13 @@ class Company(Scraper):
             return None
 
     def get_employees(self, wait_time=10):
+        print("DEBUG: Starting get_employees")
         total = []
         list_css = "list-style-none"
         next_xpath = '//button[@aria-label="Next"]'
         driver = self.driver
 
+        print(f"DEBUG: Navigating to {os.path.join(self.linkedin_url, 'people')}")
         try:
             driver.find_element(
                 By.XPATH, '//a[@data-control-name="topcard_see_all_employees"]'
@@ -166,9 +168,24 @@ class Company(Scraper):
             pass
         driver.get(os.path.join(self.linkedin_url, "people"))
 
-        _ = WebDriverWait(driver, 3).until(
-            EC.presence_of_all_elements_located((By.XPATH, '//span[@dir="ltr"]'))
-        )
+        print("DEBUG: Waiting for span elements to load")
+        try:
+            _ = WebDriverWait(driver, 3).until(
+                EC.presence_of_all_elements_located((By.XPATH, '//span[@dir="ltr"]'))
+            )
+            print("DEBUG: Span elements loaded successfully")
+        except:
+            print(
+                "DEBUG: Failed to find span elements with dir='ltr', trying alternative wait"
+            )
+            try:
+                _ = WebDriverWait(driver, 3).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "main"))
+                )
+                print("DEBUG: Main element loaded successfully")
+            except:
+                print("DEBUG: Failed to find main element, continuing anyway")
+                time.sleep(2)
 
         driver.execute_script(
             "window.scrollTo(0, Math.ceil(document.body.scrollHeight/2));"
@@ -373,7 +390,9 @@ class Company(Scraper):
             pass
 
         if get_employees:
+            print("DEBUG: About to call get_employees")
             self.employees = self.get_employees()
+            print("DEBUG: get_employees completed")
 
         driver.get(self.linkedin_url)
 

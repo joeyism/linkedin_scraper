@@ -1,14 +1,10 @@
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 
 from .objects import Scraper
-from . import constants as c
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 
 class Job(Scraper):
-
     def __init__(
         self,
         linkedin_url=None,
@@ -46,7 +42,7 @@ class Job(Scraper):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
-            raise NotImplemented("This part is not implemented yet")
+            raise NotImplementedError("This part is not implemented yet")
 
     def to_dict(self):
         return {
@@ -58,25 +54,48 @@ class Job(Scraper):
             "posted_date": self.posted_date,
             "applicant_count": self.applicant_count,
             "job_description": self.job_description,
-            "benefits": self.benefits
+            "benefits": self.benefits,
         }
-
 
     def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
-        
+
         driver.get(self.linkedin_url)
         self.focus()
-        self.job_title = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__job-title").text.strip()
-        self.company = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__company-name").text.strip()
-        self.company_linkedin_url = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__company-name").find_element(By.TAG_NAME,"a").get_attribute("href")
-        primary_descriptions = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__primary-description-container").find_elements(By.TAG_NAME, "span")
-        texts = [span.text for span in primary_descriptions if span.text.strip() != ""]
+        self.job_title = self.wait_for_element_to_load(
+            name="job-details-jobs-unified-top-card__job-title"
+        ).text.strip()
+        self.company = self.wait_for_element_to_load(
+            name="job-details-jobs-unified-top-card__company-name"
+        ).text.strip()
+        self.company_linkedin_url = (
+            self.wait_for_element_to_load(
+                name="job-details-jobs-unified-top-card__company-name"
+            )
+            .find_element(By.TAG_NAME, "a")
+            .get_attribute("href")
+        )
+        primary_descriptions_elem = self.wait_for_element_to_load(
+            name="job-details-jobs-unified-top-card__primary-description-container"
+        )
+        primary_descriptions = primary_descriptions_elem.find_elements(
+            By.TAG_NAME, "span"
+        )
+        texts = []
+        for span in primary_descriptions:
+            try:
+                text = span.text.strip()
+                if text:
+                    texts.append(text)
+            except:
+                continue
         self.location = texts[0]
         self.posted_date = texts[3]
-        
+
         try:
-            self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
+            self.applicant_count = self.wait_for_element_to_load(
+                name="jobs-unified-top-card__applicant-count"
+            ).text.strip()
         except TimeoutException:
             self.applicant_count = 0
         job_description_elem = self.wait_for_element_to_load(name="jobs-description")
@@ -85,7 +104,9 @@ class Job(Scraper):
         job_description_elem.find_element(By.TAG_NAME, "button").click()
         self.job_description = job_description_elem.text.strip()
         try:
-            self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()
+            self.benefits = self.wait_for_element_to_load(
+                name="jobs-unified-description__salary-main-rail-card"
+            ).text.strip()
         except TimeoutException:
             self.benefits = None
 

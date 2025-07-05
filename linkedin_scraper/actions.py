@@ -101,7 +101,7 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
     if "checkpoint/challenge" in current_url:
         if "AgG1DOkeX" in current_url or "security check" in driver.page_source.lower():
             if interactive:
-                print(f"Security challenge detected: {current_url}")
+                print("Security challenge detected!")
                 print("Please solve the security challenge manually in the browser.")
                 try:
                     input("Press Enter after completing the challenge...")
@@ -136,9 +136,9 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
     page_source = driver.page_source.lower()
 
     # Debug: print current URL and check for error patterns
-    if interactive:
-        print(f"Current URL: {current_url}")
-        print("Checking for credential errors...")
+    # if interactive:
+    # print(f"Current URL: {current_url}")
+    # print("Checking for credential errors...")
 
     # Check for various invalid credential patterns
     invalid_cred_patterns = [
@@ -167,9 +167,9 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
     ]
     has_error_text = len(found_patterns) > 0
 
-    if interactive:
-        print(f"On error page: {on_error_page}")
-        print(f"Found error patterns: {found_patterns}")
+    # if interactive:
+    # print(f"On error page: {on_error_page}")
+    # print(f"Found error patterns: {found_patterns}")
 
     if on_error_page and has_error_text:
         if interactive:

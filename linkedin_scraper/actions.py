@@ -107,9 +107,9 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
                     input("Press Enter after completing the challenge...")
                 except EOFError:
                     print(
-                        "Non-interactive mode detected. Waiting 30 seconds for manual completion..."
+                        "Non-interactive mode detected. Waiting timeout seconds for manual completion..."
                     )
-                    time.sleep(30)
+                    time.sleep(timeout)
                 # Wait for user to complete the challenge and continue
                 time.sleep(2)
             else:
@@ -124,9 +124,9 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
                     input("Press Enter after completing the CAPTCHA...")
                 except EOFError:
                     print(
-                        "Non-interactive mode detected. Waiting 30 seconds for manual completion..."
+                        "Non-interactive mode detected. Waiting timeout seconds for manual completion..."
                     )
-                    time.sleep(20)
+                    time.sleep(timeout)
                 # Wait for user to complete the CAPTCHA and continue
                 time.sleep(2)
             else:

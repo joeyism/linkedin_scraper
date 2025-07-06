@@ -55,7 +55,7 @@ def login(
         WebDriverException: Driver-related errors
     """
     if cookie is not None:
-        return _login_with_cookie(driver, cookie)
+        return _login_with_cookie(driver, cookie, timeout)
 
     if not email or not password:
         email, password = __prompt_email_password()
@@ -99,7 +99,7 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
 
     # Check for specific error conditions
     if "checkpoint/challenge" in current_url:
-        if "AgG1DOkeX" in current_url or "security check" in driver.page_source.lower():
+        if "security check" in driver.page_source.lower():
             if interactive:
                 print("Security challenge detected!")
                 print("Please solve the security challenge manually in the browser.")
@@ -107,14 +107,15 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
                     input("Press Enter after completing the challenge...")
                 except EOFError:
                     print(
-                        "Non-interactive mode detected. Waiting timeout seconds for manual completion..."
+                        "Non-interactive environment detected. Waiting timeout seconds for manual completion..."
                     )
                     time.sleep(timeout)
                 # Wait for user to complete the challenge and continue
                 time.sleep(2)
             else:
                 raise SecurityChallengeError(
-                    challenge_url=current_url, message="Let's do a quick security check"
+                    challenge_url=current_url,
+                    message="Captcha encountered. Please solve it manually in the browser.",
                 )
         else:
             if interactive:
@@ -224,7 +225,7 @@ def _handle_post_login_scenarios(driver, timeout, interactive=False):
             ) from None
 
 
-def _login_with_cookie(driver, cookie):
+def _login_with_cookie(driver, cookie, timeout=10):
     """Login using LinkedIn authentication cookie."""
     try:
         driver.get("https://www.linkedin.com/login")
@@ -232,7 +233,7 @@ def _login_with_cookie(driver, cookie):
         driver.get("https://www.linkedin.com/feed/")
 
         # Verify cookie login worked
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, timeout).until(
             EC.presence_of_element_located((By.CLASS_NAME, c.VERIFY_LOGIN_ID))
         )
     except TimeoutException as e:

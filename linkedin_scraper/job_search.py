@@ -1,91 +1,93 @@
-import os
-from typing import List
-from time import sleep
-import urllib.parse
+from selenium.common.exceptions import TimeoutException
 
 from .objects import Scraper
 from . import constants as c
-from .jobs import Job
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 
 
-class JobSearch(Scraper):
-    AREAS = ["recommended_jobs", None, "still_hiring", "more_jobs"]
+class Job(Scraper):
 
-    def __init__(self, driver, base_url="https://www.linkedin.com/jobs/", close_on_complete=False, scrape=True, scrape_recommended_jobs=True):
+    def __init__(
+        self,
+        linkedin_url=None,
+        job_title=None,
+        company=None,
+        company_linkedin_url=None,
+        location=None,
+        posted_date=None,
+        applicant_count=None,
+        job_description=None,
+        benefits=None,
+        driver=None,
+        close_on_complete=True,
+        scrape=True,
+    ):
         super().__init__()
+        self.linkedin_url = linkedin_url
+        self.job_title = job_title
         self.driver = driver
-        self.base_url = base_url
+        self.company = company
+        self.company_linkedin_url = company_linkedin_url
+        self.location = location
+        self.posted_date = posted_date
+        self.applicant_count = applicant_count
+        self.job_description = job_description
+        self.benefits = benefits
 
         if scrape:
-            self.scrape(close_on_complete, scrape_recommended_jobs)
+            self.scrape(close_on_complete)
 
+    def __repr__(self):
+        return f"<Job {self.job_title} {self.company}>"
 
-    def scrape(self, close_on_complete=True, scrape_recommended_jobs=True):
+    def scrape(self, close_on_complete=True):
         if self.is_signed_in():
-            self.scrape_logged_in(close_on_complete=close_on_complete, scrape_recommended_jobs=scrape_recommended_jobs)
+            self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
             raise NotImplemented("This part is not implemented yet")
 
+    def to_dict(self):
+        return {
+            "linkedin_url": self.linkedin_url,
+            "job_title": self.job_title,
+            "company": self.company,
+            "company_linkedin_url": self.company_linkedin_url,
+            "location": self.location,
+            "posted_date": self.posted_date,
+            "applicant_count": self.applicant_count,
+            "job_description": self.job_description,
+            "benefits": self.benefits
+        }
 
-    def scrape_job_card(self, base_element) -> Job:
-        job_div = self.wait_for_element_to_load(name="job-card-list__title", base=base_element)
-        job_title = job_div.text.strip()
-        linkedin_url = job_div.get_attribute("href")
-        company = base_element.find_element_by_class_name("artdeco-entity-lockup__subtitle").text
-        location = base_element.find_element_by_class_name("job-card-container__metadata-wrapper").text
-        job = Job(linkedin_url=linkedin_url, job_title=job_title, company=company, location=location, scrape=False, driver=self.driver)
-        return job
 
-
-    def scrape_logged_in(self, close_on_complete=True, scrape_recommended_jobs=True):
+    def scrape_logged_in(self, close_on_complete=True):
         driver = self.driver
-        driver.get(self.base_url)
-        if scrape_recommended_jobs:
-            self.focus()
-            sleep(self.WAIT_FOR_ELEMENT_TIMEOUT)
-            job_area = self.wait_for_element_to_load(name="scaffold-finite-scroll__content")
-            areas = self.wait_for_all_elements_to_load(name="artdeco-card", base=job_area)
-            for i, area in enumerate(areas):
-                area_name = self.AREAS[i]
-                if not area_name:
-                    continue
-                area_results = []
-                for job_posting in area.find_elements_by_class_name("jobs-job-board-list__item"):
-                    job = self.scrape_job_card(job_posting)
-                    area_results.append(job)
-                setattr(self, area_name, area_results)
-        return
-
-
-    def search(self, search_term: str) -> List[Job]:
-        url = os.path.join(self.base_url, "search") + f"?keywords={urllib.parse.quote(search_term)}&refresh=true"
-        self.driver.get(url)
-        self.scroll_to_bottom()
+        
+        driver.get(self.linkedin_url)
         self.focus()
-        sleep(self.WAIT_FOR_ELEMENT_TIMEOUT)
+        self.job_title = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__job-title").text.strip()
+        self.company = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__company-name").text.strip()
+        self.company_linkedin_url = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__company-name").find_element(By.TAG_NAME,"a").get_attribute("href")
+        primary_descriptions = self.wait_for_element_to_load(name="job-details-jobs-unified-top-card__primary-description-container").find_elements(By.TAG_NAME, "span")
+        texts = [span.text for span in primary_descriptions if span.text.strip() != ""]
+        self.location = texts[0]
+        self.posted_date = texts[3]
+        
+        try:
+            self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
+        except TimeoutException:
+            self.applicant_count = 0
+        job_description_elem = self.wait_for_element_to_load(name="jobs-description")
+        self.mouse_click(job_description_elem.find_element(By.TAG_NAME, "button"))
+        job_description_elem = self.wait_for_element_to_load(name="jobs-description")
+        job_description_elem.find_element(By.TAG_NAME, "button").click()
+        self.job_description = job_description_elem.text.strip()
+        try:
+            self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()
+        except TimeoutException:
+            self.benefits = None
 
-        job_listing_class_name = "jobs-search-results-list"
-        job_listing = self.wait_for_element_to_load(name=job_listing_class_name)
-
-        self.scroll_class_name_element_to_page_percent(job_listing_class_name, 0.3)
-        self.focus()
-        sleep(self.WAIT_FOR_ELEMENT_TIMEOUT)
-
-        self.scroll_class_name_element_to_page_percent(job_listing_class_name, 0.6)
-        self.focus()
-        sleep(self.WAIT_FOR_ELEMENT_TIMEOUT)
-
-        self.scroll_class_name_element_to_page_percent(job_listing_class_name, 1)
-        self.focus()
-        sleep(self.WAIT_FOR_ELEMENT_TIMEOUT)
-
-        job_results = []
-        for job_card in self.wait_for_all_elements_to_load(name="job-card-list", base=job_listing):
-            job = self.scrape_job_card(job_card)
-            job_results.append(job)
-        return job_results
+        if close_on_complete:
+            driver.close()

@@ -1,280 +1,321 @@
-# Linkedin Scraper
+# LinkedIn Scraper
 
-Scrapes Linkedin User Data
+[![PyPI version](https://badge.fury.io/py/linkedin-scraper.svg)](https://badge.fury.io/py/linkedin-scraper)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-[Linkedin Scraper](#linkedin-scraper)
-* [Installation](#installation)
-* [Setup](#setup)
-* [Usage](#usage)
-  + [Sample Usage](#sample-usage)
-  + [User Scraping](#user-scraping)
-  + [Company Scraping](#company-scraping)
-  + [Job Scraping](#job-scraping)
-  + [Job Search Scraping](#job-search-scraping)
-  + [Scraping sites where login is required first](#scraping-sites-where-login-is-required-first)
-  + [Scraping sites and login automatically](#scraping-sites-and-login-automatically)
-* [API](#api)
-  + [Person](#person)
-    - [`linkedin_url`](#linkedin_url)
-    - [`name`](#name)
-    - [`about`](#about)
-    - [`experiences`](#experiences)
-    - [`educations`](#educations)
-    - [`interests`](#interests)
-    - [`accomplishment`](#accomplishment)
-    - [`company`](#company)
-    - [`job_title`](#job_title)
-    - [`driver`](#driver)
-    - [`scrape`](#scrape)
-    - [`scrape(close_on_complete=True)`](#scrapeclose_on_completetrue)
-  + [Company](#company)
-    - [`linkedin_url`](#linkedin_url-1)
-    - [`name`](#name-1)
-    - [`about_us`](#about_us)
-    - [`website`](#website)
-    - [`headquarters`](#headquarters)
-    - [`founded`](#founded)
-    - [`company_type`](#company_type)
-    - [`company_size`](#company_size)
-    - [`specialties`](#specialties)
-    - [`showcase_pages`](#showcase_pages)
-    - [`affiliated_companies`](#affiliated_companies)
-    - [`driver`](#driver-1)
-    - [`get_employees`](#get_employees)
-    - [`scrape(close_on_complete=True)`](#scrapeclose_on_completetrue-1)
-* [Contribution](#contribution)
+Async LinkedIn scraper built with Playwright for extracting profile, company, and job data from LinkedIn.
+
+## Features
+
+- **Person Profiles** - Scrape comprehensive profile information
+  - Basic info (name, headline, location, about)
+  - Work experience with details
+  - Education history
+  - Skills and accomplishments
+  
+- **Company Pages** - Extract company information
+  - Company overview and details
+  - Industry and size
+  - Headquarters location
+  
+- **Job Listings** - Scrape job postings
+  - Job details and requirements
+  - Company information
+  - Application links
+
+- **Async/Await** - Modern async Python with Playwright
+- **Type Safety** - Full Pydantic models for all data
+- **Progress Callbacks** - Track scraping progress
+- **Session Management** - Reuse authenticated sessions
 
 ## Installation
 
 ```bash
-pip3 install --user linkedin_scraper
+pip install linkedin-scraper
 ```
 
-Version **2.0.0** and before is called `linkedin_user_scraper` and can be installed via `pip3 install --user linkedin_user_scraper`
-
-## Setup
-First, you must set your chromedriver location by
+### Install Playwright browsers:
 
 ```bash
-export CHROMEDRIVER=~/chromedriver
+playwright install chromium
 ```
 
-## Sponsor
-Message me if you'd like to sponsor me
+## Quick Start
 
-## Usage
-To use it, just create the class.
+### Basic Usage
 
-### Sample Usage
 ```python
-from linkedin_scraper import Person, actions
-from selenium import webdriver
-driver = webdriver.Chrome()
+import asyncio
+from linkedin_scraper import BrowserManager, PersonScraper
 
-email = "some-email@email.address"
-password = "password123"
-actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
-person = Person("https://www.linkedin.com/in/joey-sham-aa2a50122", driver=driver)
-```
+async def main():
+    # Initialize browser
+    async with BrowserManager(headless=False) as browser:
+        # Load authenticated session
+        await browser.load_session("session.json")
+        
+        # Create scraper
+        scraper = PersonScraper(browser.page)
+        
+        # Scrape a profile
+        person = await scraper.scrape("https://linkedin.com/in/williamhgates/")
+        
+        # Access data
+        print(f"Name: {person.name}")
+        print(f"Headline: {person.headline}")
+        print(f"Location: {person.location}")
+        print(f"Experiences: {len(person.experiences)}")
+        print(f"Education: {len(person.educations)}")
 
-**NOTE**: The account used to log-in should have it's language set English to make sure everything works as expected.
-
-### User Scraping
-```python
-from linkedin_scraper import Person
-person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
+asyncio.run(main())
 ```
 
 ### Company Scraping
+
 ```python
-from linkedin_scraper import Company
-company = Company("https://ca.linkedin.com/company/google")
+from linkedin_scraper import CompanyScraper
+
+async def scrape_company():
+    async with BrowserManager(headless=False) as browser:
+        await browser.load_session("session.json")
+        
+        scraper = CompanyScraper(browser.page)
+        company = await scraper.scrape("https://linkedin.com/company/microsoft/")
+        
+        print(f"Company: {company.name}")
+        print(f"Industry: {company.industry}")
+        print(f"Size: {company.company_size}")
+        print(f"About: {company.about[:200]}...")
+
+asyncio.run(scrape_company())
 ```
 
 ### Job Scraping
-```python
-from linkedin_scraper import Job, actions
-from selenium import webdriver
 
-driver = webdriver.Chrome()
-email = "some-email@email.address"
-password = "password123"
-actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
-input("Press Enter")
-job = Job("https://www.linkedin.com/jobs/collections/recommended/?currentJobId=3456898261", driver=driver, close_on_complete=False)
+```python
+from linkedin_scraper import JobSearchScraper
+
+async def search_jobs():
+    async with BrowserManager(headless=False) as browser:
+        await browser.load_session("session.json")
+        
+        scraper = JobSearchScraper(browser.page)
+        jobs = await scraper.search(
+            keywords="Python Developer",
+            location="San Francisco",
+            limit=10
+        )
+        
+        for job in jobs:
+            print(f"{job.title} at {job.company}")
+            print(f"Location: {job.location}")
+            print(f"Link: {job.linkedin_url}")
+            print("---")
+
+asyncio.run(search_jobs())
 ```
 
-### Job Search Scraping
+## Authentication
+
+LinkedIn requires authentication. You need to create a session file first:
+
+### Option 1: Manual Login Script
+
 ```python
-from linkedin_scraper import JobSearch, actions
-from selenium import webdriver
+from linkedin_scraper import BrowserManager, wait_for_manual_login
 
-driver = webdriver.Chrome()
-email = "some-email@email.address"
-password = "password123"
-actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
-input("Press Enter")
-job_search = JobSearch(driver=driver, close_on_complete=False, scrape=False)
-# job_search contains jobs from your logged in front page:
-# - job_search.recommended_jobs
-# - job_search.still_hiring
-# - job_search.more_jobs
+async def create_session():
+    async with BrowserManager(headless=False) as browser:
+        # Navigate to LinkedIn
+        await browser.page.goto("https://www.linkedin.com/login")
+        
+        # Wait for manual login (opens browser)
+        print("Please log in to LinkedIn...")
+        await wait_for_manual_login(browser.page, timeout=300)
+        
+        # Save session
+        await browser.save_session("session.json")
+        print("✓ Session saved!")
 
-job_listings = job_search.search("Machine Learning Engineer") # returns the list of `Job` from the first page
+asyncio.run(create_session())
 ```
 
-### Scraping sites where login is required first
-1. Run `ipython` or `python`
-2. In `ipython`/`python`, run the following code (you can modify it if you need to specify your driver)
-3. 
-```python
-from linkedin_scraper import Person
-from selenium import webdriver
-driver = webdriver.Chrome()
-person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = driver, scrape=False)
-```
-4. Login to Linkedin
-5. [OPTIONAL] Logout of Linkedin
-6. In the same `ipython`/`python` code, run
-```python
-person.scrape()
-```
-
-The reason is that LinkedIn has recently blocked people from viewing certain profiles without having previously signed in. So by setting `scrape=False`, it doesn't automatically scrape the profile, but Chrome will open the linkedin page anyways. You can login and logout, and the cookie will stay in the browser and it won't affect your profile views. Then when you run `person.scrape()`, it'll scrape and close the browser. If you want to keep the browser on so you can scrape others, run it as 
-
-**NOTE**: For version >= `2.1.0`, scraping can also occur while logged in. Beware that users will be able to see that you viewed their profile.
+### Option 2: Programmatic Login
 
 ```python
-person.scrape(close_on_complete=False)
-``` 
-so it doesn't close.
+from linkedin_scraper import BrowserManager, login_with_credentials
+import os
 
-### Scraping sites and login automatically
-From verison **2.4.0** on, `actions` is a part of the library that allows signing into Linkedin first. The email and password can be provided as a variable into the function. If not provided, both will be prompted in terminal.
+async def login():
+    async with BrowserManager(headless=False) as browser:
+        # Login with credentials
+        await login_with_credentials(
+            browser.page,
+            username=os.getenv("LINKEDIN_EMAIL"),
+            password=os.getenv("LINKEDIN_PASSWORD")
+        )
+        
+        # Save session for reuse
+        await browser.save_session("session.json")
 
-```python
-from linkedin_scraper import Person, actions
-from selenium import webdriver
-driver = webdriver.Chrome()
-email = "some-email@email.address"
-password = "password123"
-actions.login(driver, email, password) # if email and password isnt given, it'll prompt in terminal
-person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver=driver)
+asyncio.run(login())
 ```
 
+## Progress Tracking
 
-## API
+Track scraping progress with callbacks:
+
+```python
+from linkedin_scraper import ConsoleCallback, PersonScraper
+
+async def scrape_with_progress():
+    callback = ConsoleCallback()  # Prints progress to console
+    
+    async with BrowserManager(headless=False) as browser:
+        await browser.load_session("session.json")
+        
+        scraper = PersonScraper(browser.page, callback=callback)
+        person = await scraper.scrape("https://linkedin.com/in/williamhgates/")
+
+asyncio.run(scrape_with_progress())
+```
+
+### Custom Callbacks
+
+```python
+from linkedin_scraper import ProgressCallback
+
+class MyCallback(ProgressCallback):
+    async def on_start(self, scraper_type: str, url: str):
+        print(f"Starting {scraper_type} scraping: {url}")
+    
+    async def on_progress(self, message: str, percent: int):
+        print(f"[{percent}%] {message}")
+    
+    async def on_complete(self, scraper_type: str, url: str):
+        print(f"Completed {scraper_type}: {url}")
+    
+    async def on_error(self, error: Exception):
+        print(f"Error: {error}")
+```
+
+## Data Models
+
+All scraped data is returned as Pydantic models:
 
 ### Person
-A Person object can be created with the following inputs:
 
 ```python
-Person(linkedin_url=None, name=None, about=[], experiences=[], educations=[], interests=[], accomplishments=[], company=None, job_title=None, driver=None, scrape=True)
+class Person(BaseModel):
+    name: str
+    headline: Optional[str]
+    location: Optional[str]
+    about: Optional[str]
+    linkedin_url: str
+    experiences: List[Experience]
+    educations: List[Education]
+    skills: List[str]
+    accomplishments: Optional[Accomplishment]
 ```
-#### `linkedin_url`
-This is the linkedin url of their profile
-
-#### `name`
-This is the name of the person
-
-#### `about`
-This is the small paragraph about the person
-
-#### `experiences`
-This is the past experiences they have. A list of `linkedin_scraper.scraper.Experience`
-
-#### `educations`
-This is the past educations they have. A list of `linkedin_scraper.scraper.Education`
-
-#### `interests`
-This is the interests they have. A list of `linkedin_scraper.scraper.Interest`
-
-#### `accomplishment`
-This is the accomplishments they have. A list of `linkedin_scraper.scraper.Accomplishment`
-
-#### `company`
-This the most recent company or institution they have worked at. 
-
-#### `job_title`
-This the most recent job title they have. 
-
-#### `driver`
-This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.
-
-For example
-```python
-driver = webdriver.Chrome()
-person = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5", driver = driver)
-```
-
-#### `scrape`
-When this is **True**, the scraping happens automatically. To scrape afterwards, that can be run by the `scrape()` function from the `Person` object.
-
-
-#### `scrape(close_on_complete=True)`
-This is the meat of the code, where execution of this function scrapes the profile. If *close_on_complete* is True (which it is by default), then the browser will close upon completion. If scraping of other profiles are desired, then you might want to set that to false so you can keep using the same driver.
-
- 
-
 
 ### Company
 
 ```python
-Company(linkedin_url=None, name=None, about_us=None, website=None, phone=None, headquarters=None, founded=None, company_type=None, company_size=None, specialties=None, showcase_pages=[], affiliated_companies=[], driver=None, scrape=True, get_employees=True)
+class Company(BaseModel):
+    name: str
+    industry: Optional[str]
+    company_size: Optional[str]
+    headquarters: Optional[str]
+    founded: Optional[str]
+    specialties: List[str]
+    about: Optional[str]
+    linkedin_url: str
 ```
 
-#### `linkedin_url`
-This is the linkedin url of their profile
+### Job
 
-#### `name`
-This is the name of the company
-
-#### `about_us`
-The description of the company
-
-#### `website`
-The website of the company
-
-#### `phone`
-The phone of the company
-
-#### `headquarters`
-The headquarters location of the company
-
-#### `founded`
-When the company was founded
-
-#### `company_type`
-The type of the company
-
-#### `company_size`
-How many people are employeed at the company
-
-#### `specialties`
-What the company specializes in
-
-#### `showcase_pages`
-Pages that the company owns to showcase their products
-
-#### `affiliated_companies`
-Other companies that are affiliated with this one
-
-#### `driver`
-This is the driver from which to scraper the Linkedin profile. A driver using Chrome is created by default. However, if a driver is passed in, that will be used instead.
-
-#### `get_employees`
-Whether to get all the employees of company
-
-For example
 ```python
-driver = webdriver.Chrome()
-company = Company("https://ca.linkedin.com/company/google", driver=driver)
+class Job(BaseModel):
+    title: str
+    company: str
+    location: Optional[str]
+    description: Optional[str]
+    employment_type: Optional[str]
+    seniority_level: Optional[str]
+    linkedin_url: str
 ```
 
+## Advanced Usage
 
-#### `scrape(close_on_complete=True)`
-This is the meat of the code, where execution of this function scrapes the company. If *close_on_complete* is True (which it is by default), then the browser will close upon completion. If scraping of other companies are desired, then you might want to set that to false so you can keep using the same driver.
+### Browser Configuration
 
-## Contribution
+```python
+browser = BrowserManager(
+    headless=False,  # Show browser window
+    slow_mo=100,     # Slow down operations (ms)
+    viewport={"width": 1920, "height": 1080},
+    user_agent="Custom User Agent"
+)
+```
 
-<a href="https://www.buymeacoffee.com/joeyism" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+### Error Handling
+
+```python
+from linkedin_scraper import (
+    AuthenticationError,
+    RateLimitError,
+    ProfileNotFoundError
+)
+
+try:
+    person = await scraper.scrape(url)
+except AuthenticationError:
+    print("Not logged in - session expired")
+except RateLimitError:
+    print("Rate limited by LinkedIn")
+except ProfileNotFoundError:
+    print("Profile not found or private")
+```
+
+## Best Practices
+
+1. **Rate Limiting** - Add delays between requests
+   ```python
+   import asyncio
+   await asyncio.sleep(2)  # 2 second delay
+   ```
+
+2. **Session Reuse** - Save and reuse sessions to avoid frequent logins
+
+3. **Error Handling** - Always handle exceptions (rate limits, auth errors, etc.)
+
+4. **Headless Mode** - Use `headless=False` during development, `True` for production
+
+5. **Respect LinkedIn** - Don't scrape aggressively, respect rate limits
+
+## Requirements
+
+- Python 3.8+
+- Playwright
+- Pydantic 2.0+
+- aiofiles
+- python-dotenv (optional, for credentials)
+
+## License
+
+Apache License 2.0 - see [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Disclaimer
+
+This tool is for educational purposes only. Make sure to comply with LinkedIn's Terms of Service and use responsibly. The authors are not responsible for any misuse of this tool.
+
+## Links
+
+- [GitHub Repository](https://github.com/joeyism/linkedin_scraper)
+- [Issue Tracker](https://github.com/joeyism/linkedin_scraper/issues)
+- [PyPI Package](https://pypi.org/project/linkedin-scraper/)

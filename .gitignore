@@ -13,3 +13,33 @@ scrape.py
 creds.json
 venv
 *.zip
+.env
+
+# Test outputs
+*.log
+test_*.db
+test_linkedin.db
+test_summary.json
+results_*.json
+person_*.json
+*_improved.json
+
+# Debug scripts (keep debug_connection_selectors.py)
+debug_*.py
+!debug_connection_selectors.py
+
+# Backup files
+*_old.py
+*.backup
+
+# Session files (sensitive cookies)
+linkedin_session.json
+
+# Build artifacts
+MANIFEST
+MANIFEST.ini
+.pytest_cache/
+
+# Basic package build artifacts
+build-basic/
+dist-basic/

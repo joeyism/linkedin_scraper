@@ -1,1 +1,0 @@
-NAME = 'text-heading-xlarge'

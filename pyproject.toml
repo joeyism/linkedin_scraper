@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linkedin_scraper"
+version = "3.0.0a0"
+description = "Async LinkedIn scraper for profiles, companies, and jobs"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache 2.0"}
+authors = [
+    {name = "Joey Sham", email = "sham.joey@gmail.com"}
+]
+keywords = ["linkedin", "scraping", "scraper", "async", "playwright", "profiles"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "playwright>=1.40.0",
+    "requests>=2.31.0",
+    "lxml>=5.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "aiofiles>=23.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "build>=1.0.0",
+    "twine>=4.0.0",
+    "wheel>=0.40.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/joeyism/linkedin_scraper"
+Documentation = "https://github.com/joeyism/linkedin_scraper#readme"
+Repository = "https://github.com/joeyism/linkedin_scraper"
+Issues = "https://github.com/joeyism/linkedin_scraper/issues"
+
+[tool.setuptools]
+packages = ["linkedin_scraper", "linkedin_scraper.core", "linkedin_scraper.models", "linkedin_scraper.scrapers"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests that don't require external services",
+    "integration: Integration tests that require LinkedIn session",
+]

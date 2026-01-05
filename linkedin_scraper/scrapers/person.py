@@ -57,6 +57,10 @@ class PersonScraper(BaseScraper):
             # Get name and location
             name, location = await self._get_name_and_location()
             await self.callback.on_progress(f"Got name: {name}", 20)
+
+            # Get headline
+            headline = await self._get_headline()
+            await self.callback.on_progress(f"Got headline: {headline}", 25)
             
             # Check open to work
             open_to_work = await self._check_open_to_work()
@@ -82,6 +86,7 @@ class PersonScraper(BaseScraper):
                 linkedin_url=linkedin_url,
                 name=name,
                 location=location,
+                headline=headline,
                 about=about,
                 open_to_work=open_to_work,
                 experiences=experiences,
@@ -106,6 +111,14 @@ class PersonScraper(BaseScraper):
         except Exception as e:
             logger.warning(f"Error getting name/location: {e}")
             return "Unknown", None
+    
+    async def _get_headline(self) -> Optional[str]:
+        """Extract headline from profile."""
+        try:
+            return await self.safe_extract_text('div.text-body-medium.break-words')
+        except Exception as e:
+            logger.warning(f"Error getting headline: {e}")
+            return None
     
     async def _check_open_to_work(self) -> bool:
         """Check if profile has open to work badge."""

@@ -47,6 +47,7 @@ class Person(BaseModel):
     """
     linkedin_url: str
     name: Optional[str] = None
+    headline:Optional[str] = None
     location: Optional[str] = None
     about: Optional[str] = None
     open_to_work: bool = False

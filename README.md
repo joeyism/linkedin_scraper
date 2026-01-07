@@ -46,8 +46,12 @@ asyncio.run(main())
 ```bash
 pip install linkedin-scraper==2.11.2
 ```
+## Quick Testing
+
 To test that this works, you can clone this repo, install dependencies with
 ```
+git clone https://github.com/joeyism/linkedin_scraper.git
+cd linkedin_scraper
 pip3 install -e .
 ```
 then run

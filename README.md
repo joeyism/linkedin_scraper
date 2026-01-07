@@ -129,7 +129,7 @@ async def scrape_company():
         print(f"Company: {company.name}")
         print(f"Industry: {company.industry}")
         print(f"Size: {company.company_size}")
-        print(f"About: {company.about[:200]}...")
+        print(f"About: {company.about_us[:200]}...")
 
 asyncio.run(scrape_company())
 ```

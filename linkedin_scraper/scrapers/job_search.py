@@ -56,14 +56,14 @@ class JobSearchScraper(BaseScraper):
             List of job posting URLs
         """
         logger.info(f"Starting job search: keywords='{keywords}', location='{location}'")
-        self.callback.on_start(f"Searching for jobs: {keywords} in {location}")
         
         # Build search URL
         search_url = self._build_search_url(keywords, location)
+        await self.callback.on_start("JobSearch", search_url)
         
         # Navigate to search results
         await self.navigate_and_wait(search_url)
-        self.callback.on_progress(20, "Navigated to search results")
+        await self.callback.on_progress("Navigated to search results", 20)
         
         # Wait for job listings to load
         await self.page.wait_for_selector('.jobs-search__results-list', timeout=10000)
@@ -71,14 +71,14 @@ class JobSearchScraper(BaseScraper):
         
         # Scroll to load more results
         await self.scroll_page_to_bottom(pause_time=1, max_scrolls=3)
-        self.callback.on_progress(50, "Loaded job listings")
+        await self.callback.on_progress("Loaded job listings", 50)
         
         # Extract job URLs
         job_urls = await self._extract_job_urls(limit)
-        self.callback.on_progress(90, f"Found {len(job_urls)} job URLs")
+        await self.callback.on_progress(f"Found {len(job_urls)} job URLs", 90)
         
-        self.callback.on_progress(100, "Search complete")
-        self.callback.on_complete(f"Found {len(job_urls)} jobs!")
+        await self.callback.on_progress("Search complete", 100)
+        await self.callback.on_complete("JobSearch", job_urls)
         
         logger.info(f"Job search complete: found {len(job_urls)} jobs")
         return job_urls

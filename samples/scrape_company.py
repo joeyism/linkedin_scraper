@@ -34,8 +34,8 @@ async def main():
         print(f"Headquarters: {company.headquarters}")
         print(f"Founded: {company.founded}")
         print(f"Website: {company.website}")
-        if company.about:
-            print(f"About: {company.about[:150]}...")
+        if company.about_us:
+            print(f"About: {company.about_us[:150]}...")
         print("="*60)
     
     print("\n✓ Done!")

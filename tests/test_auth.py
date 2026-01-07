@@ -20,6 +20,6 @@ async def test_is_logged_in_with_session(browser_with_session):
     """Test is_logged_in returns True with valid session."""
     # Navigate to LinkedIn first
     await browser_with_session.page.goto("https://www.linkedin.com/feed/")
-    await browser_with_session.page.wait_for_load_state("networkidle", timeout=10000)
+    await browser_with_session.page.wait_for_load_state("domcontentloaded", timeout=15000)
     logged_in = await is_logged_in(browser_with_session.page)
     assert logged_in is True

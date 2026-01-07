@@ -165,7 +165,7 @@ class PersonScraper(BaseScraper):
             
             # Find the main list
             main_list = self.page.locator('.pvs-list__container').first
-            await main_list.wait_for(timeout=5000)
+            await main_list.wait_for(timeout=10000)
             
             # Get all experience items
             items = await main_list.locator('.pvs-list__paged-list-item').all()
@@ -184,7 +184,7 @@ class PersonScraper(BaseScraper):
                     continue
             
         except Exception as e:
-            logger.warning(f"Error getting experiences: {e}")
+            logger.warning(f"Error getting experiences: {e}. The experience section may not be available or the page structure has changed.")
         
         return experiences
     
@@ -435,7 +435,7 @@ class PersonScraper(BaseScraper):
             
             # Find the main list
             main_list = self.page.locator('.pvs-list__container').first
-            await main_list.wait_for(timeout=5000)
+            await main_list.wait_for(timeout=10000)
             
             # Get all education items
             items = await main_list.locator('.pvs-list__paged-list-item').all()
@@ -450,7 +450,7 @@ class PersonScraper(BaseScraper):
                     continue
             
         except Exception as e:
-            logger.warning(f"Error getting educations: {e}")
+            logger.warning(f"Error getting educations: {e}. The education section may not be publicly visible or the page structure has changed.")
         
         return educations
     

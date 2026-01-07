@@ -50,36 +50,36 @@ class JobScraper(BaseScraper):
             ProfileNotFoundError: If job posting not found
         """
         logger.info(f"Starting job scraping: {linkedin_url}")
-        self.callback.on_start(f"Scraping job: {linkedin_url}")
+        await self.callback.on_start("Job", linkedin_url)
         
         # Navigate to job page
         await self.navigate_and_wait(linkedin_url)
-        self.callback.on_progress(10, "Navigated to job page")
+        await self.callback.on_progress("Navigated to job page", 10)
         
         # Check if page exists
         await self.check_rate_limit()
         
         # Extract job details
         job_title = await self._get_job_title()
-        self.callback.on_progress(20, f"Got job title: {job_title}")
+        await self.callback.on_progress(f"Got job title: {job_title}", 20)
         
         company = await self._get_company()
-        self.callback.on_progress(30, "Got company name")
+        await self.callback.on_progress("Got company name", 30)
         
         location = await self._get_location()
-        self.callback.on_progress(40, "Got location")
+        await self.callback.on_progress("Got location", 40)
         
         posted_date = await self._get_posted_date()
-        self.callback.on_progress(50, "Got posted date")
+        await self.callback.on_progress("Got posted date", 50)
         
         applicant_count = await self._get_applicant_count()
-        self.callback.on_progress(60, "Got applicant count")
+        await self.callback.on_progress("Got applicant count", 60)
         
         job_description = await self._get_description()
-        self.callback.on_progress(80, "Got job description")
+        await self.callback.on_progress("Got job description", 80)
         
         company_url = await self._get_company_url()
-        self.callback.on_progress(90, "Got company URL")
+        await self.callback.on_progress("Got company URL", 90)
         
         # Create job object
         job = Job(
@@ -93,8 +93,8 @@ class JobScraper(BaseScraper):
             job_description=job_description
         )
         
-        self.callback.on_progress(100, "Scraping complete")
-        self.callback.on_complete("Completed job scraping successfully!")
+        await self.callback.on_progress("Scraping complete", 100)
+        await self.callback.on_complete("Job", job)
         
         logger.info(f"Successfully scraped job: {job_title}")
         return job

@@ -46,6 +46,17 @@ asyncio.run(main())
 ```bash
 pip install linkedin-scraper==2.11.2
 ```
+To test that this works, you can clone this repo, install dependencies with
+```
+pip3 install -e .
+```
+then run
+```
+python3 samples/create_session.py
+python3 samples/scrape_company.py
+python3 samples/scrape_person.py
+```
+and you will see the scraping in action.
 
 ---
 

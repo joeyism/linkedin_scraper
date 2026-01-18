@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "linkedin_scraper"
-version = "3.0.1"
+version = "3.0.2"
 description = "Async LinkedIn scraper for profiles, companies, and jobs"
 readme = "README.md"
 requires-python = ">=3.8"

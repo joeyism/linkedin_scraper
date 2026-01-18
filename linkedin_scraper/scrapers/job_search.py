@@ -57,23 +57,22 @@ class JobSearchScraper(BaseScraper):
         """
         logger.info(f"Starting job search: keywords='{keywords}', location='{location}'")
         
-        # Build search URL
         search_url = self._build_search_url(keywords, location)
         await self.callback.on_start("JobSearch", search_url)
         
-        # Navigate to search results
         await self.navigate_and_wait(search_url)
         await self.callback.on_progress("Navigated to search results", 20)
         
-        # Wait for job listings to load
-        await self.page.wait_for_selector('.jobs-search__results-list', timeout=10000)
-        await self.wait_and_focus(1)
+        try:
+            await self.page.wait_for_selector('a[href*="/jobs/view/"]', timeout=10000)
+        except:
+            logger.warning("No job listings found on page")
+            return []
         
-        # Scroll to load more results
+        await self.wait_and_focus(1)
         await self.scroll_page_to_bottom(pause_time=1, max_scrolls=3)
         await self.callback.on_progress("Loaded job listings", 50)
         
-        # Extract job URLs
         job_urls = await self._extract_job_urls(limit)
         await self.callback.on_progress(f"Found {len(job_urls)} job URLs", 90)
         

@@ -100,9 +100,8 @@ class JobScraper(BaseScraper):
         return job
     
     async def _get_job_title(self) -> Optional[str]:
-        """Extract job title."""
+        """Extract job title from h1 heading."""
         try:
-            # Try h1 heading
             title_elem = self.page.locator('h1').first
             title = await title_elem.inner_text()
             return title.strip()
@@ -110,89 +109,97 @@ class JobScraper(BaseScraper):
             return None
     
     async def _get_company(self) -> Optional[str]:
-        """Extract company name."""
+        """Extract company name from company link."""
         try:
-            # Look for company name link or text
-            company_elem = self.page.locator('.job-details-jobs-unified-top-card__company-name').first
-            company = await company_elem.inner_text()
-            return company.strip()
+            # Find company links that have text (not just images)
+            company_links = await self.page.locator('a[href*="/company/"]').all()
+            for link in company_links:
+                text = await link.inner_text()
+                text = text.strip()
+                # Skip empty or very short text (likely image-only links)
+                if text and len(text) > 1 and not text.startswith('logo'):
+                    return text
         except:
-            # Fallback: look for any link with "company" in it
-            try:
-                links = await self.page.locator('a').all()
-                for link in links:
-                    href = await link.get_attribute('href')
-                    if href and '/company/' in href:
-                        text = await link.inner_text()
-                        if text and len(text.strip()) > 0:
-                            return text.strip()
-            except:
-                pass
-            return None
+            pass
+        return None
     
     async def _get_company_url(self) -> Optional[str]:
         """Extract company LinkedIn URL."""
         try:
-            links = await self.page.locator('a').all()
-            for link in links:
-                href = await link.get_attribute('href')
-                if href and '/company/' in href and 'linkedin.com' in href:
-                    # Clean up URL (remove query params)
+            company_link = self.page.locator('a[href*="/company/"]').first
+            if await company_link.count() > 0:
+                href = await company_link.get_attribute('href')
+                if href:
                     if '?' in href:
                         href = href.split('?')[0]
+                    if not href.startswith('http'):
+                        href = f"https://www.linkedin.com{href}"
                     return href
         except:
             pass
         return None
     
     async def _get_location(self) -> Optional[str]:
-        """Extract job location."""
+        """Extract job location from job details panel."""
         try:
-            location_elem = self.page.locator('.job-details-jobs-unified-top-card__bullet').first
-            location = await location_elem.inner_text()
-            return location.strip()
+            job_panel = self.page.locator('h1').first.locator('xpath=ancestor::*[5]')
+            if await job_panel.count() > 0:
+                text_elements = await job_panel.locator('span, div').all()
+                for elem in text_elements:
+                    text = await elem.inner_text()
+                    if text and (',' in text or 'Remote' in text or 'United States' in text):
+                        text = text.strip()
+                        if len(text) > 3 and len(text) < 100 and not text.startswith('$'):
+                            return text
         except:
-            return None
+            pass
+        return None
     
     async def _get_posted_date(self) -> Optional[str]:
-        """Extract posted date."""
+        """Extract posted date from job details."""
         try:
-            # Look for text containing "ago" or date info
-            text_elements = await self.page.locator('span').all()
+            text_elements = await self.page.locator('span, div').all()
             for elem in text_elements:
                 text = await elem.inner_text()
-                if 'ago' in text.lower() or 'posted' in text.lower():
-                    return text.strip()
+                if text and ('ago' in text.lower() or 'day' in text.lower() or 'week' in text.lower() or 'hour' in text.lower()):
+                    text = text.strip()
+                    if len(text) < 50:
+                        return text
         except:
             pass
         return None
     
     async def _get_applicant_count(self) -> Optional[str]:
-        """Extract applicant count."""
+        """Extract applicant count from job details."""
         try:
-            # Look for applicant count text
-            text_elements = await self.page.locator('span').all()
-            for elem in text_elements:
-                text = await elem.inner_text()
-                if 'applicant' in text.lower():
-                    return text.strip()
+            main_content = self.page.locator('main').first
+            if await main_content.count() > 0:
+                text_elements = await main_content.locator('span, div').all()
+                for elem in text_elements:
+                    text = await elem.inner_text()
+                    text = text.strip()
+                    if text and len(text) < 50:
+                        text_lower = text.lower()
+                        if 'applicant' in text_lower or 'people clicked' in text_lower or 'applied' in text_lower:
+                            return text
         except:
             pass
         return None
     
     async def _get_description(self) -> Optional[str]:
-        """Extract job description."""
+        """Extract job description from article or about section."""
         try:
-            # Look for the description section
-            desc_elem = self.page.locator('.jobs-description__content').first
-            description = await desc_elem.inner_text()
-            return description.strip()
-        except:
-            # Fallback: try to find article or main content
-            try:
-                article = self.page.locator('article').first
+            about_heading = self.page.locator('h2:has-text("About the job")').first
+            if await about_heading.count() > 0:
+                article = about_heading.locator('xpath=ancestor::article[1]')
+                if await article.count() > 0:
+                    description = await article.inner_text()
+                    return description.strip()
+            
+            article = self.page.locator('article').first
+            if await article.count() > 0:
                 description = await article.inner_text()
                 return description.strip()
-            except:
-                pass
-            return None
+        except:
+            pass
+        return None

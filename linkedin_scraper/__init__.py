@@ -1,7 +1,7 @@
 """LinkedIn Scraper - Async Playwright-based scraper for LinkedIn."""
 
 # Version
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 
 # Core modules
 from .core import (
@@ -45,6 +45,7 @@ from .models import (
     Education,
     Contact,
     Accomplishment,
+    Interest,
     Company,
     CompanySummary,
     Employee,
@@ -53,41 +54,42 @@ from .models import (
 
 __all__ = [
     # Version
-    '__version__',
+    "__version__",
     # Core
-    'BrowserManager',
-    'login_with_credentials',
-    'login_with_cookie',
-    'is_logged_in',
-    'wait_for_manual_login',
-    'load_credentials_from_env',
+    "BrowserManager",
+    "login_with_credentials",
+    "login_with_cookie",
+    "is_logged_in",
+    "wait_for_manual_login",
+    "load_credentials_from_env",
     # Scrapers
-    'PersonScraper',
-    'CompanyScraper',
-    'JobScraper',
-    'JobSearchScraper',
+    "PersonScraper",
+    "CompanyScraper",
+    "JobScraper",
+    "JobSearchScraper",
     # Exceptions
-    'LinkedInScraperException',
-    'AuthenticationError',
-    'RateLimitError',
-    'ElementNotFoundError',
-    'ProfileNotFoundError',
-    'NetworkError',
-    'ScrapingError',
+    "LinkedInScraperException",
+    "AuthenticationError",
+    "RateLimitError",
+    "ElementNotFoundError",
+    "ProfileNotFoundError",
+    "NetworkError",
+    "ScrapingError",
     # Callbacks
-    'ProgressCallback',
-    'ConsoleCallback',
-    'SilentCallback',
-    'JSONLogCallback',
-    'MultiCallback',
+    "ProgressCallback",
+    "ConsoleCallback",
+    "SilentCallback",
+    "JSONLogCallback",
+    "MultiCallback",
     # Models
-    'Person',
-    'Experience',
-    'Education',
-    'Contact',
-    'Accomplishment',
-    'Company',
-    'CompanySummary',
-    'Employee',
-    'Job',
+    "Person",
+    "Experience",
+    "Education",
+    "Contact",
+    "Accomplishment",
+    "Interest",
+    "Company",
+    "CompanySummary",
+    "Employee",
+    "Job",
 ]

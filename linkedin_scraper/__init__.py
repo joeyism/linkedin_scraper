@@ -1,7 +1,7 @@
 """LinkedIn Scraper - Async Playwright-based scraper for LinkedIn."""
 
 # Version
-__version__ = "3.0.3"
+__version__ = "3.1.0"
 
 # Core modules
 from .core import (
@@ -27,6 +27,7 @@ from .scrapers import (
     CompanyScraper,
     JobScraper,
     JobSearchScraper,
+    CompanyPostsScraper,
 )
 
 # Callbacks
@@ -50,6 +51,7 @@ from .models import (
     CompanySummary,
     Employee,
     Job,
+    Post,
 )
 
 __all__ = [
@@ -67,6 +69,7 @@ __all__ = [
     "CompanyScraper",
     "JobScraper",
     "JobSearchScraper",
+    "CompanyPostsScraper",
     # Exceptions
     "LinkedInScraperException",
     "AuthenticationError",
@@ -92,4 +95,5 @@ __all__ = [
     "CompanySummary",
     "Employee",
     "Job",
+    "Post",
 ]

@@ -5,6 +5,7 @@ from .person import PersonScraper
 from .company import CompanyScraper
 from .job import JobScraper
 from .job_search import JobSearchScraper
+from .company_posts import CompanyPostsScraper
 
 __all__ = [
     'BaseScraper',
@@ -12,4 +13,5 @@ __all__ = [
     'CompanyScraper',
     'JobScraper',
     'JobSearchScraper',
+    'CompanyPostsScraper',
 ]

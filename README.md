@@ -77,6 +77,11 @@ and you will see the scraping in action.
   - Industry and size
   - Headquarters location
   
+- **Company Posts** - Scrape posts from company pages
+  - Post content and text
+  - Reactions, comments, reposts counts
+  - Posted date and images
+  
 - **Job Listings** - Scrape job postings
   - Job details and requirements
   - Company information
@@ -172,6 +177,32 @@ async def search_jobs():
             print("---")
 
 asyncio.run(search_jobs())
+```
+
+### Company Posts Scraping
+
+```python
+from linkedin_scraper import BrowserManager, CompanyPostsScraper
+
+async def scrape_company_posts():
+    async with BrowserManager(headless=False) as browser:
+        await browser.load_session("session.json")
+        
+        scraper = CompanyPostsScraper(browser.page)
+        posts = await scraper.scrape(
+            "https://linkedin.com/company/microsoft/",
+            limit=10
+        )
+        
+        for post in posts:
+            print(f"Posted: {post.posted_date}")
+            print(f"Text: {post.text[:200]}...")
+            print(f"Reactions: {post.reactions_count}")
+            print(f"Comments: {post.comments_count}")
+            print(f"URL: {post.linkedin_url}")
+            print("---")
+
+asyncio.run(scrape_company_posts())
 ```
 
 ## Authentication
@@ -302,6 +333,20 @@ class Job(BaseModel):
     employment_type: Optional[str]
     seniority_level: Optional[str]
     linkedin_url: str
+```
+
+### Post
+
+```python
+class Post(BaseModel):
+    linkedin_url: Optional[str]
+    urn: Optional[str]
+    text: Optional[str]
+    posted_date: Optional[str]
+    reactions_count: Optional[int]
+    comments_count: Optional[int]
+    reposts_count: Optional[int]
+    image_urls: List[str]
 ```
 
 ## Advanced Usage

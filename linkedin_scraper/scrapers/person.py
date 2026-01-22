@@ -110,9 +110,17 @@ class PersonScraper(BaseScraper):
     async def _check_open_to_work(self) -> bool:
         """Check if profile has open to work badge."""
         try:
-            # Look for open to work indicator
+            # Method 1: Check image title
             img_title = await self.get_attribute_safe('.pv-top-card-profile-picture img', 'title', default="")
-            return "#OPEN_TO_WORK" in img_title.upper()
+            if "#OPEN_TO_WORK" in img_title.upper():
+                return True
+
+            h3_text = await self.safe_extract_text('a.pv-open-to-carousel-card__content h3', default="")
+            breakpoint()
+            if "OPEN TO WORK" in h3_text.upper():
+                return True
+
+            return False
         except:
             return False
     

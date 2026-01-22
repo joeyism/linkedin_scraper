@@ -21,6 +21,8 @@ class BrowserManager:
         slow_mo: int = 0,
         viewport: Optional[Dict[str, int]] = None,
         user_agent: Optional[str] = None,
+        proxy: Optional[Dict[str, str]] = None,
+        block_resources: Optional[list] = None,
         **launch_options: Any
     ):
         """
@@ -31,12 +33,21 @@ class BrowserManager:
             slow_mo: Slow down operations by specified milliseconds
             viewport: Browser viewport size (default: 1280x720)
             user_agent: Custom user agent string
+            proxy: Proxy configuration dict with 'server', 'username', 'password'
+                   Example: {"server": "http://proxy.example.com:8080",
+                            "username": "user", "password": "pass"}
+            block_resources: List of resource types to block
+                   Options: 'image', 'stylesheet', 'font', 'media', 'websocket', 'manifest', 'other'
+                   Example: ['image', 'stylesheet'] to block images and CSS
+                   For JavaScript only: ['image', 'stylesheet', 'font', 'media', 'websocket', 'manifest', 'other']
             **launch_options: Additional Playwright launch options
         """
         self.headless = headless
         self.slow_mo = slow_mo
         self.viewport = viewport or {"width": 1280, "height": 720}
         self.user_agent = user_agent
+        self.proxy = proxy
+        self.block_resources = block_resources or []
         self.launch_options = launch_options
         
         self._playwright: Optional[Playwright] = None
@@ -76,17 +87,35 @@ class BrowserManager:
             if self.user_agent:
                 context_options["user_agent"] = self.user_agent
             
+            if self.proxy:
+                context_options["proxy"] = self.proxy
+
             self._context = await self._browser.new_context(**context_options)
             
             # Create initial page
             self._page = await self._context.new_page()
             
+            # Set up resource blocking if configured
+            if self.block_resources:
+                await self._setup_resource_blocking(self._page)
+
             logger.info("Browser context and page created")
             
         except Exception as e:
             await self.close()
             raise NetworkError(f"Failed to start browser: {e}")
     
+    async def _setup_resource_blocking(self, page: Page) -> None:
+        """Set up resource blocking for a page."""
+        async def handle_route(route):
+            if route.request.resource_type in self.block_resources:
+                await route.abort()
+            else:
+                await route.continue_()
+
+        await page.route("**/*", handle_route)
+        logger.info(f"Resource blocking enabled for: {', '.join(self.block_resources)}")
+
     async def close(self) -> None:
         """Close browser and cleanup resources."""
         try:
@@ -122,6 +151,10 @@ class BrowserManager:
             raise RuntimeError("Browser context not initialized. Call start() first.")
         
         page = await self._context.new_page()
+
+        if self.block_resources:
+            await self._setup_resource_blocking(page)
+
         return page
     
     @property
@@ -200,14 +233,19 @@ class BrowserManager:
         self._context = await self._browser.new_context(
             storage_state=filepath,
             viewport=self.viewport,
-            user_agent=self.user_agent
+            user_agent=self.user_agent,
+            proxy=self.proxy
         )
         
         # Create new page
         if self._page:
             await self._page.close()
         self._page = await self._context.new_page()
-        
+
+        # Apply resource blocking
+        if self.block_resources:
+            await self._setup_resource_blocking(self._page)
+
         self._is_authenticated = True
         
         logger.info(f"Session loaded from {filepath}")

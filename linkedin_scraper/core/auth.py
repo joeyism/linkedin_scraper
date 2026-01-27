@@ -247,9 +247,28 @@ async def is_logged_in(page: Page) -> bool:
         True if logged in, False otherwise
     """
     try:
-        # Check for global nav which only appears when logged in
-        count = await page.locator('.global-nav__primary-link, [data-control-name="nav.settings"]').count()
-        return count > 0
+        current_url = page.url
+        
+        # Step 1: Fail-fast on auth blockers
+        auth_blockers = ['/login', '/authwall', '/checkpoint', '/challenge', '/uas/login', '/uas/consumer-email-challenge']
+        if any(pattern in current_url for pattern in auth_blockers):
+            return False
+        
+        # Step 2: Selector check (PRIMARY) - check for nav elements
+        old_selectors = '.global-nav__primary-link, [data-control-name="nav.settings"]'
+        old_count = await page.locator(old_selectors).count()
+        
+        new_selectors = 'nav a[href*="/feed"], nav button:has-text("Home"), nav a[href*="/mynetwork"]'
+        new_count = await page.locator(new_selectors).count()
+        
+        has_nav_elements = old_count > 0 or new_count > 0
+        
+        # Step 3: URL fallback - check for authenticated-only pages
+        authenticated_only_pages = ['/feed', '/mynetwork', '/messaging', '/notifications']
+        is_authenticated_page = any(pattern in current_url for pattern in authenticated_only_pages)
+        
+        # Return True if either nav elements found or on authenticated page
+        return has_nav_elements or is_authenticated_page
     except Exception:
         return False
 

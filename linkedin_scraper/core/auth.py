@@ -189,54 +189,57 @@ async def login_with_credentials(
 
 
 async def login_with_cookie(page: Page, cookie_value: str) -> None:
-    """
-    Login to LinkedIn using li_at cookie.
-    
-    Args:
-        page: Playwright page object
-        cookie_value: Value of li_at cookie
-        
-    Raises:
-        AuthenticationError: If cookie login fails
-    """
-    logger.info("Logging in with cookie...")
-    
-    try:
-        # Set the cookie
-        await page.context.add_cookies([{
-            "name": "li_at",
-            "value": cookie_value,
-            "domain": ".linkedin.com",
-            "path": "/"
-        }])
-        
-        # Navigate to feed to verify
-        await page.goto('https://www.linkedin.com/feed/', wait_until='domcontentloaded')
-        
-        # Check if we're redirected to login (cookie invalid)
-        if 'login' in page.url or 'authwall' in page.url:
-            raise AuthenticationError(
-                "Cookie authentication failed. The cookie may be expired or invalid."
-            )
-        
-        # Verify login by checking for nav element
-        try:
-            await page.wait_for_selector(
-                '.global-nav__primary-link, [data-control-name="nav.settings"]',
-                timeout=5000,
-                state='attached'
-            )
-            logger.info("✓ Successfully authenticated with cookie")
-        except PlaywrightTimeoutError:
-            logger.warning(
-                "Could not verify cookie login. "
-                "Proceeding anyway..."
-            )
-    
-    except Exception as e:
-        if isinstance(e, AuthenticationError):
-            raise
-        raise AuthenticationError(f"Cookie authentication error: {e}")
+     """
+     Login to LinkedIn using li_at cookie.
+     
+     Args:
+         page: Playwright page object
+         cookie_value: Value of li_at cookie
+         
+     Raises:
+         AuthenticationError: If cookie login fails
+     """
+     logger.info("Logging in with cookie...")
+     
+     try:
+         # Set the cookie
+         await page.context.add_cookies([{
+             "name": "li_at",
+             "value": cookie_value,
+             "domain": ".linkedin.com",
+             "path": "/"
+         }])
+         
+         # Navigate to feed to verify
+         await page.goto('https://www.linkedin.com/feed/', wait_until='domcontentloaded')
+         
+         # Check if we're redirected to login (cookie invalid)
+         if 'login' in page.url or 'authwall' in page.url:
+             raise AuthenticationError(
+                 "Cookie authentication failed. The cookie may be expired or invalid."
+             )
+         
+         # Verify login by polling is_logged_in()
+         start_time = time.time()
+         logged_in = False
+         while (time.time() - start_time) * 1000 < 5000:
+             if await is_logged_in(page):
+                 logger.info("✓ Successfully authenticated with cookie")
+                 logged_in = True
+                 break
+             await asyncio.sleep(0.5)  # Poll every 500ms
+         
+         if not logged_in:
+             # Timeout: couldn't verify within 5s but may still be logged in
+             logger.warning(
+                 "Could not verify cookie login. "
+                 "Proceeding anyway..."
+             )
+     
+     except Exception as e:
+         if isinstance(e, AuthenticationError):
+             raise
+         raise AuthenticationError(f"Cookie authentication error: {e}")
 
 
 async def is_logged_in(page: Page) -> bool:

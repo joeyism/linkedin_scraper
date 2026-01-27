@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import time
 from typing import Optional, Tuple
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 from dotenv import load_dotenv
@@ -159,16 +160,18 @@ async def login_with_credentials(
                 f"Current URL: {current_url}"
             )
         
-        # Verify we're logged in by checking for global nav
-        try:
-            await page.wait_for_selector(
-                '.global-nav__primary-link, [data-control-name="nav.settings"]',
-                timeout=5000,
-                state='attached'
-            )
-            logger.info("✓ Successfully logged in to LinkedIn")
-        except PlaywrightTimeoutError:
-            # We might still be logged in, just can't find the nav element
+        # Verify we're logged in by polling is_logged_in()
+        start_time = time.time()
+        logged_in = False
+        while (time.time() - start_time) * 1000 < 5000:
+            if await is_logged_in(page):
+                logger.info("✓ Successfully logged in to LinkedIn")
+                logged_in = True
+                break
+            await asyncio.sleep(0.5)  # Poll every 500ms
+        
+        if not logged_in:
+            # Timeout: couldn't verify within 5s but may still be logged in
             logger.warning(
                 "Could not verify login by finding navigation element. "
                 "Proceeding anyway..."

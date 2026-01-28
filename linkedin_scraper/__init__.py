@@ -6,6 +6,8 @@ __version__ = "3.1.1"
 # Core modules
 from .core import (
     BrowserManager,
+    PersistentBrowserManager,
+    migrate_session_to_profile,
     login_with_credentials,
     login_with_cookie,
     is_logged_in,
@@ -59,6 +61,8 @@ __all__ = [
     "__version__",
     # Core
     "BrowserManager",
+    "PersistentBrowserManager",
+    "migrate_session_to_profile",
     "login_with_credentials",
     "login_with_cookie",
     "is_logged_in",

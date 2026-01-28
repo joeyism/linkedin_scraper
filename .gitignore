@@ -43,3 +43,6 @@ MANIFEST.ini
 # Basic package build artifacts
 build-basic/
 dist-basic/
+
+# Lock files
+*.lock

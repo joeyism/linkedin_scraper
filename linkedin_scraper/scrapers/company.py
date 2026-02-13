@@ -4,12 +4,11 @@ Company scraper for LinkedIn.
 Extracts company information from LinkedIn company pages.
 """
 import logging
-from typing import Optional
-from playwright.async_api import Page
+from typing import Dict, Optional
+from patchright.async_api import Page
 
 from ..models.company import Company
-from ..core.exceptions import ProfileNotFoundError
-from ..callbacks import ProgressCallback, SilentCallback
+from ..callbacks import ProgressCallback
 from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
@@ -31,10 +30,10 @@ class CompanyScraper(BaseScraper):
         Initialize company scraper.
         
         Args:
-            page: Playwright page object
+            page: Patchright page object
             callback: Optional progress callback
         """
-        super().__init__(page, callback or SilentCallback())
+        super().__init__(page, callback)
     
     async def scrape(self, linkedin_url: str) -> Company:
         """
@@ -47,7 +46,7 @@ class CompanyScraper(BaseScraper):
             Company object with scraped data
             
         Raises:
-            ProfileNotFoundError: If company page not found
+            ScrapingError: If scraping fails
         """
         logger.info(f"Starting company scraping: {linkedin_url}")
         await self.callback.on_start("company", linkedin_url)
@@ -122,7 +121,7 @@ class CompanyScraper(BaseScraper):
         Returns dict with: website, phone, headquarters, founded, industry,
         company_type, company_size, specialties
         """
-        overview = {
+        overview: Dict[str, Optional[str]] = {
             "website": None,
             "phone": None,
             "headquarters": None,

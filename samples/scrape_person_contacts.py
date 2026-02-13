@@ -14,12 +14,8 @@ async def main():
     """Scrape a person profile"""
     profile_url = "https://www.linkedin.com/in/williamhgates/"
     
-    # Initialize and start browser using context manager
+    # Uses default user_data_dir — session persists automatically
     async with BrowserManager(headless=False) as browser:
-        # Load existing session (must be created first - see README for setup)
-        await browser.load_session("linkedin_session.json")
-        print("✓ Session loaded")
-        
         # Initialize scraper with the browser page
         scraper = PersonScraper(browser.page)
         

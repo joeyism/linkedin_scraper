@@ -3,12 +3,12 @@
 import logging
 from typing import Optional
 from urllib.parse import urljoin
-from playwright.async_api import Page
+from patchright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from .base import BaseScraper
 from ..models import Person, Experience, Education, Accomplishment, Interest, Contact
-from ..callbacks import ProgressCallback, SilentCallback
-from ..core.exceptions import ScrapingError
+from ..callbacks import ProgressCallback
+from ..core.exceptions import AuthenticationError, ScrapingError
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class PersonScraper(BaseScraper):
         Initialize person scraper.
 
         Args:
-            page: Playwright page object
+            page: Patchright page object
             callback: Progress callback
         """
         super().__init__(page, callback)
@@ -41,6 +41,9 @@ class PersonScraper(BaseScraper):
             ScrapingError: If scraping fails
         """
         await self.callback.on_start("person", linkedin_url)
+
+        # Normalize URL to ensure trailing slash for correct urljoin behavior
+        linkedin_url = linkedin_url.rstrip("/") + "/"
 
         try:
             # Navigate to profile first (this loads the page with our session)
@@ -105,9 +108,11 @@ class PersonScraper(BaseScraper):
 
             return person
 
+        except (AuthenticationError, ScrapingError):
+            raise
         except Exception as e:
             await self.callback.on_error(e)
-            raise ScrapingError(f"Failed to scrape person profile: {e}")
+            raise ScrapingError(f"Failed to scrape person profile: {e}") from e
 
     async def _get_name_and_location(self) -> tuple[str, Optional[str]]:
         """Extract name and location from profile."""
@@ -121,7 +126,7 @@ class PersonScraper(BaseScraper):
             logger.warning(f"Error getting name/location: {e}")
             return "Unknown", None
 
-    async def _check_open_to_work(self) -> bool:
+    async def _check_open_to_work(self) -> Optional[bool]:
         """Check if profile has open to work badge."""
         try:
             # Look for open to work indicator
@@ -129,8 +134,11 @@ class PersonScraper(BaseScraper):
                 ".pv-top-card-profile-picture img", "title", default=""
             )
             return "#OPEN_TO_WORK" in img_title.upper()
-        except:
-            return False
+        except PlaywrightTimeoutError:
+            return None
+        except Exception as e:
+            logger.debug(f"Error checking open to work status: {e}")
+            return None
 
     async def _get_about(self) -> Optional[str]:
         """Extract about section."""

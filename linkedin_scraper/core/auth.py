@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from typing import Optional, Tuple
-from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
+from patchright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 from dotenv import load_dotenv
 
 from .exceptions import AuthenticationError
@@ -22,7 +22,7 @@ async def warm_up_browser(page: Page) -> None:
     a normal browsing pattern before visiting LinkedIn.
     
     Args:
-        page: Playwright page object
+        page: Patchright page object
     """
     sites = [
         'https://www.google.com',
@@ -51,7 +51,7 @@ def load_credentials_from_env() -> Tuple[Optional[str], Optional[str]]:
     Supports both LINKEDIN_EMAIL/LINKEDIN_USERNAME and LINKEDIN_PASSWORD.
     
     Returns:
-        Tuple of (email, password) or (None, None) if not found
+        Tuple of (email, password). Either or both may be None if not found.
     """
     load_dotenv()
     
@@ -73,7 +73,7 @@ async def login_with_credentials(
     Login to LinkedIn using email and password.
     
     Args:
-        page: Playwright page object
+        page: Patchright page object
         email: LinkedIn email (if None, tries to load from .env)
         password: LinkedIn password (if None, tries to load from .env)
         timeout: Timeout in milliseconds
@@ -192,9 +192,9 @@ async def login_with_cookie(page: Page, cookie_value: str) -> None:
      """
      Login to LinkedIn using li_at cookie.
      
-     Args:
-         page: Playwright page object
-         cookie_value: Value of li_at cookie
+      Args:
+          page: Patchright page object
+          cookie_value: Value of li_at cookie
          
      Raises:
          AuthenticationError: If cookie login fails
@@ -247,7 +247,7 @@ async def is_logged_in(page: Page) -> bool:
     Check if currently logged in to LinkedIn.
     
     Args:
-        page: Playwright page object
+        page: Patchright page object
         
     Returns:
         True if logged in, False otherwise
@@ -275,7 +275,10 @@ async def is_logged_in(page: Page) -> bool:
         
         # Return True if either nav elements found or on authenticated page
         return has_nav_elements or is_authenticated_page
+    except PlaywrightTimeoutError:
+        return False
     except Exception:
+        logger.warning("Unexpected error checking login status", exc_info=True)
         return False
 
 
@@ -284,7 +287,7 @@ async def wait_for_manual_login(page: Page, timeout: int = 300000) -> None:
     Wait for user to manually complete login (useful for 2FA, CAPTCHA, etc.).
     
     Args:
-        page: Playwright page object
+        page: Patchright page object
         timeout: Timeout in milliseconds (default: 5 minutes)
         
     Raises:

@@ -3,16 +3,16 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "linkedin_scraper"
-version = "3.1.1"
+name = "linkedin-scraper-patchright"
+version = "3.1.4"
 description = "Async LinkedIn scraper for profiles, companies, and jobs"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "Apache 2.0"}
 authors = [
     {name = "Joey Sham", email = "sham.joey@gmail.com"}
 ]
-keywords = ["linkedin", "scraping", "scraper", "async", "playwright", "profiles"]
+keywords = ["linkedin", "scraping", "scraper", "async", "patchright", "playwright", "profiles"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -20,8 +20,6 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -29,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "playwright>=1.40.0",
+    "patchright>=1.40.0",
     "requests>=2.31.0",
     "lxml>=5.0.0",
     "pydantic>=2.0.0",

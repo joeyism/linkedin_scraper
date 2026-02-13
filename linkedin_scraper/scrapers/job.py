@@ -5,11 +5,10 @@ Extracts job posting information from LinkedIn job pages.
 """
 import logging
 from typing import Optional
-from playwright.async_api import Page
+from patchright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from ..models.job import Job
-from ..core.exceptions import ProfileNotFoundError
-from ..callbacks import ProgressCallback, SilentCallback
+from ..callbacks import ProgressCallback
 from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
@@ -31,10 +30,10 @@ class JobScraper(BaseScraper):
         Initialize job scraper.
         
         Args:
-            page: Playwright page object
+            page: Patchright page object
             callback: Optional progress callback
         """
-        super().__init__(page, callback or SilentCallback())
+        super().__init__(page, callback)
     
     async def scrape(self, linkedin_url: str) -> Job:
         """
@@ -47,7 +46,7 @@ class JobScraper(BaseScraper):
             Job object with scraped data
             
         Raises:
-            ProfileNotFoundError: If job posting not found
+            ScrapingError: If scraping fails
         """
         logger.info(f"Starting job scraping: {linkedin_url}")
         await self.callback.on_start("Job", linkedin_url)
@@ -105,7 +104,10 @@ class JobScraper(BaseScraper):
             title_elem = self.page.locator('h1').first
             title = await title_elem.inner_text()
             return title.strip()
-        except:
+        except PlaywrightTimeoutError:
+            return None
+        except Exception as e:
+            logger.debug(f"Error extracting job title: {e}")
             return None
     
     async def _get_company(self) -> Optional[str]:
@@ -119,8 +121,10 @@ class JobScraper(BaseScraper):
                 # Skip empty or very short text (likely image-only links)
                 if text and len(text) > 1 and not text.startswith('logo'):
                     return text
-        except:
+        except PlaywrightTimeoutError:
             pass
+        except Exception as e:
+            logger.debug(f"Error extracting company name: {e}")
         return None
     
     async def _get_company_url(self) -> Optional[str]:
@@ -135,8 +139,10 @@ class JobScraper(BaseScraper):
                     if not href.startswith('http'):
                         href = f"https://www.linkedin.com{href}"
                     return href
-        except:
+        except PlaywrightTimeoutError:
             pass
+        except Exception as e:
+            logger.debug(f"Error extracting company URL: {e}")
         return None
     
     async def _get_location(self) -> Optional[str]:
@@ -151,8 +157,10 @@ class JobScraper(BaseScraper):
                         text = text.strip()
                         if len(text) > 3 and len(text) < 100 and not text.startswith('$'):
                             return text
-        except:
+        except PlaywrightTimeoutError:
             pass
+        except Exception as e:
+            logger.debug(f"Error extracting job location: {e}")
         return None
     
     async def _get_posted_date(self) -> Optional[str]:
@@ -165,8 +173,10 @@ class JobScraper(BaseScraper):
                     text = text.strip()
                     if len(text) < 50:
                         return text
-        except:
+        except PlaywrightTimeoutError:
             pass
+        except Exception as e:
+            logger.debug(f"Error extracting posted date: {e}")
         return None
     
     async def _get_applicant_count(self) -> Optional[str]:
@@ -182,8 +192,10 @@ class JobScraper(BaseScraper):
                         text_lower = text.lower()
                         if 'applicant' in text_lower or 'people clicked' in text_lower or 'applied' in text_lower:
                             return text
-        except:
+        except PlaywrightTimeoutError:
             pass
+        except Exception as e:
+            logger.debug(f"Error extracting applicant count: {e}")
         return None
     
     async def _get_description(self) -> Optional[str]:
@@ -200,6 +212,8 @@ class JobScraper(BaseScraper):
             if await article.count() > 0:
                 description = await article.inner_text()
                 return description.strip()
-        except:
+        except PlaywrightTimeoutError:
             pass
+        except Exception as e:
+            logger.debug(f"Error extracting job description: {e}")
         return None

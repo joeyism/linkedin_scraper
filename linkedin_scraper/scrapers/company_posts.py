@@ -1,10 +1,10 @@
 import logging
 import re
 from typing import List, Optional
-from playwright.async_api import Page
+from patchright.async_api import Page
 
 from ..models.post import Post
-from ..callbacks import ProgressCallback, SilentCallback
+from ..callbacks import ProgressCallback
 from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CompanyPostsScraper(BaseScraper):
     
     def __init__(self, page: Page, callback: Optional[ProgressCallback] = None):
-        super().__init__(page, callback or SilentCallback())
+        super().__init__(page, callback)
     
     async def scrape(self, company_url: str, limit: int = 10) -> List[Post]:
         logger.info(f"Starting company posts scraping: {company_url}")
@@ -230,103 +230,6 @@ class CompanyPostsScraper(BaseScraper):
             return parts[0].strip()
         return None
     
-    async def _parse_post_element(self, element) -> Optional[Post]:
-        try:
-            urn = await element.get_attribute('data-urn')
-            if not urn or 'activity' not in urn:
-                return None
-            
-            activity_id = urn.replace('urn:li:activity:', '')
-            linkedin_url = f"https://www.linkedin.com/feed/update/urn:li:activity:{activity_id}/"
-            
-            text = await self._get_post_text(element)
-            posted_date = await self._get_posted_date(element)
-            reactions_count = await self._get_reactions_count(element)
-            comments_count = await self._get_comments_count(element)
-            reposts_count = await self._get_reposts_count(element)
-            image_urls = await self._get_image_urls(element)
-            
-            return Post(
-                linkedin_url=linkedin_url,
-                urn=urn,
-                text=text,
-                posted_date=posted_date,
-                reactions_count=reactions_count,
-                comments_count=comments_count,
-                reposts_count=reposts_count,
-                image_urls=image_urls
-            )
-        except Exception as e:
-            logger.debug(f"Error parsing post: {e}")
-            return None
-    
-    async def _get_post_text(self, element) -> Optional[str]:
-        try:
-            text_container = element.locator('.feed-shared-update-v2__description, .break-words')
-            if await text_container.count() > 0:
-                text = await text_container.first.inner_text()
-                return text.strip() if text else None
-        except:
-            pass
-        return None
-    
-    async def _get_posted_date(self, element) -> Optional[str]:
-        try:
-            time_elem = element.locator('[class*="actor__sub-description"], [class*="update-components-actor__sub-description"]')
-            if await time_elem.count() > 0:
-                text = await time_elem.first.inner_text()
-                match = re.search(r'(\d+[hdwmy]|\d+\s*(?:hour|day|week|month|year)s?\s*ago)', text, re.IGNORECASE)
-                if match:
-                    return match.group(1).strip()
-                if text:
-                    clean_text = text.split('•')[0].strip()
-                    return clean_text if clean_text else None
-        except:
-            pass
-        return None
-    
-    async def _get_reactions_count(self, element) -> Optional[int]:
-        try:
-            reactions_elem = element.locator('[class*="social-details-social-counts__reactions"], button[aria-label*="reaction"]')
-            if await reactions_elem.count() > 0:
-                text = await reactions_elem.first.inner_text()
-                return self._parse_count(text)
-        except:
-            pass
-        return None
-    
-    async def _get_comments_count(self, element) -> Optional[int]:
-        try:
-            comments_elem = element.locator('button[aria-label*="comment"]')
-            if await comments_elem.count() > 0:
-                text = await comments_elem.first.inner_text()
-                return self._parse_count(text)
-        except:
-            pass
-        return None
-    
-    async def _get_reposts_count(self, element) -> Optional[int]:
-        try:
-            reposts_elem = element.locator('button[aria-label*="repost"]')
-            if await reposts_elem.count() > 0:
-                text = await reposts_elem.first.inner_text()
-                return self._parse_count(text)
-        except:
-            pass
-        return None
-    
-    async def _get_image_urls(self, element) -> List[str]:
-        urls: List[str] = []
-        try:
-            images = await element.locator('img[src*="media"]').all()
-            for img in images:
-                src = await img.get_attribute('src')
-                if src and 'profile' not in src and 'logo' not in src:
-                    urls.append(src)
-        except:
-            pass
-        return urls
-    
     def _parse_count(self, text: str) -> Optional[int]:
         if not text:
             return None
@@ -334,7 +237,7 @@ class CompanyPostsScraper(BaseScraper):
             numbers = re.findall(r'[\d,]+', text.replace(',', ''))
             if numbers:
                 return int(numbers[0])
-        except:
+        except (ValueError, IndexError):
             pass
         return None
     

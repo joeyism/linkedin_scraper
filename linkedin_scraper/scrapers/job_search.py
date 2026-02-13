@@ -6,9 +6,9 @@ Searches for jobs on LinkedIn and extracts job URLs.
 import logging
 from typing import Optional, List
 from urllib.parse import urlencode
-from playwright.async_api import Page
+from patchright.async_api import Page
 
-from ..callbacks import ProgressCallback, SilentCallback
+from ..callbacks import ProgressCallback
 from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
@@ -33,10 +33,10 @@ class JobSearchScraper(BaseScraper):
         Initialize job search scraper.
         
         Args:
-            page: Playwright page object
+            page: Patchright page object
             callback: Optional progress callback
         """
-        super().__init__(page, callback or SilentCallback())
+        super().__init__(page, callback)
     
     async def search(
         self,
@@ -65,7 +65,7 @@ class JobSearchScraper(BaseScraper):
         
         try:
             await self.page.wait_for_selector('a[href*="/jobs/view/"]', timeout=10000)
-        except:
+        except Exception:
             logger.warning("No job listings found on page")
             return []
         

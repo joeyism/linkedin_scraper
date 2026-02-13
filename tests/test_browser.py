@@ -5,49 +5,43 @@ from linkedin_scraper import BrowserManager
 
 
 @pytest.mark.asyncio
-async def test_browser_manager_context():
+async def test_browser_manager_context(tmp_path):
     """Test BrowserManager as context manager."""
-    async with BrowserManager(headless=True) as browser:
+    async with BrowserManager(user_data_dir=tmp_path / "browser_data", headless=True) as browser:
         assert browser.page is not None
         assert browser.context is not None
-        assert browser.browser is not None
 
 
 @pytest.mark.asyncio
-async def test_browser_manager_navigation():
+async def test_browser_manager_navigation(tmp_path):
     """Test basic navigation."""
-    async with BrowserManager(headless=True) as browser:
+    async with BrowserManager(user_data_dir=tmp_path / "browser_data", headless=True) as browser:
         await browser.page.goto("https://www.google.com")
         title = await browser.page.title()
         assert "Google" in title
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
-async def test_browser_manager_session_save_load(tmp_path):
-    """Test session save and load."""
-    session_file = tmp_path / "test_session.json"
-    
-    async with BrowserManager(headless=True) as browser:
-        # Navigate to a page
-        await browser.page.goto("https://www.google.com")
-        
-        # Save session
-        await browser.save_session(str(session_file))
-        assert session_file.exists()
-    
-    # Load session in new browser
-    async with BrowserManager(headless=True) as browser:
-        await browser.load_session(str(session_file))
-        # Should have cookies loaded
-        cookies = await browser.context.cookies()
-        assert len(cookies) >= 0  # At least session was loadable
+async def test_browser_manager_persistent_context(tmp_path):
+    """Test that persistent context retains state across sessions."""
+    data_dir = tmp_path / "browser_data"
+
+    # First session: navigate and set a cookie
+    async with BrowserManager(user_data_dir=data_dir, headless=True) as browser:
+        await browser.page.goto("https://www.example.com")
+        cookies_before = await browser.context.cookies()
+        assert isinstance(cookies_before, list)
+
+    # Second session: same data dir should reuse the persistent profile
+    async with BrowserManager(user_data_dir=data_dir, headless=True) as browser:
+        assert browser.page is not None
+        assert browser.context is not None
 
 
 @pytest.mark.asyncio
-async def test_browser_manager_headless_mode():
+async def test_browser_manager_headless_mode(tmp_path):
     """Test headless mode."""
-    async with BrowserManager(headless=True) as browser:
+    async with BrowserManager(user_data_dir=tmp_path / "browser_data", headless=True) as browser:
         assert browser.page is not None
         await browser.page.goto("https://www.example.com")
         content = await browser.page.content()

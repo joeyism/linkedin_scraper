@@ -5,9 +5,9 @@ from linkedin_scraper.core.auth import is_logged_in
 
 
 @pytest.mark.asyncio
-async def test_is_logged_in_false():
+async def test_is_logged_in_false(tmp_path):
     """Test is_logged_in returns False when not logged in."""
-    async with BrowserManager(headless=True) as browser:
+    async with BrowserManager(user_data_dir=tmp_path / "browser_data", headless=True) as browser:
         await browser.page.goto("https://www.linkedin.com")
         logged_in = await is_logged_in(browser.page)
         # Should not be logged in to a fresh page

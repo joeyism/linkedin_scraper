@@ -7,10 +7,8 @@ from linkedin_scraper.core.browser import BrowserManager
 async def main():
     company_url = "https://www.linkedin.com/company/microsoft/"
     
+    # Uses default user_data_dir — session persists automatically
     async with BrowserManager(headless=False) as browser:
-        await browser.load_session("linkedin_session.json")
-        print("✓ Session loaded")
-        
         scraper = CompanyPostsScraper(browser.page)
         
         print(f"🔍 Scraping posts from: {company_url}")

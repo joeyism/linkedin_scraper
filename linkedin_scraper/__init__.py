@@ -1,7 +1,7 @@
-"""LinkedIn Scraper - Async Playwright-based scraper for LinkedIn."""
+"""LinkedIn Scraper - Async Patchright-based scraper for LinkedIn."""
 
 # Version
-__version__ = "3.1.1"
+__version__ = "3.1.4"
 
 # Core modules
 from .core import (

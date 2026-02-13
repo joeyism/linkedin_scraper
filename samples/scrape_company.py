@@ -13,12 +13,8 @@ async def main():
     """Scrape a single company"""
     company_url = "https://www.linkedin.com/company/microsoft/"
     
-    # Initialize and start browser using context manager
+    # Uses default user_data_dir — session persists automatically
     async with BrowserManager(headless=False) as browser:
-        # Load existing session (must be created first - see README for setup)
-        await browser.load_session("linkedin_session.json")
-        print("✓ Session loaded")
-        
         # Initialize scraper with the browser page
         scraper = CompanyScraper(browser.page)
         

@@ -2,8 +2,8 @@
 
 import asyncio
 import logging
-from typing import Optional
-from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
+from typing import Literal, Optional
+from patchright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from ..callbacks import ProgressCallback, SilentCallback
 from ..core import (
@@ -29,7 +29,7 @@ class BaseScraper:
         Initialize base scraper.
         
         Args:
-            page: Playwright page object
+            page: Patchright page object
             callback: Progress callback (defaults to SilentCallback)
         """
         self.page = page
@@ -153,18 +153,22 @@ class BaseScraper:
         except PlaywrightTimeoutError:
             logger.warning("Navigation did not complete within timeout")
     
-    async def navigate_and_wait(self, url: str, wait_until: str = 'domcontentloaded', timeout: int = 60000) -> None:
+    async def navigate_and_wait(
+        self,
+        url: str,
+        wait_until: Literal["domcontentloaded", "load", "networkidle", "commit"] = "domcontentloaded",
+        timeout: int = 60000,
+    ) -> None:
         """
         Navigate to URL and wait for page load.
         
         Args:
             url: URL to navigate to
-            wait_until: Wait condition (domcontentloaded, networkidle, load)
+            wait_until: Wait condition (domcontentloaded, networkidle, load, commit)
             timeout: Timeout in milliseconds (default: 60000 = 60s)
         """
         logger.info(f"Navigating to: {url}")
-        # Use type: ignore to bypass strict typing
-        await self.page.goto(url, wait_until=wait_until, timeout=timeout)  # type: ignore
+        await self.page.goto(url, wait_until=wait_until, timeout=timeout)
         await self.check_rate_limit()
     
     async def extract_list_items(
@@ -182,7 +186,7 @@ class BaseScraper:
             timeout: Timeout in milliseconds
             
         Returns:
-            List of Playwright locator objects
+            List of Patchright locator objects
         """
         try:
             container = self.page.locator(container_selector).first
@@ -219,7 +223,10 @@ class BaseScraper:
             element = self.page.locator(selector).first
             value = await element.get_attribute(attribute, timeout=timeout)
             return value if value else default
-        except:
+        except PlaywrightTimeoutError:
+            return default
+        except Exception as e:
+            logger.debug(f"Error getting attribute '{attribute}' from '{selector}': {e}")
             return default
     
     async def wait_and_focus(self, duration: float = 1.0) -> None:
@@ -233,8 +240,8 @@ class BaseScraper:
         try:
             # Bring page to front
             await self.page.bring_to_front()
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not bring page to front: {e}")
     
     async def count_elements(self, selector: str) -> int:
         """
@@ -248,7 +255,8 @@ class BaseScraper:
         """
         try:
             return await self.page.locator(selector).count()
-        except:
+        except Exception as e:
+            logger.debug(f"Error counting elements '{selector}': {e}")
             return 0
     
     async def element_exists(self, selector: str, timeout: float = 1000) -> bool:
@@ -265,5 +273,8 @@ class BaseScraper:
         try:
             await self.page.wait_for_selector(selector, timeout=timeout, state='attached')
             return True
-        except:
+        except PlaywrightTimeoutError:
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking element existence '{selector}': {e}")
             return False

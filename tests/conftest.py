@@ -1,15 +1,15 @@
 """
 Pytest configuration and fixtures for linkedin_scraper tests.
+
+Integration tests rely on the persistent browser context for session state.
+Run ``python samples/create_session.py`` first to authenticate.
 """
 import pytest
 import asyncio
 from pathlib import Path
 from linkedin_scraper import BrowserManager
 from linkedin_scraper.callbacks import SilentCallback
-
-
-# Session file path
-SESSION_FILE = Path(__file__).parent.parent / "linkedin_session.json"
+from linkedin_scraper.core.browser import _DEFAULT_USER_DATA_DIR
 
 
 @pytest.fixture(scope="session")
@@ -24,32 +24,31 @@ def event_loop():
 async def browser():
     """
     Fixture that provides a BrowserManager instance.
-    Automatically loads session if available.
-    
+    Uses the default persistent user_data_dir so session state is reused.
+
     Note: Uses headless=False for LinkedIn compatibility.
     LinkedIn may block or behave differently in headless mode.
     """
     async with BrowserManager(headless=False) as browser_manager:
-        # Try to load session if it exists
-        if SESSION_FILE.exists():
-            await browser_manager.load_session(str(SESSION_FILE))
         yield browser_manager
 
 
 @pytest.fixture
 async def browser_with_session():
     """
-    Fixture that provides a BrowserManager with loaded session.
-    Skips test if session file doesn't exist.
-    
+    Fixture that provides a BrowserManager with an authenticated session.
+    Skips test if the persistent browser profile does not exist yet.
+
     Note: Uses headless=False for LinkedIn compatibility.
     LinkedIn may block or behave differently in headless mode.
     """
-    if not SESSION_FILE.exists():
-        pytest.skip("Session file not found. See README for session setup instructions.")
-    
+    if not _DEFAULT_USER_DATA_DIR.exists():
+        pytest.skip(
+            "Persistent browser profile not found. "
+            "Run 'python samples/create_session.py' first."
+        )
+
     async with BrowserManager(headless=False) as browser_manager:
-        await browser_manager.load_session(str(SESSION_FILE))
         yield browser_manager
 
 

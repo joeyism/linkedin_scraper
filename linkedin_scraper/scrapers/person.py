@@ -40,6 +40,10 @@ class PersonScraper(BaseScraper):
             AuthenticationError: If not logged in
             ScrapingError: If scraping fails
         """
+        # Ensure trailing slash so urljoin() preserves the profile path segment
+        if not linkedin_url.endswith("/"):
+            linkedin_url = linkedin_url + "/"
+
         await self.callback.on_start("person", linkedin_url)
 
         try:
@@ -162,24 +166,30 @@ class PersonScraper(BaseScraper):
 
         try:
             experience_heading = self.page.locator('h2:has-text("Experience")').first
-            
+
             if await experience_heading.count() > 0:
-                experience_section = experience_heading.locator('xpath=ancestor::*[.//ul or .//ol][1]')
+                experience_section = experience_heading.locator(
+                    "xpath=ancestor::*[.//ul or .//ol][1]"
+                )
                 if await experience_section.count() == 0:
-                    experience_section = experience_heading.locator('xpath=ancestor::*[4]')
-                
+                    experience_section = experience_heading.locator(
+                        "xpath=ancestor::*[4]"
+                    )
+
                 if await experience_section.count() > 0:
-                    items = await experience_section.locator('ul > li, ol > li').all()
-                    
+                    items = await experience_section.locator("ul > li, ol > li").all()
+
                     for item in items:
                         try:
                             exp = await self._parse_main_page_experience(item)
                             if exp:
                                 experiences.append(exp)
                         except Exception as e:
-                            logger.debug(f"Error parsing experience from main page: {e}")
+                            logger.debug(
+                                f"Error parsing experience from main page: {e}"
+                            )
                             continue
-            
+
             if not experiences:
                 exp_url = urljoin(base_url, "details/experience")
                 await self.navigate_and_wait(exp_url)
@@ -189,16 +199,20 @@ class PersonScraper(BaseScraper):
                 await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
 
                 items = []
-                main_element = self.page.locator('main')
+                main_element = self.page.locator("main")
                 if await main_element.count() > 0:
-                    list_items = await main_element.locator('list > listitem, ul > li').all()
+                    list_items = await main_element.locator(
+                        "list > listitem, ul > li"
+                    ).all()
                     if list_items:
                         items = list_items
-                
+
                 if not items:
                     old_list = self.page.locator(".pvs-list__container").first
                     if await old_list.count() > 0:
-                        items = await old_list.locator(".pvs-list__paged-list-item").all()
+                        items = await old_list.locator(
+                            ".pvs-list__paged-list-item"
+                        ).all()
 
                 for item in items:
                     try:
@@ -218,28 +232,28 @@ class PersonScraper(BaseScraper):
             )
 
         return experiences
-    
+
     async def _parse_main_page_experience(self, item) -> Optional[Experience]:
         """Parse experience from main profile page list item with [logo_link, details_link] structure."""
         try:
-            links = await item.locator('a').all()
+            links = await item.locator("a").all()
             if len(links) < 2:
                 return None
-            
-            company_url = await links[0].get_attribute('href')
+
+            company_url = await links[0].get_attribute("href")
             detail_link = links[1]
-            
+
             unique_texts = await self._extract_unique_texts_from_element(detail_link)
-            
+
             if len(unique_texts) < 2:
                 return None
-            
+
             position_title = unique_texts[0]
             company_name = unique_texts[1]
             work_times = unique_texts[2] if len(unique_texts) > 2 else ""
-            
+
             from_date, to_date, duration = self._parse_work_times(work_times)
-            
+
             return Experience(
                 position_title=position_title,
                 institution_name=company_name,
@@ -250,56 +264,64 @@ class PersonScraper(BaseScraper):
                 location=None,
                 description=None,
             )
-            
+
         except Exception as e:
             logger.debug(f"Error parsing main page experience: {e}")
             return None
-    
+
     async def _extract_unique_texts_from_element(self, element) -> list[str]:
         """Extract unique text content from nested elements, avoiding duplicates from parent/child overlap."""
-        text_elements = await element.locator('span[aria-hidden="true"], div > span').all()
-        
+        text_elements = await element.locator(
+            'span[aria-hidden="true"], div > span'
+        ).all()
+
         if not text_elements:
-            text_elements = await element.locator('span, div').all()
-        
+            text_elements = await element.locator("span, div").all()
+
         seen_texts = set()
         unique_texts = []
-        
+
         for el in text_elements:
             text = await el.text_content()
             if text and text.strip():
                 text = text.strip()
-                if text not in seen_texts and len(text) < 200 and not any(text in t or t in text for t in seen_texts if len(t) > 3):
+                if (
+                    text not in seen_texts
+                    and len(text) < 200
+                    and not any(
+                        text in t or t in text for t in seen_texts if len(t) > 3
+                    )
+                ):
                     seen_texts.add(text)
                     unique_texts.append(text)
-        
+
         return unique_texts
 
     async def _parse_experience_item(self, item):
         """Parse experience item. Returns Experience or list for nested positions."""
         try:
-            links = await item.locator('a, link').all()
+            links = await item.locator("a, link").all()
             if len(links) >= 2:
-                company_url = await links[0].get_attribute('href')
+                company_url = await links[0].get_attribute("href")
                 detail_link = links[1]
-                
-                generics = await detail_link.locator('generic, span, div').all()
+
+                generics = await detail_link.locator("generic, span, div").all()
                 texts = []
                 for g in generics:
                     text = await g.text_content()
                     if text and text.strip() and len(text.strip()) < 200:
                         texts.append(text.strip())
-                
+
                 unique_texts = list(dict.fromkeys(texts))
-                
+
                 if len(unique_texts) >= 2:
                     position_title = unique_texts[0]
                     company_name = unique_texts[1]
                     work_times = unique_texts[2] if len(unique_texts) > 2 else ""
                     location = unique_texts[3] if len(unique_texts) > 3 else ""
-                    
+
                     from_date, to_date, duration = self._parse_work_times(work_times)
-                    
+
                     return Experience(
                         position_title=position_title,
                         institution_name=company_name,
@@ -310,8 +332,10 @@ class PersonScraper(BaseScraper):
                         location=location,
                         description=None,
                     )
-            
-            entity = item.locator('div[data-view-name="profile-component-entity"]').first
+
+            entity = item.locator(
+                'div[data-view-name="profile-component-entity"]'
+            ).first
             if await entity.count() == 0:
                 return None
 
@@ -330,11 +354,15 @@ class PersonScraper(BaseScraper):
 
             has_nested_positions = False
             if len(detail_children) > 1:
-                nested_list = await detail_children[1].locator(".pvs-list__container").count()
+                nested_list = (
+                    await detail_children[1].locator(".pvs-list__container").count()
+                )
                 has_nested_positions = nested_list > 0
 
             if has_nested_positions:
-                return await self._parse_nested_experience(item, company_url, detail_children)
+                return await self._parse_nested_experience(
+                    item, company_url, detail_children
+                )
             else:
                 first_detail = detail_children[0]
                 nested_elements = await first_detail.locator("> *").all()
@@ -524,15 +552,19 @@ class PersonScraper(BaseScraper):
 
         try:
             education_heading = self.page.locator('h2:has-text("Education")').first
-            
+
             if await education_heading.count() > 0:
-                education_section = education_heading.locator('xpath=ancestor::*[.//ul or .//ol][1]')
+                education_section = education_heading.locator(
+                    "xpath=ancestor::*[.//ul or .//ol][1]"
+                )
                 if await education_section.count() == 0:
-                    education_section = education_heading.locator('xpath=ancestor::*[4]')
-                
+                    education_section = education_heading.locator(
+                        "xpath=ancestor::*[4]"
+                    )
+
                 if await education_section.count() > 0:
-                    items = await education_section.locator('ul > li, ol > li').all()
-                    
+                    items = await education_section.locator("ul > li, ol > li").all()
+
                     for item in items:
                         try:
                             edu = await self._parse_main_page_education(item)
@@ -541,7 +573,7 @@ class PersonScraper(BaseScraper):
                         except Exception as e:
                             logger.debug(f"Error parsing education from main page: {e}")
                             continue
-            
+
             if not educations:
                 edu_url = urljoin(base_url, "details/education")
                 await self.navigate_and_wait(edu_url)
@@ -551,16 +583,18 @@ class PersonScraper(BaseScraper):
                 await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
 
                 items = []
-                main_element = self.page.locator('main')
+                main_element = self.page.locator("main")
                 if await main_element.count() > 0:
-                    list_items = await main_element.locator('ul > li, ol > li').all()
+                    list_items = await main_element.locator("ul > li, ol > li").all()
                     if list_items:
                         items = list_items
-                
+
                 if not items:
                     old_list = self.page.locator(".pvs-list__container").first
                     if await old_list.count() > 0:
-                        items = await old_list.locator(".pvs-list__paged-list-item").all()
+                        items = await old_list.locator(
+                            ".pvs-list__paged-list-item"
+                        ).all()
 
                 for item in items:
                     try:
@@ -577,26 +611,26 @@ class PersonScraper(BaseScraper):
             )
 
         return educations
-    
+
     async def _parse_main_page_education(self, item) -> Optional[Education]:
         """Parse education from main profile page list item with [logo_link, details_link] structure."""
         try:
-            links = await item.locator('a').all()
+            links = await item.locator("a").all()
             if not links:
                 return None
-            
-            institution_url = await links[0].get_attribute('href')
+
+            institution_url = await links[0].get_attribute("href")
             detail_link = links[1] if len(links) > 1 else links[0]
-            
+
             unique_texts = await self._extract_unique_texts_from_element(detail_link)
-            
+
             if not unique_texts:
                 return None
-            
+
             institution_name = unique_texts[0]
             degree = None
             times = ""
-            
+
             if len(unique_texts) == 3:
                 degree = unique_texts[1]
                 times = unique_texts[2]
@@ -606,9 +640,9 @@ class PersonScraper(BaseScraper):
                     times = second
                 else:
                     degree = second
-            
+
             from_date, to_date = self._parse_education_times(times)
-            
+
             return Education(
                 institution_name=institution_name,
                 degree=degree.strip() if degree else None,
@@ -617,7 +651,7 @@ class PersonScraper(BaseScraper):
                 to_date=to_date,
                 description=None,
             )
-            
+
         except Exception as e:
             logger.debug(f"Error parsing main page education: {e}")
             return None
@@ -625,37 +659,41 @@ class PersonScraper(BaseScraper):
     async def _parse_education_item(self, item) -> Optional[Education]:
         """Parse a single education item."""
         try:
-            links = await item.locator('a, link').all()
+            links = await item.locator("a, link").all()
             if len(links) >= 1:
-                institution_url = await links[0].get_attribute('href')
-                
+                institution_url = await links[0].get_attribute("href")
+
                 detail_link = links[1] if len(links) >= 2 else links[0]
-                generics = await detail_link.locator('generic, span, div').all()
+                generics = await detail_link.locator("generic, span, div").all()
                 texts = []
                 for g in generics:
                     text = await g.text_content()
                     if text and text.strip() and len(text.strip()) < 200:
                         texts.append(text.strip())
-                
+
                 unique_texts = list(dict.fromkeys(texts))
-                
+
                 if unique_texts:
                     institution_name = unique_texts[0]
                     degree = None
                     times = ""
-                    
+
                     if len(unique_texts) == 3:
                         degree = unique_texts[1]
                         times = unique_texts[2]
                     elif len(unique_texts) == 2:
                         second = unique_texts[1]
-                        if " - " in second or second.isdigit() or any(c.isdigit() for c in second):
+                        if (
+                            " - " in second
+                            or second.isdigit()
+                            or any(c.isdigit() for c in second)
+                        ):
                             times = second
                         else:
                             degree = second
-                    
+
                     from_date, to_date = self._parse_education_times(times)
-                    
+
                     return Education(
                         institution_name=institution_name,
                         degree=degree.strip() if degree else None,
@@ -664,8 +702,10 @@ class PersonScraper(BaseScraper):
                         to_date=to_date,
                         description=None,
                     )
-            
-            entity = item.locator('div[data-view-name="profile-component-entity"]').first
+
+            entity = item.locator(
+                'div[data-view-name="profile-component-entity"]'
+            ).first
             if await entity.count() == 0:
                 return None
 
@@ -761,14 +801,22 @@ class PersonScraper(BaseScraper):
 
         try:
             interests_heading = self.page.locator('h2:has-text("Interests")').first
-            
+
             if await interests_heading.count() > 0:
-                interests_section = interests_heading.locator('xpath=ancestor::*[.//tablist or .//*[@role="tablist"]][1]')
+                interests_section = interests_heading.locator(
+                    'xpath=ancestor::*[.//tablist or .//*[@role="tablist"]][1]'
+                )
                 if await interests_section.count() == 0:
-                    interests_section = interests_heading.locator('xpath=ancestor::*[4]')
-                
-                tabs = await interests_section.locator('[role="tab"], tab').all() if await interests_section.count() > 0 else []
-                
+                    interests_section = interests_heading.locator(
+                        "xpath=ancestor::*[4]"
+                    )
+
+                tabs = (
+                    await interests_section.locator('[role="tab"], tab').all()
+                    if await interests_section.count() > 0
+                    else []
+                )
+
                 if tabs:
                     for tab in tabs:
                         try:
@@ -781,22 +829,30 @@ class PersonScraper(BaseScraper):
                             await tab.click()
                             await self.wait_and_focus(0.5)
 
-                            tabpanel = interests_section.locator('[role="tabpanel"]').first
+                            tabpanel = interests_section.locator(
+                                '[role="tabpanel"]'
+                            ).first
                             if await tabpanel.count() > 0:
-                                list_items = await tabpanel.locator('li, listitem').all()
-                                
+                                list_items = await tabpanel.locator(
+                                    "li, listitem"
+                                ).all()
+
                                 for item in list_items:
                                     try:
-                                        interest = await self._parse_interest_item(item, category)
+                                        interest = await self._parse_interest_item(
+                                            item, category
+                                        )
                                         if interest:
                                             interests.append(interest)
                                     except Exception as e:
-                                        logger.debug(f"Error parsing interest item: {e}")
+                                        logger.debug(
+                                            f"Error parsing interest item: {e}"
+                                        )
                                         continue
                         except Exception as e:
                             logger.debug(f"Error processing interest tab: {e}")
                             continue
-            
+
             if not interests:
                 interests_url = urljoin(base_url, "details/interests/")
                 await self.navigate_and_wait(interests_url)
@@ -820,12 +876,18 @@ class PersonScraper(BaseScraper):
                         await tab.click()
                         await self.wait_and_focus(0.8)
 
-                        tabpanel = self.page.locator('[role="tabpanel"], tabpanel').first
-                        list_items = await tabpanel.locator("listitem, li, .pvs-list__paged-list-item").all()
+                        tabpanel = self.page.locator(
+                            '[role="tabpanel"], tabpanel'
+                        ).first
+                        list_items = await tabpanel.locator(
+                            "listitem, li, .pvs-list__paged-list-item"
+                        ).all()
 
                         for item in list_items:
                             try:
-                                interest = await self._parse_interest_item(item, category)
+                                interest = await self._parse_interest_item(
+                                    item, category
+                                )
                                 if interest:
                                     interests.append(interest)
                             except Exception as e:
@@ -840,7 +902,7 @@ class PersonScraper(BaseScraper):
             logger.warning(f"Error getting interests: {e}")
 
         return interests
-    
+
     async def _parse_interest_item(self, item, category: str) -> Optional[Interest]:
         """Parse a single interest item from profile or details page."""
         try:
@@ -1034,65 +1096,99 @@ class PersonScraper(BaseScraper):
                 logger.warning("Contact info dialog not found")
                 return contacts
 
-            contact_sections = await dialog.locator('h3').all()
-            
+            contact_sections = await dialog.locator("h3").all()
+
             for section_heading in contact_sections:
                 try:
                     heading_text = await section_heading.text_content()
                     if not heading_text:
                         continue
                     heading_text = heading_text.strip().lower()
-                    
-                    section_container = section_heading.locator('xpath=ancestor::*[1]')
+
+                    section_container = section_heading.locator("xpath=ancestor::*[1]")
                     if await section_container.count() == 0:
                         continue
-                    
+
                     contact_type = self._map_contact_heading_to_type(heading_text)
                     if not contact_type:
                         continue
-                    
-                    links = await section_container.locator('a').all()
+
+                    links = await section_container.locator("a").all()
                     for link in links:
-                        href = await link.get_attribute('href')
+                        href = await link.get_attribute("href")
                         text = await link.text_content()
                         if href and text:
                             text = text.strip()
                             label = None
-                            sibling_text = await section_container.locator('span, generic').all()
+                            sibling_text = await section_container.locator(
+                                "span, generic"
+                            ).all()
                             for sib in sibling_text:
                                 sib_text = await sib.text_content()
-                                if sib_text and sib_text.strip().startswith('(') and sib_text.strip().endswith(')'):
+                                if (
+                                    sib_text
+                                    and sib_text.strip().startswith("(")
+                                    and sib_text.strip().endswith(")")
+                                ):
                                     label = sib_text.strip()[1:-1]
                                     break
-                            
+
                             if contact_type == "linkedin":
-                                contacts.append(Contact(type=contact_type, value=href, label=label))
+                                contacts.append(
+                                    Contact(type=contact_type, value=href, label=label)
+                                )
                             elif contact_type == "email" and "mailto:" in href:
-                                contacts.append(Contact(type=contact_type, value=href.replace("mailto:", ""), label=label))
+                                contacts.append(
+                                    Contact(
+                                        type=contact_type,
+                                        value=href.replace("mailto:", ""),
+                                        label=label,
+                                    )
+                                )
                             else:
-                                contacts.append(Contact(type=contact_type, value=text, label=label))
-                    
+                                contacts.append(
+                                    Contact(type=contact_type, value=text, label=label)
+                                )
+
                     if contact_type == "birthday" and not links:
                         birthday_text = await section_container.text_content()
                         if birthday_text:
-                            birthday_value = birthday_text.replace(heading_text, "").replace("Birthday", "").strip()
+                            birthday_value = (
+                                birthday_text.replace(heading_text, "")
+                                .replace("Birthday", "")
+                                .strip()
+                            )
                             if birthday_value:
-                                contacts.append(Contact(type="birthday", value=birthday_value))
-                    
+                                contacts.append(
+                                    Contact(type="birthday", value=birthday_value)
+                                )
+
                     if contact_type == "phone" and not links:
                         phone_text = await section_container.text_content()
                         if phone_text:
-                            phone_value = phone_text.replace(heading_text, "").replace("Phone", "").strip()
+                            phone_value = (
+                                phone_text.replace(heading_text, "")
+                                .replace("Phone", "")
+                                .strip()
+                            )
                             if phone_value:
-                                contacts.append(Contact(type="phone", value=phone_value))
-                    
+                                contacts.append(
+                                    Contact(type="phone", value=phone_value)
+                                )
+
                     if contact_type == "address" and not links:
                         address_text = await section_container.text_content()
                         if address_text:
-                            address_value = address_text.replace(heading_text, "").replace("Address", "").strip()
+                            address_value = (
+                                address_text.replace(heading_text, "")
+                                .replace("Address", "")
+                                .strip()
+                            )
                             if address_value:
-                                contacts.append(Contact(type="address", value=address_value))
-                                
+                                contacts.append(
+                                    Contact(type="address", value=address_value)
+                                )
+
                 except Exception as e:
                     logger.debug(f"Error parsing contact section: {e}")
                     continue
@@ -1101,7 +1197,7 @@ class PersonScraper(BaseScraper):
             logger.warning(f"Error getting contacts: {e}")
 
         return contacts
-    
+
     def _map_contact_heading_to_type(self, heading: str) -> Optional[str]:
         """Map contact section heading to contact type."""
         heading = heading.lower()

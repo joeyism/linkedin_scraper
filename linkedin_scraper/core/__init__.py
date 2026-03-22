@@ -1,6 +1,6 @@
 """Core modules for LinkedIn scraper."""
 
-from .browser import BrowserManager
+from .browser import BrowserManager, ProxyConfig
 from .auth import (
     login_with_credentials,
     login_with_cookie,
@@ -16,6 +16,7 @@ from .exceptions import (
     ElementNotFoundError,
     ProfileNotFoundError,
     NetworkError,
+    ProxyError,
     ScrapingError
 )
 from .utils import (
@@ -33,6 +34,7 @@ from .utils import (
 __all__ = [
     # Browser
     'BrowserManager',
+    'ProxyConfig',
     # Auth
     'login_with_credentials',
     'login_with_cookie',
@@ -47,6 +49,7 @@ __all__ = [
     'ElementNotFoundError',
     'ProfileNotFoundError',
     'NetworkError',
+    'ProxyError',
     'ScrapingError',
     # Utils
     'retry_async',

@@ -358,7 +358,12 @@ browser = BrowserManager(
     headless=False,  # Show browser window
     slow_mo=100,     # Slow down operations (ms)
     viewport={"width": 1920, "height": 1080},
-    user_agent="Custom User Agent"
+    user_agent="Custom User Agent",
+    proxy={                                      # Optional proxy
+        "server": os.getenv("PROXY_SERVER"),
+        "username": os.getenv("PROXY_USERNAME"),
+        "password": os.getenv("PROXY_PASSWORD"),
+    }
 )
 ```
 

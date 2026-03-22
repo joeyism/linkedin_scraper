@@ -34,6 +34,11 @@ class NetworkError(LinkedInScraperException):
     pass
 
 
+class ProxyError(NetworkError):
+    """Raised when proxy configuration or connection fails."""
+    pass
+
+
 class ScrapingError(LinkedInScraperException):
     """Raised when scraping fails for various reasons."""
     pass

@@ -4,10 +4,19 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional, TypedDict
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page, Playwright
 
-from .exceptions import NetworkError
+from .exceptions import NetworkError, ProxyError
+
+
+class ProxyConfig(TypedDict, total=False):
+    """Proxy configuration for the browser context (HTTP, HTTPS, SOCKS5)."""
+
+    server: str
+    username: str
+    password: str
+    bypass: str
 
 logger = logging.getLogger(__name__)
 
@@ -21,22 +30,28 @@ class BrowserManager:
         slow_mo: int = 0,
         viewport: Optional[Dict[str, int]] = None,
         user_agent: Optional[str] = None,
+        proxy: Optional[ProxyConfig] = None,
         **launch_options: Any
     ):
         """
         Initialize browser manager.
-        
+
         Args:
             headless: Run browser in headless mode
             slow_mo: Slow down operations by specified milliseconds
             viewport: Browser viewport size (default: 1280x720)
             user_agent: Custom user agent string
+            proxy: Optional proxy config, must include a "server" key
             **launch_options: Additional Playwright launch options
         """
+        if proxy is not None and not proxy.get("server"):
+            raise ProxyError("ProxyConfig must include a 'server' key, e.g. 'http://host:port'")
+
         self.headless = headless
         self.slow_mo = slow_mo
         self.viewport = viewport or {"width": 1280, "height": 720}
         self.user_agent = user_agent
+        self.proxy = proxy
         self.launch_options = launch_options
         
         self._playwright: Optional[Playwright] = None
@@ -72,10 +87,14 @@ class BrowserManager:
             context_options: Dict[str, Any] = {
                 "viewport": self.viewport,
             }
-            
+
             if self.user_agent:
                 context_options["user_agent"] = self.user_agent
-            
+
+            if self.proxy:
+                context_options["proxy"] = self.proxy
+                logger.info(f"Proxy configured: {self.proxy['server']}")
+
             self._context = await self._browser.new_context(**context_options)
             
             # Create initial page
@@ -197,11 +216,19 @@ class BrowserManager:
         if not self._browser:
             raise RuntimeError("Browser not started")
         
-        self._context = await self._browser.new_context(
-            storage_state=filepath,
-            viewport=self.viewport,
-            user_agent=self.user_agent
-        )
+        session_context_options: Dict[str, Any] = {
+            "storage_state": filepath,
+            "viewport": self.viewport,
+        }
+
+        if self.user_agent:
+            session_context_options["user_agent"] = self.user_agent
+
+        if self.proxy:
+            session_context_options["proxy"] = self.proxy
+            logger.info(f"Proxy configured for loaded session: {self.proxy['server']}")
+
+        self._context = await self._browser.new_context(**session_context_options)
         
         # Create new page
         if self._page:

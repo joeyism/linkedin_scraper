@@ -6,6 +6,7 @@ __version__ = "3.1.1"
 # Core modules
 from .core import (
     BrowserManager,
+    ProxyConfig,
     login_with_credentials,
     login_with_cookie,
     is_logged_in,
@@ -18,6 +19,7 @@ from .core import (
     ElementNotFoundError,
     ProfileNotFoundError,
     NetworkError,
+    ProxyError,
     ScrapingError,
 )
 
@@ -59,6 +61,7 @@ __all__ = [
     "__version__",
     # Core
     "BrowserManager",
+    "ProxyConfig",
     "login_with_credentials",
     "login_with_cookie",
     "is_logged_in",
@@ -77,6 +80,7 @@ __all__ = [
     "ElementNotFoundError",
     "ProfileNotFoundError",
     "NetworkError",
+    "ProxyError",
     "ScrapingError",
     # Callbacks
     "ProgressCallback",

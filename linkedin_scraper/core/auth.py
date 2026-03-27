@@ -259,8 +259,18 @@ async def is_logged_in(page: Page) -> bool:
         auth_blockers = ['/login', '/authwall', '/checkpoint', '/challenge', '/uas/login', '/uas/consumer-email-challenge']
         if any(pattern in current_url for pattern in auth_blockers):
             return False
-        
-        # Step 2: Selector check (PRIMARY) - check for nav elements
+
+        # Step 2: Require LinkedIn auth cookie to avoid false positives on
+        # public profile pages that still render nav-like elements.
+        cookies = await page.context.cookies(["https://www.linkedin.com"])
+        has_auth_cookie = any(
+            cookie.get("name") == "li_at" and bool(cookie.get("value"))
+            for cookie in cookies
+        )
+        if not has_auth_cookie:
+            return False
+
+        # Step 3: Selector check (PRIMARY) - check for logged-in nav elements
         old_selectors = '.global-nav__primary-link, [data-control-name="nav.settings"]'
         old_count = await page.locator(old_selectors).count()
         
@@ -268,13 +278,21 @@ async def is_logged_in(page: Page) -> bool:
         new_count = await page.locator(new_selectors).count()
         
         has_nav_elements = old_count > 0 or new_count > 0
-        
-        # Step 3: URL fallback - check for authenticated-only pages
+
+        # Step 4: Fail-safe against guest-mode UI
+        guest_selectors = (
+            'a[href*="/signup"], a[href*="/login"], '
+            'button:has-text("Sign in"), button:has-text("Join now")'
+        )
+        has_guest_cta = await page.locator(guest_selectors).count() > 0
+
+        # Step 5: URL fallback - check for authenticated-only pages
         authenticated_only_pages = ['/feed', '/mynetwork', '/messaging', '/notifications']
         is_authenticated_page = any(pattern in current_url for pattern in authenticated_only_pages)
-        
-        # Return True if either nav elements found or on authenticated page
-        return has_nav_elements or is_authenticated_page
+
+        # Return True only when auth cookie exists and page does not look like
+        # guest mode.
+        return (has_nav_elements or is_authenticated_page) and not has_guest_cta
     except Exception:
         return False
 

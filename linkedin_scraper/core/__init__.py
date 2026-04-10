@@ -1,6 +1,6 @@
 """Core modules for LinkedIn scraper."""
 
-from .browser import BrowserManager
+from .browser import BrowserManager, PersistentBrowserManager, migrate_session_to_profile
 from .auth import (
     login_with_credentials,
     login_with_cookie,
@@ -33,6 +33,8 @@ from .utils import (
 __all__ = [
     # Browser
     'BrowserManager',
+    'PersistentBrowserManager',
+    'migrate_session_to_profile',
     # Auth
     'login_with_credentials',
     'login_with_cookie',

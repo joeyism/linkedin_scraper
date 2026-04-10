@@ -205,11 +205,104 @@ async def scrape_company_posts():
 asyncio.run(scrape_company_posts())
 ```
 
+## Session Management
+
+linkedin-scraper supports two session management approaches:
+
+### Persistent Browser Context (Recommended)
+
+Uses Playwright's persistent context - cookies automatically saved to a browser profile:
+
+```python
+from linkedin_scraper import PersistentBrowserManager, PersonScraper
+
+async def scrape_with_persistent():
+    async with PersistentBrowserManager(user_data_dir="~/.linkedin/profile") as browser:
+        scraper = PersonScraper(browser.page)
+        profile = await scraper.scrape("https://linkedin.com/in/username")
+        # Session automatically saved when exiting context
+```
+
+**Benefits:**
+- ✅ Automatic session persistence (no manual save/load)
+- ✅ Works like a real Chrome profile
+- ✅ More reliable across restarts
+- ✅ Better resistance to anti-bot detection
+- ✅ Perfect for long-running services
+- ✅ No session.json files to manage
+
+```python
+# scraper.py
+async with PersistentBrowserManager(user_data_dir="/home/appuser/.linkedin/profile") as browser:
+    # Your scraping code
+```
+
+### Manual Session Files (Legacy)
+
+Uses session.json files - requires manual management:
+
+```python
+from linkedin_scraper import BrowserManager, PersonScraper
+
+async with BrowserManager() as browser:
+    await browser.load_session("session.json")
+    scraper = PersonScraper(browser.page)
+    profile = await scraper.scrape("https://linkedin.com/in/username")
+    await browser.save_session("session.json")
+```
+
+**When to use:**
+- ✅ Testing and development
+- ✅ Temporary scraping sessions
+- ✅ Sharing sessions across different systems
+
+### Migrating from session.json to Persistent Profiles
+
+If you have an existing session.json file, you can migrate it to a persistent profile:
+
+```python
+from linkedin_scraper import migrate_session_to_profile
+import os
+
+async def migrate():
+    success = await migrate_session_to_profile(
+        session_path="session.json",
+        user_data_dir="~/.linkedin/profile"
+    )
+    if success:
+        print("Migration successful!")
+        os.remove("session.json")  # Clean up old session
+
+asyncio.run(migrate())
+```
+
 ## Authentication
 
-LinkedIn requires authentication. You need to create a session file first:
+LinkedIn requires authentication. Choose one of the methods below:
 
-### Option 1: Manual Login Script
+### Option 1: Manual Login (Persistent Profile - Recommended)
+
+```python
+from linkedin_scraper import PersistentBrowserManager, wait_for_manual_login
+
+async def create_persistent_session():
+    async with PersistentBrowserManager(
+        user_data_dir="~/.linkedin/profile",
+        headless=False
+    ) as browser:
+        # Navigate to LinkedIn
+        await browser.page.goto("https://www.linkedin.com/login")
+
+        # Wait for manual login (opens browser)
+        print("Please log in to LinkedIn...")
+        await wait_for_manual_login(browser.page, timeout=300)
+
+        print("✓ Session automatically saved to profile!")
+
+asyncio.run(create_persistent_session())
+```
+
+### Option 2: Manual Login (session.json)
 
 ```python
 from linkedin_scraper import BrowserManager, wait_for_manual_login
@@ -218,11 +311,11 @@ async def create_session():
     async with BrowserManager(headless=False) as browser:
         # Navigate to LinkedIn
         await browser.page.goto("https://www.linkedin.com/login")
-        
+
         # Wait for manual login (opens browser)
         print("Please log in to LinkedIn...")
         await wait_for_manual_login(browser.page, timeout=300)
-        
+
         # Save session
         await browser.save_session("session.json")
         print("✓ Session saved!")
@@ -230,7 +323,30 @@ async def create_session():
 asyncio.run(create_session())
 ```
 
-### Option 2: Programmatic Login
+### Option 3: Programmatic Login (Persistent Profile)
+
+```python
+from linkedin_scraper import PersistentBrowserManager, login_with_credentials
+import os
+
+async def login_persistent():
+    async with PersistentBrowserManager(
+        user_data_dir="~/.linkedin/profile",
+        headless=False
+    ) as browser:
+        # Login with credentials
+        await login_with_credentials(
+            browser.page,
+            username=os.getenv("LINKEDIN_EMAIL"),
+            password=os.getenv("LINKEDIN_PASSWORD")
+        )
+
+        print("✓ Session automatically saved to profile!")
+
+asyncio.run(login_persistent())
+```
+
+### Option 4: Programmatic Login (session.json)
 
 ```python
 from linkedin_scraper import BrowserManager, login_with_credentials
@@ -244,7 +360,7 @@ async def login():
             username=os.getenv("LINKEDIN_EMAIL"),
             password=os.getenv("LINKEDIN_PASSWORD")
         )
-        
+
         # Save session for reuse
         await browser.save_session("session.json")
 
@@ -353,6 +469,18 @@ class Post(BaseModel):
 
 ### Browser Configuration
 
+**Persistent Browser:**
+```python
+browser = PersistentBrowserManager(
+    user_data_dir="~/.linkedin/profile",  # Profile directory
+    headless=False,                        # Show browser window
+    slow_mo=100,                          # Slow down operations (ms)
+    viewport={"width": 1920, "height": 1080},
+    user_agent="Custom User Agent"
+)
+```
+
+**Standard Browser:**
 ```python
 browser = BrowserManager(
     headless=False,  # Show browser window
@@ -360,6 +488,16 @@ browser = BrowserManager(
     viewport={"width": 1920, "height": 1080},
     user_agent="Custom User Agent"
 )
+```
+
+**Clearing a Persistent Profile:**
+```python
+browser = PersistentBrowserManager(user_data_dir="~/.linkedin/profile")
+await browser.start()
+await browser.close()
+
+# Delete the profile (logs you out)
+browser.clear_profile()
 ```
 
 ### Error Handling

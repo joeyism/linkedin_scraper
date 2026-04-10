@@ -88,7 +88,7 @@ async def detect_rate_limit(page: Page) -> None:
     
     # Check for rate limit messages
     try:
-        body_text = await page.locator('body').text_content(timeout=1000)
+        body_text = await page.locator('body').inner_text(timeout=1000)
         if body_text:
             body_lower = body_text.lower()
             if any(phrase in body_lower for phrase in [

@@ -3,6 +3,7 @@
 import asyncio
 import functools
 import logging
+import os
 from typing import Any, Callable, Optional, TypeVar, cast
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
@@ -64,11 +65,27 @@ async def detect_rate_limit(page: Page) -> None:
     Raises:
         RateLimitError: If rate limiting is detected
     """
+    # Allow disabling detection when debugging false positives.
+    if os.getenv("LINKEDIN_SCRAPER_DISABLE_RATE_LIMIT_CHECK", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        return
+
     # Check for common rate limit indicators
     
     # Check URL for security challenges
     current_url = page.url
-    if 'linkedin.com/checkpoint' in current_url or 'authwall' in current_url:
+    if any(
+        marker in current_url
+        for marker in (
+            "linkedin.com/checkpoint",
+            "authwall",
+            "/challenge/",
+            "captcha",
+        )
+    ):
         raise RateLimitError(
             "LinkedIn security checkpoint detected. "
             "You may need to verify your identity or wait before continuing.",
@@ -77,26 +94,55 @@ async def detect_rate_limit(page: Page) -> None:
     
     # Check for CAPTCHA
     try:
-        captcha = await page.locator('iframe[title*="captcha" i], iframe[src*="captcha" i]').count()
+        captcha = await page.locator(
+            'iframe[title*="captcha" i], iframe[src*="captcha" i]'
+        ).count()
         if captcha > 0:
             raise RateLimitError(
                 "CAPTCHA challenge detected. Manual intervention required.",
-                suggested_wait_time=3600
+                suggested_wait_time=3600,
             )
-    except Exception:
+    except PlaywrightTimeoutError:
         pass
     
     # Check for rate limit messages
     try:
+        title_text = (await page.title()).lower()
         body_text = await page.locator('body').text_content(timeout=1000)
         if body_text:
             body_lower = body_text.lower()
-            if any(phrase in body_lower for phrase in [
-                'too many requests',
-                'rate limit',
-                'slow down',
-                'try again later'
-            ]):
+            strong_indicators = [
+                "looks like you may be using automation tools",
+                "we've restricted your account",
+                "temporarily restricted",
+                "security verification",
+                "verify your identity",
+                "unusual activity",
+                "complete this security check",
+            ]
+            soft_indicators = [
+                "too many requests",
+                "rate limit",
+                "slow down",
+                "try again later",
+            ]
+
+            strong_hit = any(
+                phrase in body_lower or phrase in title_text
+                for phrase in strong_indicators
+            )
+            soft_hit = any(
+                phrase in body_lower or phrase in title_text
+                for phrase in soft_indicators
+            )
+            has_linkedin_security_context = any(
+                phrase in body_lower
+                for phrase in ["linkedin", "security", "verification", "captcha"]
+            )
+
+            # Only treat soft phrases as rate limits when page context also
+            # points to LinkedIn security/throttling behavior.
+            if strong_hit or (soft_hit and has_linkedin_security_context):
                 raise RateLimitError(
                     "Rate limit message detected on page.",
                     suggested_wait_time=1800  # 30 minutes

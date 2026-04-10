@@ -1,7 +1,8 @@
 """Person/Profile scraper for LinkedIn."""
 
 import logging
-from typing import Optional
+import re
+from typing import Optional, Union
 from urllib.parse import urljoin
 from playwright.async_api import Page
 
@@ -11,6 +12,18 @@ from ..callbacks import ProgressCallback, SilentCallback
 from ..core.exceptions import ScrapingError
 
 logger = logging.getLogger(__name__)
+
+EMPLOYMENT_TYPE_MAP = {
+    "full-time": "Full-time",
+    "part-time": "Part-time",
+    "self-employed": "Self-employed",
+    "freelance": "Freelance",
+    "contract": "Contract",
+    "internship": "Internship",
+    "apprenticeship": "Apprenticeship",
+    "seasonal": "Seasonal",
+    "temporary": "Temporary",
+}
 
 
 class PersonScraper(BaseScraper):
@@ -157,60 +170,23 @@ class PersonScraper(BaseScraper):
             return None
 
     async def _get_experiences(self, base_url: str) -> list[Experience]:
-        """Extract experiences from the main profile page Experience section."""
+        """Extract experiences from details page with main-page fallback."""
         experiences = []
 
         try:
-            experience_heading = self.page.locator('h2:has-text("Experience")').first
-            
-            if await experience_heading.count() > 0:
-                experience_section = experience_heading.locator('xpath=ancestor::*[.//ul or .//ol][1]')
-                if await experience_section.count() == 0:
-                    experience_section = experience_heading.locator('xpath=ancestor::*[4]')
-                
-                if await experience_section.count() > 0:
-                    items = await experience_section.locator('ul > li, ol > li').all()
-                    
-                    for item in items:
-                        try:
-                            exp = await self._parse_main_page_experience(item)
-                            if exp:
-                                experiences.append(exp)
-                        except Exception as e:
-                            logger.debug(f"Error parsing experience from main page: {e}")
-                            continue
-            
+            try:
+                experiences = await self._get_experiences_from_details(base_url)
+            except Exception as e:
+                logger.debug(f"Error loading experience details page: {e}")
+                experiences = []
+
             if not experiences:
-                exp_url = urljoin(base_url, "details/experience")
-                await self.navigate_and_wait(exp_url)
+                await self.navigate_and_wait(base_url)
                 await self.page.wait_for_selector("main", timeout=10000)
                 await self.wait_and_focus(1.5)
                 await self.scroll_page_to_half()
-                await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
-
-                items = []
-                main_element = self.page.locator('main')
-                if await main_element.count() > 0:
-                    list_items = await main_element.locator('list > listitem, ul > li').all()
-                    if list_items:
-                        items = list_items
-                
-                if not items:
-                    old_list = self.page.locator(".pvs-list__container").first
-                    if await old_list.count() > 0:
-                        items = await old_list.locator(".pvs-list__paged-list-item").all()
-
-                for item in items:
-                    try:
-                        result = await self._parse_experience_item(item)
-                        if result:
-                            if isinstance(result, list):
-                                experiences.extend(result)
-                            else:
-                                experiences.append(result)
-                    except Exception as e:
-                        logger.debug(f"Error parsing experience item: {e}")
-                        continue
+                await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=3)
+                experiences = await self._get_experiences_from_main_page()
 
         except Exception as e:
             logger.warning(
@@ -218,8 +194,96 @@ class PersonScraper(BaseScraper):
             )
 
         return experiences
+
+    async def _get_experiences_from_details(self, base_url: str) -> list[Experience]:
+        """Extract experiences from the details/experience page."""
+        experiences = []
+
+        exp_url = urljoin(base_url, "details/experience")
+        await self.navigate_and_wait(exp_url)
+        await self.page.wait_for_selector("main", timeout=10000)
+        await self.wait_and_focus(1.5)
+        await self.scroll_page_to_half()
+        await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
+
+        items = []
+        main_element = self.page.locator("main")
+        if await main_element.count() > 0:
+            top_container = main_element.locator(".pvs-list__container").first
+            if await top_container.count() > 0:
+                top_items = await top_container.locator(
+                    "> .scaffold-finite-scroll > .scaffold-finite-scroll__content > ul > li"
+                ).all()
+                if top_items:
+                    items = top_items
+
+            if not items:
+                list_items = await main_element.locator("list > listitem, ul > li").all()
+                if list_items:
+                    filtered = []
+                    for list_item in list_items:
+                        in_sub = await list_item.locator(
+                            'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " pvs-entity__sub-components ")]'
+                        ).count()
+                        if in_sub == 0:
+                            filtered.append(list_item)
+                    items = filtered
+
+        if not items:
+            old_list = self.page.locator(".pvs-list__container").first
+            if await old_list.count() > 0:
+                items = await old_list.locator(".pvs-list__paged-list-item").all()
+
+        for item in items:
+            try:
+                result = await self._parse_experience_item(item)
+                if result:
+                    if isinstance(result, list):
+                        experiences.extend(result)
+                    else:
+                        experiences.append(result)
+            except Exception as e:
+                logger.debug(f"Error parsing experience item: {e}")
+                continue
+
+        return experiences
+
+    async def _get_experiences_from_main_page(self) -> list[Experience]:
+        """Extract experiences from the main profile page Experience section."""
+        experiences = []
+
+        experience_heading = self.page.locator('h2:has-text("Experience")').first
+        if await experience_heading.count() == 0:
+            return experiences
+
+        experience_section = experience_heading.locator(
+            'xpath=ancestor::*[.//ul or .//ol][1]'
+        )
+        if await experience_section.count() == 0:
+            experience_section = experience_heading.locator('xpath=ancestor::*[4]')
+
+        if await experience_section.count() == 0:
+            return experiences
+
+        items = await experience_section.locator("ul > li, ol > li").all()
+
+        for item in items:
+            try:
+                exp = await self._parse_main_page_experience(item)
+                if exp:
+                    if isinstance(exp, list):
+                        experiences.extend(exp)
+                    else:
+                        experiences.append(exp)
+            except Exception as e:
+                logger.debug(f"Error parsing experience from main page: {e}")
+                continue
+
+        return experiences
     
-    async def _parse_main_page_experience(self, item) -> Optional[Experience]:
+    async def _parse_main_page_experience(
+        self, item
+    ) -> Optional[Union[Experience, list[Experience]]]:
         """Parse experience from main profile page list item with [logo_link, details_link] structure."""
         try:
             links = await item.locator('a').all()
@@ -231,11 +295,39 @@ class PersonScraper(BaseScraper):
             
             unique_texts = await self._extract_unique_texts_from_element(detail_link)
             
+            if not unique_texts:
+                return None
+
+            nested_roles = await item.locator(
+                '.pvs-entity__sub-components div[data-view-name="profile-component-entity"]'
+            ).all()
+            if nested_roles:
+                company_name, employment_type = self._split_company_and_employment_type(
+                    unique_texts[0]
+                )
+                if not employment_type:
+                    for text in unique_texts[1:]:
+                        employment_type = self._extract_employment_type_from_text(text)
+                        if employment_type:
+                            break
+                grouped_experiences = []
+                for nested_item in nested_roles:
+                    exp = await self._parse_grouped_main_page_role(
+                        nested_item, company_name, company_url, employment_type
+                    )
+                    if exp:
+                        grouped_experiences.append(exp)
+                if grouped_experiences:
+                    return grouped_experiences
+                return None
+
             if len(unique_texts) < 2:
                 return None
             
             position_title = unique_texts[0]
-            company_name = unique_texts[1]
+            company_name, employment_type = self._split_company_and_employment_type(
+                unique_texts[1]
+            )
             work_times = unique_texts[2] if len(unique_texts) > 2 else ""
             
             from_date, to_date, duration = self._parse_work_times(work_times)
@@ -243,6 +335,7 @@ class PersonScraper(BaseScraper):
             return Experience(
                 position_title=position_title,
                 institution_name=company_name,
+                employment_type=employment_type,
                 linkedin_url=company_url,
                 from_date=from_date,
                 to_date=to_date,
@@ -275,49 +368,153 @@ class PersonScraper(BaseScraper):
         
         return unique_texts
 
+    async def _parse_grouped_main_page_role(
+        self,
+        item,
+        company_name: str,
+        company_url: Optional[str],
+        employment_type: Optional[str],
+    ) -> Optional[Experience]:
+        """Parse a grouped role under a company on the main page."""
+        try:
+            detail_link = item.locator("a").first
+            target = detail_link if await detail_link.count() > 0 else item
+            unique_texts = await self._extract_unique_texts_from_element(target)
+
+            if company_name:
+                unique_texts = [
+                    text
+                    for text in unique_texts
+                    if text.strip() != company_name.strip()
+                ]
+
+            if not unique_texts:
+                return None
+
+            position_title = unique_texts[0]
+            work_times = ""
+            location = ""
+
+            for text in unique_texts[1:]:
+                if not work_times and self._is_experience_time_text(text):
+                    work_times = text
+                    continue
+                if not location:
+                    location = text
+
+            if not company_url and await detail_link.count() > 0:
+                company_url = await detail_link.get_attribute("href")
+
+            from_date, to_date, duration = self._parse_work_times(work_times)
+
+            return Experience(
+                position_title=position_title.strip(),
+                institution_name=company_name.strip() if company_name else None,
+                employment_type=employment_type,
+                linkedin_url=company_url,
+                from_date=from_date,
+                to_date=to_date,
+                duration=duration,
+                location=location.strip() if location else None,
+                description=None,
+            )
+
+        except Exception as e:
+            logger.debug(f"Error parsing grouped main page experience: {e}")
+            return None
+
+    def _is_experience_time_text(self, text: str) -> bool:
+        if not text:
+            return False
+
+        text = text.strip()
+        if " - " in text or "Present" in text:
+            return True
+
+        if re.search(r"\b(19|20)\d{2}\b", text):
+            return True
+
+        for month in [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]:
+            if month in text:
+                return True
+
+        return False
+
+    def _normalize_employment_type(self, text: str) -> str:
+        normalized = text.lower()
+        normalized = re.sub(r"[\u2013\u2014]", "-", normalized)
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        normalized = normalized.replace(" ", "-")
+        return normalized
+
+    def _extract_employment_type_from_text(self, text: Optional[str]) -> Optional[str]:
+        if not text:
+            return None
+
+        parts = [
+            part.strip()
+            for part in re.split(r"[\u00b7\u2022]", text)
+            if part.strip()
+        ]
+        for part in parts:
+            normalized = self._normalize_employment_type(part)
+            if normalized in EMPLOYMENT_TYPE_MAP:
+                return EMPLOYMENT_TYPE_MAP[normalized]
+
+        normalized_text = self._normalize_employment_type(text)
+        for key, value in EMPLOYMENT_TYPE_MAP.items():
+            if normalized_text.startswith(key):
+                return value
+
+        return None
+
+    def _split_company_and_employment_type(
+        self, text: str
+    ) -> tuple[str, Optional[str]]:
+        if not text:
+            return text, None
+
+        parts = [
+            part.strip()
+            for part in re.split(r"[\u00b7\u2022]", text)
+            if part.strip()
+        ]
+        if len(parts) >= 2:
+            for part in parts[1:]:
+                employment_type = self._extract_employment_type_from_text(part)
+                if employment_type:
+                    return parts[0], employment_type
+
+        return text, None
+
     async def _parse_experience_item(self, item):
         """Parse experience item. Returns Experience or list for nested positions."""
         try:
-            links = await item.locator('a, link').all()
-            if len(links) >= 2:
-                company_url = await links[0].get_attribute('href')
-                detail_link = links[1]
-                
-                generics = await detail_link.locator('generic, span, div').all()
-                texts = []
-                for g in generics:
-                    text = await g.text_content()
-                    if text and text.strip() and len(text.strip()) < 200:
-                        texts.append(text.strip())
-                
-                unique_texts = list(dict.fromkeys(texts))
-                
-                if len(unique_texts) >= 2:
-                    position_title = unique_texts[0]
-                    company_name = unique_texts[1]
-                    work_times = unique_texts[2] if len(unique_texts) > 2 else ""
-                    location = unique_texts[3] if len(unique_texts) > 3 else ""
-                    
-                    from_date, to_date, duration = self._parse_work_times(work_times)
-                    
-                    return Experience(
-                        position_title=position_title,
-                        institution_name=company_name,
-                        linkedin_url=company_url,
-                        from_date=from_date,
-                        to_date=to_date,
-                        duration=duration,
-                        location=location,
-                        description=None,
-                    )
-            
+            if await self._is_grouped_experience_item(item):
+                grouped = await self._parse_grouped_details_experience(item)
+                if grouped:
+                    return grouped
+
             entity = item.locator('div[data-view-name="profile-component-entity"]').first
             if await entity.count() == 0:
-                return None
+                return await self._parse_experience_from_links(item)
 
             children = await entity.locator("> *").all()
             if len(children) < 2:
-                return None
+                return await self._parse_experience_from_links(item)
 
             company_link = children[0].locator("a").first
             company_url = await company_link.get_attribute("href")
@@ -326,7 +523,7 @@ class PersonScraper(BaseScraper):
             detail_children = await detail_container.locator("> *").all()
 
             if len(detail_children) == 0:
-                return None
+                return await self._parse_experience_from_links(item)
 
             has_nested_positions = False
             if len(detail_children) > 1:
@@ -334,13 +531,16 @@ class PersonScraper(BaseScraper):
                 has_nested_positions = nested_list > 0
 
             if has_nested_positions:
-                return await self._parse_nested_experience(item, company_url, detail_children)
+                nested = await self._parse_nested_experience(item, company_url, detail_children)
+                if nested:
+                    return nested
+                return await self._parse_experience_from_links(item)
             else:
                 first_detail = detail_children[0]
                 nested_elements = await first_detail.locator("> *").all()
 
                 if len(nested_elements) == 0:
-                    return None
+                    return await self._parse_experience_from_links(item)
 
                 span_container = nested_elements[0]
                 outer_spans = await span_container.locator("> *").all()
@@ -363,6 +563,10 @@ class PersonScraper(BaseScraper):
                     aria_span = outer_spans[3].locator('span[aria-hidden="true"]').first
                     location = await aria_span.text_content()
 
+                company_name, employment_type = self._split_company_and_employment_type(
+                    company_name.strip() if company_name else ""
+                )
+
                 from_date, to_date, duration = self._parse_work_times(work_times)
 
                 description = ""
@@ -372,6 +576,7 @@ class PersonScraper(BaseScraper):
                 return Experience(
                     position_title=position_title.strip(),
                     institution_name=company_name.strip(),
+                    employment_type=employment_type,
                     linkedin_url=company_url,
                     from_date=from_date,
                     to_date=to_date,
@@ -382,6 +587,163 @@ class PersonScraper(BaseScraper):
 
         except Exception as e:
             logger.debug(f"Error parsing experience: {e}")
+            return None
+
+    async def _parse_experience_from_links(self, item) -> Optional[Experience]:
+        links = await item.locator("a, link").all()
+        if len(links) < 2:
+            return None
+
+        company_url = await links[0].get_attribute("href")
+        detail_link = links[1]
+
+        unique_texts = await self._extract_unique_texts_from_element(detail_link)
+        if len(unique_texts) < 2:
+            return None
+
+        position_title = unique_texts[0]
+        company_name, employment_type = self._split_company_and_employment_type(
+            unique_texts[1]
+        )
+
+        if not employment_type:
+            for text in unique_texts[2:]:
+                employment_type = self._extract_employment_type_from_text(text)
+                if employment_type:
+                    break
+
+        work_times = unique_texts[2] if len(unique_texts) > 2 else ""
+        location = unique_texts[3] if len(unique_texts) > 3 else ""
+
+        from_date, to_date, duration = self._parse_work_times(work_times)
+
+        return Experience(
+            position_title=position_title,
+            institution_name=company_name,
+            employment_type=employment_type,
+            linkedin_url=company_url,
+            from_date=from_date,
+            to_date=to_date,
+            duration=duration,
+            location=location,
+            description=None,
+        )
+
+    async def _is_grouped_experience_item(self, item) -> bool:
+        try:
+            grouped_items = await item.locator(
+                ".pvs-entity__sub-components .pvs-list__container .pvs-list__paged-list-item"
+            ).count()
+            return grouped_items > 0
+        except Exception:
+            return False
+
+    async def _parse_grouped_details_experience(self, item) -> list[Experience]:
+        """Parse grouped experience entries from details page."""
+        experiences = []
+
+        try:
+            entity = item.locator('div[data-view-name="profile-component-entity"]').first
+            if await entity.count() == 0:
+                return experiences
+
+            children = await entity.locator("> *").all()
+            if len(children) < 2:
+                return experiences
+
+            company_link = children[0].locator("a").first
+            company_url = await company_link.get_attribute("href")
+
+            detail_container = children[1]
+            detail_children = await detail_container.locator("> *").all()
+            header = detail_children[0] if detail_children else detail_container
+            header_texts = await self._extract_unique_texts_from_element(header)
+            company_name = header_texts[0] if header_texts else None
+            company_name, employment_type = self._split_company_and_employment_type(
+                company_name.strip() if company_name else ""
+            )
+            if not employment_type:
+                for text in header_texts[1:]:
+                    employment_type = self._extract_employment_type_from_text(text)
+                    if employment_type:
+                        break
+
+            nested_items = await detail_container.locator(
+                ".pvs-entity__sub-components .pvs-list__paged-list-item"
+            ).all()
+            if not nested_items:
+                return experiences
+
+            for nested_item in nested_items:
+                exp = await self._parse_grouped_detail_role(
+                    nested_item, company_name, company_url, employment_type
+                )
+                if exp:
+                    experiences.append(exp)
+
+        except Exception as e:
+            logger.debug(f"Error parsing grouped experience: {e}")
+
+        return experiences
+
+    async def _parse_grouped_detail_role(
+        self,
+        item,
+        company_name: Optional[str],
+        company_url: Optional[str],
+        employment_type: Optional[str],
+    ) -> Optional[Experience]:
+        """Parse a grouped role entry from details page."""
+        try:
+            link = item.locator("a").first
+            target = link if await link.count() > 0 else item
+            unique_texts = await self._extract_unique_texts_from_element(target)
+
+            if company_name:
+                unique_texts = [
+                    text
+                    for text in unique_texts
+                    if text.strip() != company_name.strip()
+                ]
+
+            if not unique_texts:
+                return None
+
+            position_title = unique_texts[0]
+            work_times = ""
+            location = ""
+
+            for text in unique_texts[1:]:
+                if not work_times and self._is_experience_time_text(text):
+                    work_times = text
+                    continue
+                if not location:
+                    location = text
+
+            from_date, to_date, duration = self._parse_work_times(work_times)
+
+            description = None
+            desc_container = item.locator(".pvs-entity__sub-components").first
+            if await desc_container.count() > 0:
+                desc_text = await desc_container.inner_text()
+                desc_text = desc_text.strip() if desc_text else ""
+                if desc_text:
+                    description = desc_text
+
+            return Experience(
+                position_title=position_title.strip(),
+                institution_name=company_name.strip() if company_name else None,
+                employment_type=employment_type,
+                linkedin_url=company_url,
+                from_date=from_date,
+                to_date=to_date,
+                duration=duration,
+                location=location.strip() if location else None,
+                description=description,
+            )
+
+        except Exception as e:
+            logger.debug(f"Error parsing grouped detail role: {e}")
             return None
 
     async def _parse_nested_experience(
@@ -405,9 +767,22 @@ class PersonScraper(BaseScraper):
 
             # First span is company name for nested positions
             company_name = ""
+            employment_type = None
             if len(outer_spans) >= 1:
                 aria_span = outer_spans[0].locator('span[aria-hidden="true"]').first
                 company_name = await aria_span.text_content()
+            for span in outer_spans[1:]:
+                aria_span = span.locator('span[aria-hidden="true"]').first
+                text = await aria_span.text_content()
+                employment_type = self._extract_employment_type_from_text(text)
+                if employment_type:
+                    break
+
+            company_name, header_employment_type = self._split_company_and_employment_type(
+                company_name.strip() if company_name else ""
+            )
+            if header_employment_type:
+                employment_type = header_employment_type
 
             # Get the nested list from detail_children[1]
             nested_container = detail_children[1].locator(".pvs-list__container").first
@@ -466,6 +841,7 @@ class PersonScraper(BaseScraper):
                         Experience(
                             position_title=position_title.strip(),
                             institution_name=company_name.strip(),
+                            employment_type=employment_type,
                             linkedin_url=company_url,
                             from_date=from_date,
                             to_date=to_date,

@@ -21,6 +21,7 @@ class Experience(BaseModel):
 
     position_title: Optional[str] = None
     institution_name: Optional[str] = None
+    employment_type: Optional[str] = None
     linkedin_url: Optional[str] = None
     from_date: Optional[str] = None
     to_date: Optional[str] = None

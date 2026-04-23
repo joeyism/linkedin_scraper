@@ -241,7 +241,7 @@ async def login():
         # Login with credentials
         await login_with_credentials(
             browser.page,
-            username=os.getenv("LINKEDIN_EMAIL"),
+            email=os.getenv("LINKEDIN_EMAIL"),
             password=os.getenv("LINKEDIN_PASSWORD")
         )
         

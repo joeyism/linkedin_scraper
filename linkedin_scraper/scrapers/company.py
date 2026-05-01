@@ -8,7 +8,6 @@ from typing import Optional
 from playwright.async_api import Page
 
 from ..models.company import Company
-from ..core.exceptions import ProfileNotFoundError
 from ..callbacks import ProgressCallback, SilentCallback
 from .base import BaseScraper
 
@@ -63,18 +62,14 @@ class CompanyScraper(BaseScraper):
         name = await self._get_name()
         await self.callback.on_progress(f"Got company name: {name}", 20)
         
-        about_us = await self._get_about()
-        await self.callback.on_progress("Got about section", 30)
-        
-        # Extract overview details
-        overview = await self._get_overview()
+        # Extract overview details (navigates to About tab)
+        overview = await self._get_overview(linkedin_url)
         await self.callback.on_progress("Got overview details", 50)
-        
+
         # Create company object
         company = Company(
             linkedin_url=linkedin_url,
             name=name,
-            about_us=about_us,
             **overview
         )
         
@@ -95,34 +90,15 @@ class CompanyScraper(BaseScraper):
             logger.warning(f"Error getting company name: {e}")
             return "Unknown Company"
     
-    async def _get_about(self) -> Optional[str]:
-        """Extract about/description section."""
-        try:
-            # Look for "About us" section
-            sections = await self.page.locator('section').all()
-            
-            for section in sections:
-                section_text = await section.inner_text()
-                if 'About us' in section_text[:50]:
-                    # Get the content paragraph
-                    paragraphs = await section.locator('p').all()
-                    if paragraphs:
-                        about = await paragraphs[0].inner_text()
-                        return about.strip()
-            
-            return None
-        except Exception as e:
-            logger.debug(f"Error getting about section: {e}")
-            return None
-    
-    async def _get_overview(self) -> dict:
+    async def _get_overview(self, linkedin_url: str) -> dict:
         """
-        Extract company overview details (website, industry, size, etc.).
-        
-        Returns dict with: website, phone, headquarters, founded, industry,
-        company_type, company_size, specialties
+        Navigate to the About tab and extract all company information.
+
+        Returns dict with: about_us, website, phone, headquarters, founded,
+        industry, company_type, company_size, specialties
         """
         overview = {
+            "about_us": None,
             "website": None,
             "phone": None,
             "headquarters": None,
@@ -130,79 +106,48 @@ class CompanyScraper(BaseScraper):
             "industry": None,
             "company_type": None,
             "company_size": None,
-            "specialties": None
+            "specialties": None,
         }
-        
+
+        label_map = {
+            "website": "website",
+            "phone": "phone",
+            "headquarters": "headquarters",
+            "founded": "founded",
+            "industry": "industry",
+            "industries": "industry",
+            "company type": "company_type",
+            "type": "company_type",
+            "company size": "company_size",
+            "size": "company_size",
+            "specialties": "specialties",
+            "specialty": "specialties",
+        }
+
         try:
-            # LinkedIn's new structure (as of 2024+): Uses info items instead of dt/dd
-            info_items = await self.page.locator('.org-top-card-summary-info-list__info-item').all()
-            
-            for item in info_items:
-                text = await item.inner_text()
-                text = text.strip()
-                text_lower = text.lower()
-                
-                # Detect what kind of information this is based on content patterns
-                if 'employee' in text_lower or 'k+' in text_lower:
-                    # Company size (e.g., "10K+ employees", "1,001-5,000 employees")
-                    overview['company_size'] = text
-                elif ',' in text and any(loc in text for loc in ['Washington', 'California', 'New York', 'Texas', 'United States', 'United Kingdom']):
-                    # Headquarters (e.g., "Redmond, Washington", "Mountain View, California")
-                    overview['headquarters'] = text
-                elif any(ind in text_lower for ind in ['software', 'technology', 'financial', 'healthcare', 'retail', 'manufacturing', 'consulting', 'education']):
-                    # Industry (e.g., "Software Development", "Financial Services")
-                    overview['industry'] = text
-                elif 'follower' in text_lower:
-                    # Skip follower count
-                    continue
-            
-            # Try to find website link
-            # LinkedIn often puts website in the about section or as a link
+            about_url = linkedin_url.rstrip("/") + "/about"
+            await self.navigate_and_wait(about_url)
+
+            about = self.page.locator("section").filter(
+                has=self.page.get_by_role("heading", name="Overview")
+            )
+
             try:
-                links = await self.page.locator('a').all()
-                for link in links:
-                    href = await link.get_attribute('href')
-                    if href and 'linkedin' not in href and ('http' in href or 'www.' in href):
-                        link_text = await link.inner_text()
-                        # Skip navigation links, look for actual website URLs
-                        if link_text and any(word in link_text.lower() for word in ['learn more', 'website', 'visit']):
-                            overview['website'] = href
-                            break
+                overview["about_us"] = (await about.locator("p").first.inner_text()).strip()
             except Exception as e:
-                logger.debug(f"Error finding website: {e}")
-            
-            # Fallback: Try old dt/dd structure (for backwards compatibility)
-            if not any(overview.values()):
-                dt_elements = await self.page.locator('dt').all()
-                
-                for dt in dt_elements:
-                    label = await dt.inner_text()
-                    label = label.strip().lower()
-                    
-                    dd = dt.locator('xpath=following-sibling::dd[1]')
-                    value = await dd.inner_text() if await dd.count() > 0 else None
-                    
-                    if value:
-                        value = value.strip()
-                        
-                        if 'website' in label:
-                            overview['website'] = value
-                        elif 'phone' in label:
-                            overview['phone'] = value
-                        elif 'headquarters' in label or 'location' in label:
-                            overview['headquarters'] = value
-                        elif 'founded' in label:
-                            overview['founded'] = value
-                        elif 'industry' in label or 'industries' in label:
-                            overview['industry'] = value
-                        elif 'company type' in label or 'type' in label:
-                            overview['company_type'] = value
-                        elif 'company size' in label or 'size' in label:
-                            overview['company_size'] = value
-                        elif 'specialt' in label:
-                            overview['specialties'] = value
-            
+                logger.debug(f"Error getting overview text: {e}")
+
+            labels = await about.locator("dt").all()
+            for dt in labels:
+                key = (await dt.inner_text()).strip().lower()
+                dd = dt.locator("xpath=following-sibling::dd[1]")
+                if await dd.count() > 0:
+                    value = (await dd.inner_text()).strip()
+                    field = label_map.get(key)
+                    if field:
+                        overview[field] = value
+
         except Exception as e:
             logger.debug(f"Error getting company overview: {e}")
-        
+
         return overview

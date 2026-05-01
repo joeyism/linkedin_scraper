@@ -5,16 +5,18 @@ Example: Scrape a LinkedIn company page
 This example shows how to use the CompanyScraper to scrape company information.
 """
 import asyncio
+import logging
 from linkedin_scraper.scrapers.company import CompanyScraper
 from linkedin_scraper.core.browser import BrowserManager
 
 
 async def main():
     """Scrape a single company"""
-    company_url = "https://www.linkedin.com/company/microsoft/"
+    logging.basicConfig(level=logging.DEBUG)
+    company_url = "https://www.linkedin.com/company/rovisys/"
     
     # Initialize and start browser using context manager
-    async with BrowserManager(headless=True) as browser:
+    async with BrowserManager(headless=False) as browser:
         # Load existing session (must be created first - see README for setup)
         await browser.load_session("linkedin_session.json")
         print("✓ Session loaded")
@@ -37,6 +39,7 @@ async def main():
         if company.about_us:
             print(f"About: {company.about_us[:150]}...")
         print("="*60)
+        print(company.to_json(indent=2))
     
     print("\n✓ Done!")
 

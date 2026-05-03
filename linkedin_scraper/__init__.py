@@ -48,8 +48,6 @@ from .models import (
     Accomplishment,
     Interest,
     Company,
-    CompanySummary,
-    Employee,
     Job,
     Post,
 )
@@ -92,8 +90,6 @@ __all__ = [
     "Accomplishment",
     "Interest",
     "Company",
-    "CompanySummary",
-    "Employee",
     "Job",
     "Post",
 ]

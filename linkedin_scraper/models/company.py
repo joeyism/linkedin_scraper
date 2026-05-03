@@ -1,27 +1,13 @@
 """Pydantic models for LinkedIn Company data."""
 
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, field_validator
-
-
-class CompanySummary(BaseModel):
-    """Summary information for affiliated/showcase companies."""
-    linkedin_url: Optional[str] = None
-    name: Optional[str] = None
-    followers: Optional[str] = None
-
-
-class Employee(BaseModel):
-    """Employee information."""
-    name: str
-    designation: Optional[str] = None
-    linkedin_url: Optional[str] = None
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, field_validator
 
 
 class Company(BaseModel):
     """
     LinkedIn Company model with validation.
-    
+
     Represents a complete LinkedIn company page with all scraped data.
     """
     linkedin_url: str
@@ -35,10 +21,6 @@ class Company(BaseModel):
     company_type: Optional[str] = None
     company_size: Optional[str] = None
     specialties: Optional[str] = None
-    headcount: Optional[int] = None
-    showcase_pages: List[CompanySummary] = Field(default_factory=list)
-    affiliated_companies: List[CompanySummary] = Field(default_factory=list)
-    employees: List[Employee] = Field(default_factory=list)
     
     @field_validator('linkedin_url')
     @classmethod
@@ -75,6 +57,5 @@ class Company(BaseModel):
             f"<Company {self.name}\n"
             f"  Industry: {self.industry}\n"
             f"  Size: {self.company_size}\n"
-            f"  Headquarters: {self.headquarters}\n"
-            f"  Employees: {len(self.employees) if self.employees else 0}>"
+            f"  Headquarters: {self.headquarters}>"
         )

@@ -2,8 +2,11 @@
 Job scraper for LinkedIn.
 
 Extracts job posting information from LinkedIn job pages.
+Uses robust content-based extraction compatible with LinkedIn's
+dynamic React rendering (randomized class names).
 """
 import logging
+import re
 from typing import Optional
 from playwright.async_api import Page
 
@@ -18,70 +21,47 @@ logger = logging.getLogger(__name__)
 class JobScraper(BaseScraper):
     """
     Scraper for LinkedIn job postings.
-    
+
     Example:
         async with BrowserManager() as browser:
             scraper = JobScraper(browser.page)
             job = await scraper.scrape("https://www.linkedin.com/jobs/view/123456/")
             print(job.to_json())
     """
-    
+
     def __init__(self, page: Page, callback: Optional[ProgressCallback] = None):
-        """
-        Initialize job scraper.
-        
-        Args:
-            page: Playwright page object
-            callback: Optional progress callback
-        """
         super().__init__(page, callback or SilentCallback())
-    
+
     async def scrape(self, linkedin_url: str) -> Job:
-        """
-        Scrape a LinkedIn job posting.
-        
-        Args:
-            linkedin_url: URL of the LinkedIn job posting
-            
-        Returns:
-            Job object with scraped data
-            
-        Raises:
-            ProfileNotFoundError: If job posting not found
-        """
         logger.info(f"Starting job scraping: {linkedin_url}")
         await self.callback.on_start("Job", linkedin_url)
-        
-        # Navigate to job page
+
         await self.navigate_and_wait(linkedin_url)
         await self.callback.on_progress("Navigated to job page", 10)
-        
-        # Check if page exists
+
         await self.check_rate_limit()
-        
-        # Extract job details
+
         job_title = await self._get_job_title()
         await self.callback.on_progress(f"Got job title: {job_title}", 20)
-        
+
         company = await self._get_company()
         await self.callback.on_progress("Got company name", 30)
-        
+
         location = await self._get_location()
         await self.callback.on_progress("Got location", 40)
-        
+
         posted_date = await self._get_posted_date()
         await self.callback.on_progress("Got posted date", 50)
-        
+
         applicant_count = await self._get_applicant_count()
         await self.callback.on_progress("Got applicant count", 60)
-        
+
         job_description = await self._get_description()
         await self.callback.on_progress("Got job description", 80)
-        
+
         company_url = await self._get_company_url()
         await self.callback.on_progress("Got company URL", 90)
-        
-        # Create job object
+
         job = Job(
             linkedin_url=linkedin_url,
             job_title=job_title,
@@ -90,42 +70,70 @@ class JobScraper(BaseScraper):
             location=location,
             posted_date=posted_date,
             applicant_count=applicant_count,
-            job_description=job_description
+            job_description=job_description,
         )
-        
+
         await self.callback.on_progress("Scraping complete", 100)
         await self.callback.on_complete("Job", job)
-        
+
         logger.info(f"Successfully scraped job: {job_title}")
         return job
-    
+
+    async def _get_header_text(self) -> Optional[str]:
+        """Get the full text of the job header block from the first <main> column."""
+        try:
+            return await self.page.evaluate("""() => {
+                const main = document.querySelector('main');
+                if (!main) return null;
+                const firstCol = main.querySelector(':scope > div');
+                if (!firstCol) return null;
+                return firstCol.innerText;
+            }""")
+        except Exception as e:
+            logger.debug(f"Error getting header text: {e}")
+            return None
+
+    def _clean(self, text: str) -> str:
+        """Remove Unicode formatting characters and normalize whitespace."""
+        text = text.replace('\u200e', '').replace('\u200f', '')
+        text = text.replace('\u2066', '').replace('\u2067', '').replace('\u2068', '').replace('\u2069', '')
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+
     async def _get_job_title(self) -> Optional[str]:
-        """Extract job title from h1 heading."""
+        """Extract job title from document.title (most reliable across locales)."""
+        try:
+            title = await self.page.evaluate("document.title")
+            if title:
+                title = self._clean(title)
+                # "Job Title | Company | LinkedIn"
+                parts = title.split('|')
+                if parts:
+                    return parts[0].strip()
+        except:
+            pass
         try:
             title_elem = self.page.locator('h1').first
-            await title_elem.wait_for(timeout=5000)
+            await title_elem.wait_for(timeout=3000)
             title = await title_elem.inner_text()
-            return title.strip()
+            return self._clean(title)
         except:
-            return None
-    
+            pass
+        return None
+
     async def _get_company(self) -> Optional[str]:
-        """Extract company name from company link."""
         try:
-            # Find company links that have text (not just images)
             company_links = await self.page.locator('a[href*="/company/"]').all()
             for link in company_links:
                 text = await link.inner_text()
-                text = text.strip()
-                # Skip empty or very short text (likely image-only links)
+                text = self._clean(text)
                 if text and len(text) > 1 and not text.startswith('logo'):
                     return text
         except:
             pass
         return None
-    
+
     async def _get_company_url(self) -> Optional[str]:
-        """Extract company LinkedIn URL."""
         try:
             company_link = self.page.locator('a[href*="/company/"]').first
             if await company_link.count() > 0:
@@ -139,102 +147,131 @@ class JobScraper(BaseScraper):
         except:
             pass
         return None
-    
+
+    async def _get_metadata_parts(self) -> list[str]:
+        """
+        Parse the metadata line (Location · Date · Applicants) from the header block.
+        Returns a list of up to 3 parts.
+        """
+        try:
+            text = await self._get_header_text()
+            if not text:
+                return []
+
+            lines = text.split('\n')
+            for line in lines:
+                line = self._clean(line)
+                if '·' in line:
+                    parts = [p.strip() for p in line.split('·')]
+                    if 2 <= len(parts) <= 4:
+                        return parts
+        except:
+            pass
+        return []
+
     async def _get_location(self) -> Optional[str]:
-        """Extract job location from job details panel."""
-        try:
-            container = self.page.locator('.job-details-jobs-unified-top-card__primary-description-container').first
-            if await container.count() > 0:
-                text = await container.inner_text()
-                parts = text.split('·')
-                if parts:
-                    return parts[0].strip().split('\n')[0].strip()
-        except:
-            pass
-            
-        try:
-            job_panel = self.page.locator('h1').first.locator('xpath=ancestor::*[5]')
-            if await job_panel.count() > 0:
-                text_elements = await job_panel.locator('span, div').all()
-                for elem in text_elements:
-                    text = await elem.inner_text()
-                    if text and (',' in text or 'Remote' in text or 'United States' in text):
-                        text = text.strip()
-                        # Avoid matching the job title if it contains a comma
-                        title = await self._get_job_title()
-                        if title and text == title:
-                            continue
-                        if len(text) > 3 and len(text) < 100 and not text.startswith('$'):
-                            return text
-        except:
-            pass
+        parts = await self._get_metadata_parts()
+        if parts:
+            return parts[0]
         return None
-    
+
     async def _get_posted_date(self) -> Optional[str]:
-        """Extract posted date from job details."""
-        try:
-            container = self.page.locator('.job-details-jobs-unified-top-card__primary-description-container').first
-            if await container.count() > 0:
-                text = await container.inner_text()
-                parts = text.split('·')
-                if len(parts) > 1:
-                    return parts[1].strip().split('\n')[0].strip()
-        except:
-            pass
-            
-        try:
-            text_elements = await self.page.locator('span, div').all()
-            for elem in text_elements:
-                text = await elem.inner_text()
-                if text and ('ago' in text.lower() or 'day' in text.lower() or 'week' in text.lower() or 'hour' in text.lower()):
-                    text = text.strip()
-                    if len(text) < 50:
-                        return text
-        except:
-            pass
+        parts = await self._get_metadata_parts()
+        if len(parts) > 1:
+            date_text = parts[1]
+            date_text = date_text.replace('\u0660', '0').replace('\u0661', '1').replace('\u0662', '2').replace('\u0663', '3').replace('\u0664', '4').replace('\u0665', '5').replace('\u0666', '6').replace('\u0667', '7').replace('\u0668', '8').replace('\u0669', '9')
+            return date_text
         return None
-    
+
     async def _get_applicant_count(self) -> Optional[str]:
-        """Extract applicant count from job details."""
-        try:
-            container = self.page.locator('.job-details-jobs-unified-top-card__primary-description-container').first
-            if await container.count() > 0:
-                text = await container.inner_text()
-                parts = text.split('·')
-                if len(parts) > 2:
-                    return parts[2].strip().split('\n')[0].strip()
-        except:
-            pass
-            
-        try:
-            main_content = self.page.locator('main').first
-            if await main_content.count() > 0:
-                text_elements = await main_content.locator('span, div').all()
-                for elem in text_elements:
-                    text = await elem.inner_text()
-                    text = text.strip()
-                    if text and len(text) < 50:
-                        text_lower = text.lower()
-                        if 'applicant' in text_lower or 'people clicked' in text_lower or 'applied' in text_lower:
-                            return text
-        except:
-            pass
+        parts = await self._get_metadata_parts()
+        if len(parts) > 2:
+            return parts[2]
         return None
-    
+
     async def _get_description(self) -> Optional[str]:
-        """Extract job description from article or about section."""
+        """
+        Extract job description. Tries multiple strategies:
+        1. Content after an h2 containing "About" (multi-locale)
+        2. Element with data-testid="expandable-text-box"
+        3. All text from <main> after stripping known header metadata
+        """
+        await self.wait_and_focus(2)
         try:
-            about_heading = self.page.locator('h2:has-text("About the job")').first
-            if await about_heading.count() > 0:
-                article = about_heading.locator('xpath=ancestor::article[1]')
-                if await article.count() > 0:
-                    description = await article.inner_text()
-                    return description.strip()
-            
-            article = self.page.locator('article').first
-            if await article.count() > 0:
-                description = await article.inner_text()
-                return description.strip()
+            desc = await self._get_description_via_heading()
+            if desc:
+                logger.debug(f"Description from heading strategy ({len(desc)} chars)")
+                return desc
+        except Exception as e:
+            logger.debug(f"Heading strategy failed: {e}")
+        try:
+            desc = await self._get_description_via_testid()
+            if desc:
+                logger.debug(f"Description from testid strategy ({len(desc)} chars)")
+                return desc
+        except Exception as e:
+            logger.debug(f"Testid strategy failed: {e}")
+        try:
+            desc = await self._get_description_via_main()
+            if desc:
+                logger.debug(f"Description from main strategy ({len(desc)} chars)")
+                return desc
+        except Exception as e:
+            logger.debug(f"Main strategy failed: {e}")
+        return None
+
+    async def _get_description_via_heading(self) -> Optional[str]:
+        """Find an h2 with about-related text, return the section content after the heading."""
+        return await self.page.evaluate("""() => {
+            const headings = document.querySelectorAll('h2');
+            for (const h2 of headings) {
+                const text = h2.innerText.toLowerCase().trim();
+                if (text.includes('about') || text.includes('لمحة') || text.includes('описание') || text.includes('描述') || text.includes('à propos') || text.includes('über')) {
+                    const headingText = h2.innerText.trim();
+                    const pageText = document.body.innerText;
+                    const idx = pageText.indexOf(headingText);
+                    if (idx === -1) continue;
+                    const after = pageText.substring(idx + headingText.length).trim();
+                    const lines = after.split('\\n').filter(l => l.trim());
+                    const filtered = [];
+                    for (const line of lines) {
+                        const clean = line.trim();
+                        if (!clean || clean.length < 5) continue;
+                        if (/^(تطبيق|حفظ|نشر|عرض ترتيبك|قم بالوصول|تجربة Premium|هل تبحث|إمكانية|حلول|سياسة|إرشادات|المهن|خصوصية|خيارات|جوال|أعمال|مركز|شركة|لديك|إدارة|شفافية|تحديد|اللغة|English|Français|Deutsch|Español|العربية|বাংলা|Čeština|Dansk|Ελληνικά|Suomi|हिंदी|Magyar|Indonesia|Italiano|日本語|한국어|Nederlands|Norsk|Polski|Português|Română|Русский|Svenska|Tagalog|Türkçe|Українська|Tiếng)/i.test(clean)) continue;
+                        if (clean.includes('LinkedIn') && clean.length < 30) continue;
+                        filtered.push(clean);
+                    }
+                    if (filtered.length) return filtered.join('\\n\\n');
+                }
+            }
+            return null;
+        }""")
+
+    async def _get_description_via_testid(self) -> Optional[str]:
+        try:
+            box = self.page.locator('[data-testid="expandable-text-box"]').first
+            if await box.count() > 0:
+                return self._clean(await box.inner_text())
         except:
             pass
         return None
+
+    async def _get_description_via_main(self) -> Optional[str]:
+        """Fallback: grab text from <main> after filtering out header/UI noise."""
+        return await self.page.evaluate("""() => {
+            const main = document.querySelector('main');
+            if (!main) return null;
+            const allText = main.innerText;
+            const lines = allText.split('\\n').filter(l => l.trim());
+            const seen = new Set();
+            const filtered = [];
+            for (const line of lines) {
+                const clean = line.trim();
+                if (!clean || clean.length < 5) continue;
+                const key = clean.substring(0, 30);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                filtered.push(clean);
+            }
+            return filtered.join('\\n\\n');
+        }""")

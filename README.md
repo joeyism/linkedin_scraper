@@ -422,3 +422,31 @@ This tool is for educational purposes only. Make sure to comply with LinkedIn's 
 - [GitHub Repository](https://github.com/joeyism/linkedin_scraper)
 - [Issue Tracker](https://github.com/joeyism/linkedin_scraper/issues)
 - [PyPI Package](https://pypi.org/project/linkedin-scraper/)
+
+## 📸 Download avatars & auth from your existing Chrome session (macOS)
+
+Two additions for saving profile **headshots** without storing your password:
+
+**`get_chrome_linkedin_cookies()`** — authenticate from a Chrome profile that's
+already logged in to LinkedIn. It decrypts the cookies (via the macOS Keychain)
+and returns them for `context.add_cookies()`. No `LINKEDIN_PASSWORD` needed.
+
+**`AvatarScraper`** — download the main profile photo to an image file. It
+element-screenshots the rendered `<img>` (the only reliable way — the CDN URL is
+token-signed, `fetch`/`canvas` are blocked, and the profile PDF has no image).
+
+```python
+from linkedin_scraper import BrowserManager, get_chrome_linkedin_cookies, AvatarScraper
+
+cookies = get_chrome_linkedin_cookies()
+async with BrowserManager(headless=True, viewport={"width": 1400, "height": 900},
+                          device_scale_factor=2) as page:
+    await page.context.add_cookies(cookies)
+    result = await AvatarScraper(page).download(
+        "https://www.linkedin.com/in/some-person/", "out.png")
+    # {'saved': True, 'path': 'out.png', 'rendered': (152, 152)}
+```
+
+CLI: `python samples/download_avatar.py <profile-url> out.png`.
+See [`skills/linkedin-avatar/SKILL.md`](skills/linkedin-avatar/SKILL.md).
+Pace requests and respect LinkedIn's Terms.

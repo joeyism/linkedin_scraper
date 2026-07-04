@@ -11,6 +11,7 @@ from .core import (
     is_logged_in,
     wait_for_manual_login,
     load_credentials_from_env,
+    get_chrome_linkedin_cookies,
     # Exceptions
     LinkedInScraperException,
     AuthenticationError,
@@ -28,6 +29,7 @@ from .scrapers import (
     JobScraper,
     JobSearchScraper,
     CompanyPostsScraper,
+    AvatarScraper,
 )
 
 # Callbacks
@@ -64,12 +66,14 @@ __all__ = [
     "is_logged_in",
     "wait_for_manual_login",
     "load_credentials_from_env",
+    "get_chrome_linkedin_cookies",
     # Scrapers
     "PersonScraper",
     "CompanyScraper",
     "JobScraper",
     "JobSearchScraper",
     "CompanyPostsScraper",
+    "AvatarScraper",
     # Exceptions
     "LinkedInScraperException",
     "AuthenticationError",

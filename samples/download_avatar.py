@@ -1,27 +1,35 @@
-"""Download a LinkedIn profile avatar using your existing Chrome login (macOS).
+"""Download a LinkedIn profile avatar to an image file.
 
+    export LI_AT=<your li_at cookie value>
     python samples/download_avatar.py https://www.linkedin.com/in/some-person/ out.png
 
-No LinkedIn password needed — it reuses the cookies from your logged-in Chrome.
+Authentication is "bring your own" — any logged-in Playwright context works. This
+sample uses the library's ``login_with_cookie`` with the ``li_at`` cookie from the
+``LI_AT`` environment variable. (Grab ``li_at`` from your browser's LinkedIn cookies,
+or use ``login_with_credentials`` / ``wait_for_manual_login`` instead.)
 """
 import asyncio
+import os
 import sys
 
 from linkedin_scraper import (
     BrowserManager,
-    get_chrome_linkedin_cookies,
+    login_with_cookie,
     AvatarScraper,
 )
 
 
 async def main(url: str, out: str) -> None:
-    cookies = get_chrome_linkedin_cookies()  # from Chrome "Default" profile
+    li_at = os.environ.get("LI_AT")
+    if not li_at:
+        print("Set the LI_AT environment variable to your li_at cookie value.")
+        sys.exit(1)
     async with BrowserManager(
         headless=True,
         viewport={"width": 1400, "height": 900},
         device_scale_factor=2,  # 2x for a crisp headshot
     ) as page:
-        await page.context.add_cookies(cookies)
+        await login_with_cookie(page, li_at)
         result = await AvatarScraper(page).download(url, out)
         print(result)
 

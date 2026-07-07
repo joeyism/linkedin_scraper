@@ -9,7 +9,6 @@ from .auth import (
     load_credentials_from_env,
     warm_up_browser
 )
-from .chrome_cookies import get_chrome_linkedin_cookies
 from .exceptions import (
     LinkedInScraperException,
     AuthenticationError,
@@ -41,7 +40,6 @@ __all__ = [
     'wait_for_manual_login',
     'load_credentials_from_env',
     'warm_up_browser',
-    'get_chrome_linkedin_cookies',
     # Exceptions
     'LinkedInScraperException',
     'AuthenticationError',

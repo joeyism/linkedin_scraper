@@ -9,14 +9,15 @@ This scraper finds the largest *square* ``media.licdn.com`` image on the profile
 (the main photo, not the cover banner or tiny mutual-connection thumbnails) and
 screenshots it.
 
-Example::
+Bring your own authentication — any logged-in Playwright context works. The
+simplest is the library's ``login_with_cookie`` with your ``li_at`` cookie::
 
-    from linkedin_scraper import BrowserManager, get_chrome_linkedin_cookies, AvatarScraper
+    import os
+    from linkedin_scraper import BrowserManager, login_with_cookie, AvatarScraper
 
-    cookies = get_chrome_linkedin_cookies()
     async with BrowserManager(headless=True, viewport={"width": 1400, "height": 900},
                               device_scale_factor=2) as page:
-        await page.context.add_cookies(cookies)
+        await login_with_cookie(page, os.environ["LI_AT"])
         result = await AvatarScraper(page).download(
             "https://www.linkedin.com/in/some-person/", "some-person.png")
         print(result)  # {'saved': True, 'path': 'some-person.png', 'rendered': (152, 152)}

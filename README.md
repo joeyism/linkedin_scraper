@@ -423,30 +423,27 @@ This tool is for educational purposes only. Make sure to comply with LinkedIn's 
 - [Issue Tracker](https://github.com/joeyism/linkedin_scraper/issues)
 - [PyPI Package](https://pypi.org/project/linkedin-scraper/)
 
-## 📸 Download avatars & auth from your existing Chrome session (macOS)
+## 📸 Download profile avatars
 
-Two additions for saving profile **headshots** without storing your password:
-
-**`get_chrome_linkedin_cookies()`** — authenticate from a Chrome profile that's
-already logged in to LinkedIn. It decrypts the cookies (via the macOS Keychain)
-and returns them for `context.add_cookies()`. No `LINKEDIN_PASSWORD` needed.
-
-**`AvatarScraper`** — download the main profile photo to an image file. It
+**`AvatarScraper`** — download the main profile **headshot** to an image file. It
 element-screenshots the rendered `<img>` (the only reliable way — the CDN URL is
 token-signed, `fetch`/`canvas` are blocked, and the profile PDF has no image).
 
-```python
-from linkedin_scraper import BrowserManager, get_chrome_linkedin_cookies, AvatarScraper
+Authenticate with any of the existing helpers (bring your own): a `li_at` cookie,
+credentials, or manual login. The example below uses the `li_at` cookie.
 
-cookies = get_chrome_linkedin_cookies()
+```python
+import os
+from linkedin_scraper import BrowserManager, login_with_cookie, AvatarScraper
+
 async with BrowserManager(headless=True, viewport={"width": 1400, "height": 900},
                           device_scale_factor=2) as page:
-    await page.context.add_cookies(cookies)
+    await login_with_cookie(page, os.environ["LI_AT"])
     result = await AvatarScraper(page).download(
         "https://www.linkedin.com/in/some-person/", "out.png")
     # {'saved': True, 'path': 'out.png', 'rendered': (152, 152)}
 ```
 
-CLI: `python samples/download_avatar.py <profile-url> out.png`.
+CLI: `LI_AT=<cookie> python samples/download_avatar.py <profile-url> out.png`.
 See [`skills/linkedin-avatar/SKILL.md`](skills/linkedin-avatar/SKILL.md).
 Pace requests and respect LinkedIn's Terms.

@@ -40,6 +40,9 @@ MANIFEST
 MANIFEST.ini
 .pytest_cache/
 
+# Local uv lockfile (library uses pyproject/requirements)
+uv.lock
+
 # Basic package build artifacts
 build-basic/
 dist-basic/

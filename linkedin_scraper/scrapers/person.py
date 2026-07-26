@@ -1,16 +1,55 @@
 """Person/Profile scraper for LinkedIn."""
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
-from urllib.parse import urljoin
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple
+from urllib.parse import urlparse
 from playwright.async_api import Page
 
 from .base import BaseScraper
 from ..models import Person, Experience, Education, Accomplishment, Interest, Contact
-from ..callbacks import ProgressCallback, SilentCallback
+from ..callbacks import ProgressCallback
 from ..core.exceptions import ScrapingError
+from ._person_links import (
+    classify_link,
+    contact_type_from_heading,
+    merge_contacts,
+    profile_detail_url,
+    unwrap_href,
+)
+from ._person_parsing import (
+    _looks_like_job_title,
+    is_education_metadata,
+    is_valid_institution,
+    item_text_and_url,
+    looks_like_date_line,
+    looks_like_degree,
+    parse_education_times,
+    parse_education_lines,
+    parse_educations_text,
+    parse_experience_lines,
+    parse_experiences_text,
+    parse_work_times,
+    section_lines,
+)
 
 logger = logging.getLogger(__name__)
+
+# Profile section headings that appear as <h2> but are not the person's name
+_SECTION_HEADINGS = {
+    "About",
+    "Featured",
+    "Activity",
+    "Experience",
+    "Education",
+    "Skills",
+    "Interests",
+    "Analytics",
+    "Explore Premium profiles",
+    "People also viewed",
+    "Ad Options",
+}
 
 
 class PersonScraper(BaseScraper):
@@ -26,15 +65,48 @@ class PersonScraper(BaseScraper):
         """
         super().__init__(page, callback)
 
-    async def scrape(self, linkedin_url: str) -> Person:
+    async def _wait_for_detail_section(self, heading: str) -> None:
+        """Wait for a details page section, falling back to bare main."""
+        try:
+            await self.page.wait_for_selector(
+                f'main:has-text("{heading}")', timeout=5000
+            )
+        except Exception:
+            await self.page.wait_for_selector("main", timeout=5000)
+
+    @staticmethod
+    def _section_lines(text: str, header: str, stop_headers: Set[str]) -> List[str]:
+        """Return non-empty lines after `header` until a stop header/footer."""
+        return section_lines(text, header, stop_headers)
+
+    @staticmethod
+    def _unwrap_href(href: str) -> str:
+        """Unwrap LinkedIn safety/redirect URLs to the real destination."""
+        return unwrap_href(href)
+
+    @classmethod
+    def _classify_link(cls, href: str, label: Optional[str] = None) -> Contact:
+        """Classify an outbound URL into a typed Contact."""
+        return classify_link(href, label)
+
+    async def scrape(
+        self,
+        linkedin_url: str,
+        *,
+        include_interests: bool = True,
+        include_accomplishments: bool = True,
+    ) -> Person:
         """
         Scrape a LinkedIn person profile.
 
         Args:
             linkedin_url: LinkedIn profile URL
+            include_interests: Also scrape interests tabs (enabled by default)
+            include_accomplishments: Also scrape certifications/honors/etc.
+                (enabled by default for backward compatibility)
 
         Returns:
-            Person object with all scraped data
+            Person object with scraped data
 
         Raises:
             AuthenticationError: If not logged in
@@ -43,48 +115,41 @@ class PersonScraper(BaseScraper):
         await self.callback.on_start("person", linkedin_url)
 
         try:
-            # Navigate to profile first (this loads the page with our session)
             await self.navigate_and_wait(linkedin_url)
             await self.callback.on_progress("Navigated to profile", 10)
-
-            # Now check if logged in
             await self.ensure_logged_in()
-
-            # Wait for main content
             await self.page.wait_for_selector("main", timeout=10000)
-            await self.wait_and_focus(1)
 
-            # Get name and location
             name, location = await self._get_name_and_location()
             await self.callback.on_progress(f"Got name: {name}", 20)
 
-            # Check open to work
             open_to_work = await self._check_open_to_work()
-
-            # Get about
             about = await self._get_about()
             await self.callback.on_progress("Got about section", 30)
 
-            # Scroll to load content
-            await self.scroll_page_to_half()
-            await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=3)
+            # Capture Featured / custom links while still on the main profile
+            profile_links = await self._extract_outbound_links()
 
-            # Get experiences
             experiences = await self._get_experiences(linkedin_url)
-            await self.callback.on_progress(f"Got {len(experiences)} experiences", 60)
+            await self.callback.on_progress(f"Got {len(experiences)} experiences", 55)
 
             educations = await self._get_educations(linkedin_url)
-            await self.callback.on_progress(f"Got {len(educations)} educations", 50)
+            await self.callback.on_progress(f"Got {len(educations)} educations", 70)
 
-            interests = await self._get_interests(linkedin_url)
-            await self.callback.on_progress(f"Got {len(interests)} interests", 65)
+            interests: List[Interest] = []
+            if include_interests:
+                interests = await self._get_interests(linkedin_url)
+                await self.callback.on_progress(f"Got {len(interests)} interests", 80)
 
-            accomplishments = await self._get_accomplishments(linkedin_url)
-            await self.callback.on_progress(
-                f"Got {len(accomplishments)} accomplishments", 85
-            )
+            accomplishments: List[Accomplishment] = []
+            if include_accomplishments:
+                accomplishments = await self._get_accomplishments(linkedin_url)
+                await self.callback.on_progress(
+                    f"Got {len(accomplishments)} accomplishments", 90
+                )
 
             contacts = await self._get_contacts(linkedin_url)
+            contacts = self._merge_contacts(contacts, profile_links)
             await self.callback.on_progress(f"Got {len(contacts)} contacts", 95)
 
             person = Person(
@@ -102,24 +167,72 @@ class PersonScraper(BaseScraper):
 
             await self.callback.on_progress("Scraping complete", 100)
             await self.callback.on_complete("person", person)
-
             return person
 
         except Exception as e:
             await self.callback.on_error(e)
             raise ScrapingError(f"Failed to scrape person profile: {e}")
 
-    async def _get_name_and_location(self) -> tuple[str, Optional[str]]:
+    async def _get_name_and_location(self) -> Tuple[str, Optional[str]]:
         """Extract name and location from profile."""
         try:
-            name = await self.safe_extract_text("h1", default="Unknown")
-            location = await self.safe_extract_text(
-                ".text-body-small.inline.t-black--light.break-words", default=""
-            )
-            return name, location if location else None
+            name = await self.safe_extract_text("h1", default="")
+            if not name:
+                for h2 in await self.page.locator("h2").all():
+                    txt = (await h2.text_content() or "").strip()
+                    if (
+                        txt
+                        and txt not in _SECTION_HEADINGS
+                        and "notification" not in txt.lower()
+                    ):
+                        name = txt
+                        break
+
+            location = None
+            if name:
+                main_text = await self.page.locator("main").first.inner_text()
+                location = self._location_from_header_lines(main_text, name)
+
+            return name if name else "Unknown", location
         except Exception as e:
             logger.warning(f"Error getting name/location: {e}")
             return "Unknown", None
+
+    @staticmethod
+    def _location_from_header_lines(text: str, name: str) -> Optional[str]:
+        """
+        Location sits after name/(pronouns)/headline and before Contact info.
+        Taking the last header line avoids picking suggested-profile headlines.
+        """
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        header: List[str] = []
+        past_name = False
+        for line in lines:
+            if not past_name:
+                if line == name:
+                    past_name = True
+                continue
+            lower = line.lower()
+            if (
+                lower.startswith("contact")
+                or "follower" in lower
+                or "connection" in lower
+            ):
+                break
+            if line in {"·", "•"}:
+                continue
+            # Pronouns like "He/Him"
+            if (
+                "/" in line
+                and len(line) <= 20
+                and any(p in line for p in ("Him", "Her", "Them"))
+            ):
+                continue
+            header.append(line)
+        # [headline, location] or just [location]
+        if not header:
+            return None
+        return header[-1]
 
     async def _check_open_to_work(self) -> bool:
         """Check if profile has open to work badge."""
@@ -133,360 +246,190 @@ class PersonScraper(BaseScraper):
             return False
 
     async def _get_about(self) -> Optional[str]:
-        """Extract about section."""
+        """Extract about section from profile sections."""
         try:
-            # Find the profile card that contains "About"
-            profile_cards = await self.page.locator(
-                '[data-view-name="profile-card"]'
-            ).all()
-
-            for card in profile_cards:
-                card_text = await card.inner_text()
-                # Check if this card contains "About" heading
-                if card_text.strip().startswith("About"):
-                    # Get the span with aria-hidden to avoid duplication
-                    about_spans = await card.locator('span[aria-hidden="true"]').all()
-                    # Skip the first span (it's the "About" heading), get the content
-                    if len(about_spans) > 1:
-                        about_text = await about_spans[1].text_content()
-                        return about_text.strip() if about_text else None
-
+            for section in await self.page.locator("section").all():
+                txt = await section.inner_text()
+                lines = [line.strip() for line in txt.splitlines() if line.strip()]
+                if not lines or lines[0] != "About":
+                    continue
+                # Stop before UI chrome like "… more" / next section bleed
+                body = []
+                for line in lines[1:]:
+                    if line in _SECTION_HEADINGS or line in {"… more", "... more"}:
+                        break
+                    body.append(line)
+                if body:
+                    return "\n".join(body).strip()
             return None
         except Exception as e:
             logger.debug(f"Error getting about section: {e}")
             return None
 
-    async def _get_experiences(self, base_url: str) -> list[Experience]:
-        """Extract experiences from the main profile page Experience section."""
-        experiences = []
-
+    async def _get_experiences(self, base_url: str) -> List[Experience]:
+        """Extract experiences from the details/experience page (complete list)."""
         try:
-            experience_heading = self.page.locator('h2:has-text("Experience")').first
-            
-            if await experience_heading.count() > 0:
-                experience_section = experience_heading.locator('xpath=ancestor::*[.//ul or .//ol][1]')
-                if await experience_section.count() == 0:
-                    experience_section = experience_heading.locator('xpath=ancestor::*[4]')
-                
-                if await experience_section.count() > 0:
-                    items = await experience_section.locator('ul > li, ol > li').all()
-                    
-                    for item in items:
-                        try:
-                            exp = await self._parse_main_page_experience(item)
-                            if exp:
-                                experiences.append(exp)
-                        except Exception as e:
-                            logger.debug(f"Error parsing experience from main page: {e}")
-                            continue
-            
-            if not experiences:
-                exp_url = urljoin(base_url, "details/experience")
-                await self.navigate_and_wait(exp_url)
-                await self.page.wait_for_selector("main", timeout=10000)
-                await self.wait_and_focus(1.5)
-                await self.scroll_page_to_half()
-                await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
-
-                items = []
-                main_element = self.page.locator('main')
-                if await main_element.count() > 0:
-                    list_items = await main_element.locator('list > listitem, ul > li').all()
-                    if list_items:
-                        items = list_items
-                
-                if not items:
-                    old_list = self.page.locator(".pvs-list__container").first
-                    if await old_list.count() > 0:
-                        items = await old_list.locator(".pvs-list__paged-list-item").all()
-
-                for item in items:
-                    try:
-                        result = await self._parse_experience_item(item)
-                        if result:
-                            if isinstance(result, list):
-                                experiences.extend(result)
-                            else:
-                                experiences.append(result)
-                    except Exception as e:
-                        logger.debug(f"Error parsing experience item: {e}")
-                        continue
-
+            return await self._fetch_experiences_from_details(base_url)
         except Exception as e:
             logger.warning(
                 f"Error getting experiences: {e}. The experience section may not be available or the page structure has changed."
             )
+            return []
 
+    async def _fetch_experiences_from_details(self, base_url: str) -> List[Experience]:
+        """Scrape complete experience cards, with text as a fallback."""
+        exp_url = profile_detail_url(base_url, "details/experience/")
+        await self.navigate_and_wait(exp_url)
+        await self._wait_for_detail_section("Experience")
+        await self.scroll_page_to_bottom(pause_time=0.3, max_scrolls=4)
+
+        experiences = await self._parse_experience_cards()
+        if experiences:
+            return self._dedupe_experiences(experiences)
+
+        # Prefer full details-page text over truncated main-profile cards.
+        page_text = await self.page.locator("main").first.inner_text()
+        experiences = self._parse_experiences_from_text(page_text)
+        if experiences:
+            experiences = await self._attach_organization_urls(experiences, "/company/")
+            return self._dedupe_experiences(experiences)
+
+        await self.navigate_and_wait(base_url)
+        experiences = await self._parse_experience_cards()
+        return self._dedupe_experiences(experiences)
+
+    async def _parse_experience_cards(self) -> List[Experience]:
+        """Parse visible DOM cards, including grouped company roles."""
+        experiences = []
+        last_org_url = None
+        items = await self.page.locator(
+            'main [data-view-name="profile-component-entity"], '
+            "main .pvs-list__paged-list-item"
+        ).all()
+        for item in items:
+            try:
+                lines, company_url = await item_text_and_url(item, "/company/")
+                if company_url is None:
+                    _, company_url = await item_text_and_url(item, "/school/")
+                if company_url:
+                    last_org_url = company_url
+                else:
+                    # Nested role cards often omit the company/school link.
+                    company_url = last_org_url
+                parsed = parse_experience_lines(lines, company_url)
+                experiences.extend(parsed)
+            except Exception as exc:
+                logger.debug("Error parsing experience card: %s", exc)
         return experiences
-    
-    async def _parse_main_page_experience(self, item) -> Optional[Experience]:
-        """Parse experience from main profile page list item with [logo_link, details_link] structure."""
+
+    async def _attach_organization_urls(self, items: list, url_fragment: str) -> list:
+        """Attach company/school URLs from page links when text parsing omitted them."""
+        link_map = {}
         try:
-            links = await item.locator('a').all()
-            if len(links) < 2:
-                return None
-            
-            company_url = await links[0].get_attribute('href')
-            detail_link = links[1]
-            
-            unique_texts = await self._extract_unique_texts_from_element(detail_link)
-            
-            if len(unique_texts) < 2:
-                return None
-            
-            position_title = unique_texts[0]
-            company_name = unique_texts[1]
-            work_times = unique_texts[2] if len(unique_texts) > 2 else ""
-            
-            from_date, to_date, duration = self._parse_work_times(work_times)
-            
-            return Experience(
-                position_title=position_title,
-                institution_name=company_name,
-                linkedin_url=company_url,
-                from_date=from_date,
-                to_date=to_date,
-                duration=duration,
-                location=None,
-                description=None,
+            for link in await self.page.locator(
+                'a[href*="{}"]'.format(url_fragment)
+            ).all():
+                href = (await link.get_attribute("href") or "").strip()
+                text = (await link.text_content() or "").strip()
+                if not href or not text:
+                    continue
+                if href.startswith("/"):
+                    href = "https://www.linkedin.com{}".format(href)
+                link_map[text.lower()] = href
+        except Exception as exc:
+            logger.debug("Error collecting organization URLs: %s", exc)
+            return items
+
+        enriched = []
+        for item in items:
+            if item.linkedin_url or not item.institution_name:
+                enriched.append(item)
+                continue
+            name = item.institution_name.lower()
+            matched_href: Optional[str] = link_map.get(name)
+            if matched_href is None:
+                for text, candidate in link_map.items():
+                    if name in text or text in name:
+                        matched_href = candidate
+                        break
+            if matched_href:
+                item = item.model_copy(update={"linkedin_url": matched_href})
+            enriched.append(item)
+        return enriched
+
+    @staticmethod
+    def _dedupe_experiences(experiences: List[Experience]) -> List[Experience]:
+        """Remove duplicate cards emitted by overlapping LinkedIn selectors."""
+        by_identity: Dict[
+            Tuple[Optional[str], Optional[str], Optional[str], FrozenSet[str]],
+            Experience,
+        ] = {}
+        for experience in experiences:
+            # frozenset collapses swapped title/company duplicates.
+            identity = (
+                experience.from_date,
+                experience.to_date,
+                experience.duration,
+                frozenset(
+                    value
+                    for value in (
+                        experience.position_title,
+                        experience.institution_name,
+                    )
+                    if value
+                ),
             )
-            
-        except Exception as e:
-            logger.debug(f"Error parsing main page experience: {e}")
-            return None
-    
-    async def _extract_unique_texts_from_element(self, element) -> list[str]:
+            existing = by_identity.get(identity)
+            if existing is None:
+                by_identity[identity] = experience
+                continue
+
+            prefer_new = False
+            if experience.linkedin_url and not existing.linkedin_url:
+                prefer_new = True
+            elif _looks_like_job_title(
+                experience.position_title or ""
+            ) and not _looks_like_job_title(existing.position_title or ""):
+                prefer_new = True
+            if prefer_new:
+                by_identity[identity] = experience
+        return list(by_identity.values())
+
+    def _parse_experiences_from_text(self, text: str) -> List[Experience]:
+        """Parse experience entries from details-page inner_text()."""
+        return parse_experiences_text(text)
+
+    async def _extract_unique_texts_from_element(self, element) -> List[str]:
         """Extract unique text content from nested elements, avoiding duplicates from parent/child overlap."""
-        text_elements = await element.locator('span[aria-hidden="true"], div > span').all()
-        
+        text_elements = await element.locator(
+            'span[aria-hidden="true"], div > span'
+        ).all()
+
         if not text_elements:
-            text_elements = await element.locator('span, div').all()
-        
-        seen_texts = set()
+            text_elements = await element.locator("span, div").all()
+
+        seen_texts: Set[str] = set()
         unique_texts = []
-        
+
         for el in text_elements:
             text = await el.text_content()
             if text and text.strip():
                 text = text.strip()
-                if text not in seen_texts and len(text) < 200 and not any(text in t or t in text for t in seen_texts if len(t) > 3):
+                if (
+                    text not in seen_texts
+                    and len(text) < 200
+                    and not any(
+                        text in t or t in text for t in seen_texts if len(t) > 3
+                    )
+                ):
                     seen_texts.add(text)
                     unique_texts.append(text)
-        
+
         return unique_texts
-
-    async def _parse_experience_item(self, item):
-        """Parse experience item. Returns Experience or list for nested positions."""
-        try:
-            links = await item.locator('a, link').all()
-            if len(links) >= 2:
-                company_url = await links[0].get_attribute('href')
-                detail_link = links[1]
-                
-                generics = await detail_link.locator('generic, span, div').all()
-                texts = []
-                for g in generics:
-                    text = await g.text_content()
-                    if text and text.strip() and len(text.strip()) < 200:
-                        texts.append(text.strip())
-                
-                unique_texts = list(dict.fromkeys(texts))
-                
-                if len(unique_texts) >= 2:
-                    position_title = unique_texts[0]
-                    company_name = unique_texts[1]
-                    work_times = unique_texts[2] if len(unique_texts) > 2 else ""
-                    location = unique_texts[3] if len(unique_texts) > 3 else ""
-                    
-                    from_date, to_date, duration = self._parse_work_times(work_times)
-                    
-                    return Experience(
-                        position_title=position_title,
-                        institution_name=company_name,
-                        linkedin_url=company_url,
-                        from_date=from_date,
-                        to_date=to_date,
-                        duration=duration,
-                        location=location,
-                        description=None,
-                    )
-            
-            entity = item.locator('div[data-view-name="profile-component-entity"]').first
-            if await entity.count() == 0:
-                return None
-
-            children = await entity.locator("> *").all()
-            if len(children) < 2:
-                return None
-
-            company_link = children[0].locator("a").first
-            company_url = await company_link.get_attribute("href")
-
-            detail_container = children[1]
-            detail_children = await detail_container.locator("> *").all()
-
-            if len(detail_children) == 0:
-                return None
-
-            has_nested_positions = False
-            if len(detail_children) > 1:
-                nested_list = await detail_children[1].locator(".pvs-list__container").count()
-                has_nested_positions = nested_list > 0
-
-            if has_nested_positions:
-                return await self._parse_nested_experience(item, company_url, detail_children)
-            else:
-                first_detail = detail_children[0]
-                nested_elements = await first_detail.locator("> *").all()
-
-                if len(nested_elements) == 0:
-                    return None
-
-                span_container = nested_elements[0]
-                outer_spans = await span_container.locator("> *").all()
-
-                position_title = ""
-                company_name = ""
-                work_times = ""
-                location = ""
-
-                if len(outer_spans) >= 1:
-                    aria_span = outer_spans[0].locator('span[aria-hidden="true"]').first
-                    position_title = await aria_span.text_content()
-                if len(outer_spans) >= 2:
-                    aria_span = outer_spans[1].locator('span[aria-hidden="true"]').first
-                    company_name = await aria_span.text_content()
-                if len(outer_spans) >= 3:
-                    aria_span = outer_spans[2].locator('span[aria-hidden="true"]').first
-                    work_times = await aria_span.text_content()
-                if len(outer_spans) >= 4:
-                    aria_span = outer_spans[3].locator('span[aria-hidden="true"]').first
-                    location = await aria_span.text_content()
-
-                from_date, to_date, duration = self._parse_work_times(work_times)
-
-                description = ""
-                if len(detail_children) > 1:
-                    description = await detail_children[1].inner_text()
-
-                return Experience(
-                    position_title=position_title.strip(),
-                    institution_name=company_name.strip(),
-                    linkedin_url=company_url,
-                    from_date=from_date,
-                    to_date=to_date,
-                    duration=duration,
-                    location=location.strip(),
-                    description=description.strip() if description else None,
-                )
-
-        except Exception as e:
-            logger.debug(f"Error parsing experience: {e}")
-            return None
-
-    async def _parse_nested_experience(
-        self, item, company_url: str, detail_children
-    ) -> list[Experience]:
-        """
-        Parse nested experience positions (multiple roles at the same company).
-        Returns a list of Experience objects.
-        """
-        experiences = []
-
-        try:
-            # Get company name from first detail
-            first_detail = detail_children[0]
-            nested_elements = await first_detail.locator("> *").all()
-            if len(nested_elements) == 0:
-                return []
-
-            span_container = nested_elements[0]
-            outer_spans = await span_container.locator("> *").all()
-
-            # First span is company name for nested positions
-            company_name = ""
-            if len(outer_spans) >= 1:
-                aria_span = outer_spans[0].locator('span[aria-hidden="true"]').first
-                company_name = await aria_span.text_content()
-
-            # Get the nested list from detail_children[1]
-            nested_container = detail_children[1].locator(".pvs-list__container").first
-            nested_items = await nested_container.locator(
-                ".pvs-list__paged-list-item"
-            ).all()
-
-            for nested_item in nested_items:
-                try:
-                    # Each nested item has a link with position details
-                    link = nested_item.locator("a").first
-                    link_children = await link.locator("> *").all()
-
-                    if len(link_children) == 0:
-                        continue
-
-                    # Navigate to get the spans
-                    first_child = link_children[0]
-                    nested_els = await first_child.locator("> *").all()
-                    if len(nested_els) == 0:
-                        continue
-
-                    spans_container = nested_els[0]
-                    position_spans = await spans_container.locator("> *").all()
-
-                    # Extract position details
-                    position_title = ""
-                    work_times = ""
-                    location = ""
-
-                    if len(position_spans) >= 1:
-                        aria_span = (
-                            position_spans[0].locator('span[aria-hidden="true"]').first
-                        )
-                        position_title = await aria_span.text_content()
-                    if len(position_spans) >= 2:
-                        aria_span = (
-                            position_spans[1].locator('span[aria-hidden="true"]').first
-                        )
-                        work_times = await aria_span.text_content()
-                    if len(position_spans) >= 3:
-                        aria_span = (
-                            position_spans[2].locator('span[aria-hidden="true"]').first
-                        )
-                        location = await aria_span.text_content()
-
-                    # Parse dates
-                    from_date, to_date, duration = self._parse_work_times(work_times)
-
-                    # Get description if available
-                    description = ""
-                    if len(link_children) > 1:
-                        description = await link_children[1].inner_text()
-
-                    experiences.append(
-                        Experience(
-                            position_title=position_title.strip(),
-                            institution_name=company_name.strip(),
-                            linkedin_url=company_url,
-                            from_date=from_date,
-                            to_date=to_date,
-                            duration=duration,
-                            location=location.strip(),
-                            description=description.strip() if description else None,
-                        )
-                    )
-
-                except Exception as e:
-                    logger.debug(f"Error parsing nested position: {e}")
-                    continue
-
-        except Exception as e:
-            logger.debug(f"Error parsing nested experience: {e}")
-
-        return experiences
 
     def _parse_work_times(
         self, work_times: str
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """
         Parse work times string into from_date, to_date, duration.
 
@@ -495,239 +438,96 @@ class PersonScraper(BaseScraper):
         - "Jan 2020 - Dec 2022 · 2 yrs" -> ("Jan 2020", "Dec 2022", "2 yrs")
         - "2015 - Present" -> ("2015", "Present", None)
         """
-        if not work_times:
-            return None, None, None
-
         try:
-            # Split by · to separate date range from duration
-            parts = work_times.split("·")
-            times = parts[0].strip() if len(parts) > 0 else ""
-            duration = parts[1].strip() if len(parts) > 1 else None
-
-            # Parse dates - split by " - " to get from and to
-            if " - " in times:
-                date_parts = times.split(" - ")
-                from_date = date_parts[0].strip()
-                to_date = date_parts[1].strip() if len(date_parts) > 1 else ""
-            else:
-                from_date = times
-                to_date = ""
-
-            return from_date, to_date, duration
+            return parse_work_times(work_times)
         except Exception as e:
             logger.debug(f"Error parsing work times '{work_times}': {e}")
             return None, None, None
 
-    async def _get_educations(self, base_url: str) -> list[Education]:
-        """Extract educations from the main profile page Education section."""
-        educations = []
-
+    async def _get_educations(self, base_url: str) -> List[Education]:
+        """Extract educations from the details/education page (complete list)."""
         try:
-            education_heading = self.page.locator('h2:has-text("Education")').first
-            
-            if await education_heading.count() > 0:
-                education_section = education_heading.locator('xpath=ancestor::*[.//ul or .//ol][1]')
-                if await education_section.count() == 0:
-                    education_section = education_heading.locator('xpath=ancestor::*[4]')
-                
-                if await education_section.count() > 0:
-                    items = await education_section.locator('ul > li, ol > li').all()
-                    
-                    for item in items:
-                        try:
-                            edu = await self._parse_main_page_education(item)
-                            if edu:
-                                educations.append(edu)
-                        except Exception as e:
-                            logger.debug(f"Error parsing education from main page: {e}")
-                            continue
-            
-            if not educations:
-                edu_url = urljoin(base_url, "details/education")
-                await self.navigate_and_wait(edu_url)
-                await self.page.wait_for_selector("main", timeout=10000)
-                await self.wait_and_focus(2)
-                await self.scroll_page_to_half()
-                await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
-
-                items = []
-                main_element = self.page.locator('main')
-                if await main_element.count() > 0:
-                    list_items = await main_element.locator('ul > li, ol > li').all()
-                    if list_items:
-                        items = list_items
-                
-                if not items:
-                    old_list = self.page.locator(".pvs-list__container").first
-                    if await old_list.count() > 0:
-                        items = await old_list.locator(".pvs-list__paged-list-item").all()
-
-                for item in items:
-                    try:
-                        edu = await self._parse_education_item(item)
-                        if edu:
-                            educations.append(edu)
-                    except Exception as e:
-                        logger.debug(f"Error parsing education item: {e}")
-                        continue
-
+            return await self._fetch_educations_from_details(base_url)
         except Exception as e:
             logger.warning(
                 f"Error getting educations: {e}. The education section may not be publicly visible or the page structure has changed."
             )
+            return []
 
+    async def _fetch_educations_from_details(self, base_url: str) -> List[Education]:
+        """Scrape complete education cards, with text as a fallback."""
+        edu_url = profile_detail_url(base_url, "details/education/")
+        await self.navigate_and_wait(edu_url)
+        await self._wait_for_detail_section("Education")
+        await self.scroll_page_to_bottom(pause_time=0.3, max_scrolls=3)
+
+        educations = await self._parse_education_cards()
+        if educations:
+            return self._dedupe_educations(educations)
+
+        # Prefer full details-page text over truncated main-profile cards.
+        page_text = await self.page.locator("main").first.inner_text()
+        educations = self._parse_educations_from_text(page_text)
+        if educations:
+            educations = await self._attach_organization_urls(educations, "/school/")
+            return self._dedupe_educations(educations)
+
+        await self.navigate_and_wait(base_url)
+        educations = await self._parse_education_cards()
+        return self._dedupe_educations(educations)
+
+    async def _parse_education_cards(self) -> List[Education]:
+        """Parse visible education cards and preserve school links when present."""
+        educations = []
+        items = await self.page.locator(
+            'main [data-view-name="profile-component-entity"], '
+            "main .pvs-list__paged-list-item"
+        ).all()
+        for item in items:
+            try:
+                lines, institution_url = await item_text_and_url(item, "/school/")
+                education = parse_education_lines(lines, institution_url)
+                if education:
+                    educations.append(education)
+            except Exception as exc:
+                logger.debug("Error parsing education card: %s", exc)
         return educations
-    
-    async def _parse_main_page_education(self, item) -> Optional[Education]:
-        """Parse education from main profile page list item with [logo_link, details_link] structure."""
-        try:
-            links = await item.locator('a').all()
-            if not links:
-                return None
-            
-            institution_url = await links[0].get_attribute('href')
-            detail_link = links[1] if len(links) > 1 else links[0]
-            
-            unique_texts = await self._extract_unique_texts_from_element(detail_link)
-            
-            if not unique_texts:
-                return None
-            
-            institution_name = unique_texts[0]
-            degree = None
-            times = ""
-            
-            if len(unique_texts) == 3:
-                degree = unique_texts[1]
-                times = unique_texts[2]
-            elif len(unique_texts) == 2:
-                second = unique_texts[1]
-                if " - " in second or any(c.isdigit() for c in second):
-                    times = second
-                else:
-                    degree = second
-            
-            from_date, to_date = self._parse_education_times(times)
-            
-            return Education(
-                institution_name=institution_name,
-                degree=degree.strip() if degree else None,
-                linkedin_url=institution_url,
-                from_date=from_date,
-                to_date=to_date,
-                description=None,
+
+    @staticmethod
+    def _dedupe_educations(educations: List[Education]) -> List[Education]:
+        """Remove duplicate cards emitted by overlapping selectors."""
+        by_key = {}
+        for education in educations:
+            key = (
+                education.institution_name,
+                education.degree,
+                education.from_date,
+                education.to_date,
             )
-            
-        except Exception as e:
-            logger.debug(f"Error parsing main page education: {e}")
-            return None
+            by_key[key] = education
+        return list(by_key.values())
 
-    async def _parse_education_item(self, item) -> Optional[Education]:
-        """Parse a single education item."""
-        try:
-            links = await item.locator('a, link').all()
-            if len(links) >= 1:
-                institution_url = await links[0].get_attribute('href')
-                
-                detail_link = links[1] if len(links) >= 2 else links[0]
-                generics = await detail_link.locator('generic, span, div').all()
-                texts = []
-                for g in generics:
-                    text = await g.text_content()
-                    if text and text.strip() and len(text.strip()) < 200:
-                        texts.append(text.strip())
-                
-                unique_texts = list(dict.fromkeys(texts))
-                
-                if unique_texts:
-                    institution_name = unique_texts[0]
-                    degree = None
-                    times = ""
-                    
-                    if len(unique_texts) == 3:
-                        degree = unique_texts[1]
-                        times = unique_texts[2]
-                    elif len(unique_texts) == 2:
-                        second = unique_texts[1]
-                        if " - " in second or second.isdigit() or any(c.isdigit() for c in second):
-                            times = second
-                        else:
-                            degree = second
-                    
-                    from_date, to_date = self._parse_education_times(times)
-                    
-                    return Education(
-                        institution_name=institution_name,
-                        degree=degree.strip() if degree else None,
-                        linkedin_url=institution_url,
-                        from_date=from_date,
-                        to_date=to_date,
-                        description=None,
-                    )
-            
-            entity = item.locator('div[data-view-name="profile-component-entity"]').first
-            if await entity.count() == 0:
-                return None
+    def _parse_educations_from_text(self, text: str) -> List[Education]:
+        """Parse education entries from details-page inner_text()."""
+        return parse_educations_text(text)
 
-            children = await entity.locator("> *").all()
-            if len(children) < 2:
-                return None
+    @staticmethod
+    def _is_education_metadata(line: str) -> bool:
+        return is_education_metadata(line)
 
-            institution_link = children[0].locator("a").first
-            institution_url = await institution_link.get_attribute("href")
+    @staticmethod
+    def _looks_like_date_line(line: str) -> bool:
+        return looks_like_date_line(line)
 
-            detail_container = children[1]
-            detail_children = await detail_container.locator("> *").all()
+    @staticmethod
+    def _looks_like_degree(line: str) -> bool:
+        return looks_like_degree(line)
 
-            if len(detail_children) == 0:
-                return None
+    @classmethod
+    def _is_valid_institution(cls, line: str) -> bool:
+        return is_valid_institution(line)
 
-            first_detail = detail_children[0]
-            nested_elements = await first_detail.locator("> *").all()
-
-            if len(nested_elements) == 0:
-                return None
-
-            span_container = nested_elements[0]
-            outer_spans = await span_container.locator("> *").all()
-
-            institution_name = ""
-            degree = None
-            times = ""
-
-            if len(outer_spans) >= 1:
-                aria_span = outer_spans[0].locator('span[aria-hidden="true"]').first
-                institution_name = await aria_span.text_content()
-
-            if len(outer_spans) == 3:
-                aria_span = outer_spans[1].locator('span[aria-hidden="true"]').first
-                degree = await aria_span.text_content()
-                aria_span = outer_spans[2].locator('span[aria-hidden="true"]').first
-                times = await aria_span.text_content()
-            elif len(outer_spans) == 2:
-                aria_span = outer_spans[1].locator('span[aria-hidden="true"]').first
-                times = await aria_span.text_content()
-
-            from_date, to_date = self._parse_education_times(times)
-
-            description = ""
-            if len(detail_children) > 1:
-                description = await detail_children[1].inner_text()
-
-            return Education(
-                institution_name=institution_name.strip(),
-                degree=degree.strip() if degree else None,
-                linkedin_url=institution_url,
-                from_date=from_date,
-                to_date=to_date,
-                description=description.strip() if description else None,
-            )
-
-        except Exception as e:
-            logger.debug(f"Error parsing education: {e}")
-            return None
-
-    def _parse_education_times(self, times: str) -> tuple[Optional[str], Optional[str]]:
+    def _parse_education_times(self, times: str) -> Tuple[Optional[str], Optional[str]]:
         """
         Parse education times string into from_date, to_date.
 
@@ -736,21 +536,8 @@ class PersonScraper(BaseScraper):
         - "2015" -> ("2015", "2015")
         - "" -> (None, None)
         """
-        if not times:
-            return None, None
-
         try:
-            # Split by " - " to get from and to dates
-            if " - " in times:
-                parts = times.split(" - ")
-                from_date = parts[0].strip()
-                to_date = parts[1].strip() if len(parts) > 1 else ""
-            else:
-                # Single year
-                from_date = times.strip()
-                to_date = times.strip()
-
-            return from_date, to_date
+            return parse_education_times(times)
         except Exception as e:
             logger.debug(f"Error parsing education times '{times}': {e}")
             return None, None
@@ -1020,103 +807,87 @@ class PersonScraper(BaseScraper):
             logger.debug(f"Error parsing accomplishment: {e}")
             return None
 
-    async def _get_contacts(self, base_url: str) -> list[Contact]:
-        """Extract contact info from the contact-info overlay dialog."""
+    async def _get_contacts(self, base_url: str) -> List[Contact]:
+        """Extract linked and plain-text fields from the contact-info dialog."""
         contacts = []
-
         try:
-            contact_url = urljoin(base_url, "overlay/contact-info/")
+            contact_url = profile_detail_url(base_url, "overlay/contact-info/")
             await self.navigate_and_wait(contact_url)
-            await self.wait_and_focus(1)
+            try:
+                await self.page.wait_for_selector("main, [role='dialog']", timeout=5000)
+            except Exception:
+                pass
 
             dialog = self.page.locator('dialog, [role="dialog"]').first
-            if await dialog.count() == 0:
-                logger.warning("Contact info dialog not found")
-                return contacts
-
-            contact_sections = await dialog.locator('h3').all()
-            
-            for section_heading in contact_sections:
-                try:
-                    heading_text = await section_heading.text_content()
-                    if not heading_text:
-                        continue
-                    heading_text = heading_text.strip().lower()
-                    
-                    section_container = section_heading.locator('xpath=ancestor::*[1]')
-                    if await section_container.count() == 0:
-                        continue
-                    
-                    contact_type = self._map_contact_heading_to_type(heading_text)
+            if await dialog.count() > 0:
+                for heading in await dialog.locator("h3").all():
+                    heading_text = (await heading.text_content() or "").strip()
+                    contact_type = contact_type_from_heading(heading_text)
                     if not contact_type:
                         continue
-                    
-                    links = await section_container.locator('a').all()
-                    for link in links:
-                        href = await link.get_attribute('href')
-                        text = await link.text_content()
-                        if href and text:
-                            text = text.strip()
-                            label = None
-                            sibling_text = await section_container.locator('span, generic').all()
-                            for sib in sibling_text:
-                                sib_text = await sib.text_content()
-                                if sib_text and sib_text.strip().startswith('(') and sib_text.strip().endswith(')'):
-                                    label = sib_text.strip()[1:-1]
-                                    break
-                            
-                            if contact_type == "linkedin":
-                                contacts.append(Contact(type=contact_type, value=href, label=label))
-                            elif contact_type == "email" and "mailto:" in href:
-                                contacts.append(Contact(type=contact_type, value=href.replace("mailto:", ""), label=label))
+                    container = heading.locator("xpath=..")
+                    links = await container.locator("a[href]").all()
+                    if links:
+                        for link in links:
+                            raw_href = (await link.get_attribute("href") or "").strip()
+                            text = (await link.text_content() or "").strip()
+                            if not raw_href:
+                                continue
+                            href = unwrap_href(raw_href)
+                            label = await self._contact_label(container)
+                            if href.startswith("mailto:"):
+                                value = href[7:]
+                            elif href.startswith("tel:"):
+                                value = href[4:]
+                            elif contact_type in {"linkedin", "website", "twitter"}:
+                                value = href
                             else:
-                                contacts.append(Contact(type=contact_type, value=text, label=label))
-                    
-                    if contact_type == "birthday" and not links:
-                        birthday_text = await section_container.text_content()
-                        if birthday_text:
-                            birthday_value = birthday_text.replace(heading_text, "").replace("Birthday", "").strip()
-                            if birthday_value:
-                                contacts.append(Contact(type="birthday", value=birthday_value))
-                    
-                    if contact_type == "phone" and not links:
-                        phone_text = await section_container.text_content()
-                        if phone_text:
-                            phone_value = phone_text.replace(heading_text, "").replace("Phone", "").strip()
-                            if phone_value:
-                                contacts.append(Contact(type="phone", value=phone_value))
-                    
-                    if contact_type == "address" and not links:
-                        address_text = await section_container.text_content()
-                        if address_text:
-                            address_value = address_text.replace(heading_text, "").replace("Address", "").strip()
-                            if address_value:
-                                contacts.append(Contact(type="address", value=address_value))
-                                
-                except Exception as e:
-                    logger.debug(f"Error parsing contact section: {e}")
-                    continue
+                                value = text or href
+                            if contact_type == "website":
+                                contacts.append(classify_link(value, label))
+                            else:
+                                contacts.append(
+                                    Contact(
+                                        type=contact_type,
+                                        value=value,
+                                        label=label,
+                                    )
+                                )
+                    else:
+                        plain_value = self._plain_contact_value(
+                            await container.inner_text(), heading_text
+                        )
+                        if plain_value:
+                            contacts.append(
+                                Contact(type=contact_type, value=plain_value)
+                            )
 
+            outbound = await self._extract_outbound_links()
+            return merge_contacts(contacts, outbound)
         except Exception as e:
             logger.warning(f"Error getting contacts: {e}")
+            return contacts
 
-        return contacts
-    
-    def _map_contact_heading_to_type(self, heading: str) -> Optional[str]:
-        """Map contact section heading to contact type."""
-        heading = heading.lower()
-        if "profile" in heading:
-            return "linkedin"
-        elif "website" in heading:
-            return "website"
-        elif "email" in heading:
-            return "email"
-        elif "phone" in heading:
-            return "phone"
-        elif "twitter" in heading or "x.com" in heading:
-            return "twitter"
-        elif "birthday" in heading:
-            return "birthday"
-        elif "address" in heading:
-            return "address"
+    @staticmethod
+    async def _contact_label(container) -> Optional[str]:
+        """Return labels such as Mobile, Personal, or Work."""
+        for element in await container.locator("span, generic").all():
+            text = (await element.text_content() or "").strip()
+            if text.startswith("(") and text.endswith(")"):
+                return text[1:-1].strip() or None
         return None
+
+    @staticmethod
+    def _plain_contact_value(text: str, heading: str) -> Optional[str]:
+        """Remove a contact heading while retaining a non-linked value."""
+        lines = [
+            line.strip()
+            for line in text.splitlines()
+            if line.strip() and line.strip().lower() != heading.lower()
+        ]
+        return "\n".join(lines).strip() or None
+
+    @staticmethod
+    def _map_contact_heading_to_type(heading: str) -> Optional[str]:
+        """Backward-compatible wrapper around the internal heading mapper."""
+        return contact_type_from_heading(heading)

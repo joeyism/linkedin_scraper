@@ -110,7 +110,7 @@ class BrowserManager:
             launch_kwargs.update(self.launch_options)
             if self.fingerprint:
                 launch_kwargs["args"] = [
-                    *launch_kwargs.get("args", []),
+                    *(launch_kwargs.get("args") or []),
                     f"--fingerprint={self.fingerprint}",
                 ]
             # Drop None values so cloakbrowser defaults apply

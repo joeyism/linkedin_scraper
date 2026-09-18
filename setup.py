@@ -22,6 +22,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # Basic dependencies only (no database/storage dependencies)
 basic_requirements = [
     'playwright>=1.40.0',
+    'cloakbrowser',
     'requests>=2.31.0',
     'lxml>=5.0.0',
     'pydantic>=2.0.0',

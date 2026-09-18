@@ -30,9 +30,11 @@ Thank you for your interest in contributing to LinkedIn Scraper! This document p
    pip install -r requirements-dev.txt
    ```
 
-4. **Install Playwright browsers**
+4. **Install browsers (CloakBrowser stealth Chromium + OS deps)**
    ```bash
-   playwright install chromium
+   pip install cloakbrowser
+   python -m cloakbrowser install
+   playwright install-deps chromium
    ```
 
 5. **Set up environment variables** (for testing)

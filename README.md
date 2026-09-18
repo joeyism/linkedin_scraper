@@ -98,11 +98,19 @@ and you will see the scraping in action.
 pip install linkedin-scraper
 ```
 
-### Install Playwright browsers:
+### Install browsers (CloakBrowser stealth Chromium + OS deps):
 
 ```bash
-playwright install chromium
+pip install cloakbrowser
+python -m cloakbrowser install
+playwright install-deps chromium
 ```
+
+> The browser backend is CloakBrowser (`launch_async`), a Playwright-compatible
+> stealth Chromium. Auth flow is unchanged: you still need a LinkedIn session
+> (`samples/create_session.py`) or `login_with_credentials` / `login_with_cookie`.
+> Binary v146 is free without a key; v148+ needs `python -m cloakbrowser login`
+> (GitHub sign-in) or Pro. Pin via `CLOAKBROWSER_VERSION` for reproducible builds.
 
 ## Quick Start
 

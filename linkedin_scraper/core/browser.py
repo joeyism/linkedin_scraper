@@ -5,9 +5,16 @@ import json
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
-from playwright.async_api import async_playwright, Browser, BrowserContext, Page, Playwright
+from playwright.async_api import Browser, BrowserContext, Page
 
 from .exceptions import NetworkError
+
+try:
+    from cloakbrowser import launch_async
+    _cloak_import_error: Optional[ImportError] = None
+except ImportError as e:
+    launch_async = None  # type: ignore[assignment]
+    _cloak_import_error = e
 
 logger = logging.getLogger(__name__)
 
@@ -21,25 +28,48 @@ class BrowserManager:
         slow_mo: int = 0,
         viewport: Optional[Dict[str, int]] = None,
         user_agent: Optional[str] = None,
+        proxy: Optional[str] = None,
+        geoip: bool = False,
+        humanize: bool = False,
+        fingerprint: Optional[str] = None,
         **launch_options: Any
     ):
         """
         Initialize browser manager.
-        
+
         Args:
             headless: Run browser in headless mode
-            slow_mo: Slow down operations by specified milliseconds
+            slow_mo: Accepted for backwards compatibility but IGNORED by the
+                CloakBrowser backend (CloakBrowser's launch API documents no
+                slow_mo option). A debug log is emitted when non-zero.
             viewport: Browser viewport size (default: 1280x720)
             user_agent: Custom user agent string
-            **launch_options: Additional Playwright launch options
+            proxy: Proxy URL for CloakBrowser
+                (e.g. "http://user:pass@residential-proxy:port",
+                "socks5://..."). Passed as launch_async(proxy=...).
+            geoip: Match timezone + locale to proxy IP
+                (launch_async(geoip=...)).
+            humanize: Human-like mouse, keyboard, scroll
+                (launch_async(humanize=...)).
+            fingerprint: Fixed fingerprint seed for a consistent identity
+                (becomes args ["--fingerprint=<seed>"]). Default None means
+                CloakBrowser auto-generates a fresh identity per launch.
+            **launch_options: Additional CloakBrowser launch_async() options
+                (e.g. args=[...]). Only options supported by cloakbrowser
+                are guaranteed to work.
         """
         self.headless = headless
         self.slow_mo = slow_mo
         self.viewport = viewport or {"width": 1280, "height": 720}
         self.user_agent = user_agent
+        self.proxy = proxy
+        self.geoip = geoip
+        self.humanize = humanize
+        self.fingerprint = fingerprint
         self.launch_options = launch_options
-        
-        self._playwright: Optional[Playwright] = None
+
+        # None under CloakBrowser backend (cloak manages Playwright internally).
+        self._playwright: Optional[Any] = None
         self._browser: Optional[Browser] = None
         self._context: Optional[BrowserContext] = None
         self._page: Optional[Page] = None
@@ -55,36 +85,65 @@ class BrowserManager:
         await self.close()
     
     async def start(self) -> None:
-        """Start Playwright and launch browser."""
+        """Start CloakBrowser and create context."""
         try:
-            self._playwright = await async_playwright().start()
-            
-            # Launch browser
-            self._browser = await self._playwright.chromium.launch(
-                headless=self.headless,
-                slow_mo=self.slow_mo,
-                **self.launch_options
-            )
-            
+            if launch_async is None:
+                raise NetworkError(
+                    "cloakbrowser is required but not installed: "
+                    "pip install cloakbrowser && "
+                    "python -m cloakbrowser install "
+                    f"({_cloak_import_error})"
+                )
+
+            if self.slow_mo:
+                logger.debug(
+                    "slow_mo=%s is ignored by the CloakBrowser backend",
+                    self.slow_mo,
+                )
+
+            launch_kwargs: Dict[str, Any] = {
+                "headless": self.headless,
+                "proxy": self.proxy,
+                "geoip": self.geoip,
+                "humanize": self.humanize,
+            }
+            launch_kwargs.update(self.launch_options)
+            if self.fingerprint:
+                launch_kwargs["args"] = [
+                    *launch_kwargs.get("args", []),
+                    f"--fingerprint={self.fingerprint}",
+                ]
+            # Drop None values so cloakbrowser defaults apply
+            # (e.g. proxy=None must not override).
+            launch_kwargs = {
+                k: v for k, v in launch_kwargs.items() if v is not None
+            }
+            # headless/geoip/humanize are bools and never None;
+            # they survive the filter above.
+
+            self._browser = await launch_async(**launch_kwargs)
+
             logger.info(f"Browser launched (headless={self.headless})")
-            
-            # Create context
+
+            # Create context — UNCHANGED from vanilla backend.
             context_options: Dict[str, Any] = {
                 "viewport": self.viewport,
             }
-            
+
             if self.user_agent:
                 context_options["user_agent"] = self.user_agent
-            
+
             self._context = await self._browser.new_context(**context_options)
-            
-            # Create initial page
+
+            # Create initial page — UNCHANGED.
             self._page = await self._context.new_page()
-            
+
             logger.info("Browser context and page created")
-            
+
         except Exception as e:
             await self.close()
+            if isinstance(e, NetworkError):
+                raise
             raise NetworkError(f"Failed to start browser: {e}")
     
     async def close(self) -> None:
@@ -102,7 +161,7 @@ class BrowserManager:
                 await self._browser.close()
                 self._browser = None
             
-            if self._playwright:
+            if self._playwright is not None:
                 await self._playwright.stop()
                 self._playwright = None
             

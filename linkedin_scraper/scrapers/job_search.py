@@ -64,7 +64,11 @@ class JobSearchScraper(BaseScraper):
         await self.callback.on_progress("Navigated to search results", 20)
         
         try:
-            await self.page.wait_for_selector('a[href*="/jobs/view/"]', timeout=10000)
+            await self.page.wait_for_function("""() => {
+                const html = document.documentElement.innerHTML;
+                if (html.includes('"jobId":"')) return true;
+                return !!document.querySelector('a[href*="/jobs/view/"]');
+            }""", timeout=15000)
         except:
             logger.warning("No job listings found on page")
             return []
@@ -113,7 +117,33 @@ class JobSearchScraper(BaseScraper):
         job_urls = []
         
         try:
-            # Find all job cards/links
+            # New LinkedIn job search renders cards in a state-driven list and
+            # does not expose /jobs/view/ anchors for every card. The posting
+            # ids are present in the hydration payload, in display order.
+            job_ids = await self.page.evaluate("""() => {
+                const re = /"jobId":"(\\d+)"/g;
+                const html = document.documentElement.innerHTML;
+                const seen = new Set();
+                const out = [];
+                let m;
+                while ((m = re.exec(html)) !== null) {
+                    if (!seen.has(m[1])) {
+                        seen.add(m[1]);
+                        out.push(m[1]);
+                    }
+                }
+                return out;
+            }""")
+
+            for job_id in job_ids:
+                if len(job_urls) >= limit:
+                    break
+                job_urls.append(f"https://www.linkedin.com/jobs/view/{job_id}/")
+
+            if job_urls:
+                return job_urls
+
+            # Fallback: legacy anchor-based extraction
             job_links = await self.page.locator('a[href*="/jobs/view/"]').all()
             
             seen_urls = set()

@@ -83,26 +83,35 @@ async def detect_rate_limit(page: Page) -> None:
                 "CAPTCHA challenge detected. Manual intervention required.",
                 suggested_wait_time=3600
             )
+    except RateLimitError:
+        raise
     except Exception:
         pass
     
-    # Check for rate limit messages
+    # Check for rate limit messages in VISIBLE text only. Using innerText
+    # (instead of textContent) excludes <script>/<style> payloads and hidden
+    # nodes, which otherwise cause false positives: LinkedIn embeds UI strings
+    # such as "Something went wrong. Please try again later." in page JSON.
     try:
-        body_text = await page.locator('body').text_content(timeout=1000)
-        if body_text:
-            body_lower = body_text.lower()
-            if any(phrase in body_lower for phrase in [
-                'too many requests',
-                'rate limit',
-                'slow down',
-                'try again later'
-            ]):
-                raise RateLimitError(
-                    "Rate limit message detected on page.",
-                    suggested_wait_time=1800  # 30 minutes
-                )
-    except PlaywrightTimeoutError:
-        pass
+        body_text = await page.evaluate(
+            "() => (document.body ? document.body.innerText : '')"
+        )
+    except Exception:
+        body_text = None
+    
+    if body_text:
+        body_lower = body_text.lower()
+        if any(phrase in body_lower for phrase in [
+            'too many requests',
+            'rate limit',
+            'slow down',
+            'exceeded the limit',
+            'reached the limit',
+        ]):
+            raise RateLimitError(
+                "Rate limit message detected on page.",
+                suggested_wait_time=1800  # 30 minutes
+            )
 
 
 async def wait_for_element_smart(

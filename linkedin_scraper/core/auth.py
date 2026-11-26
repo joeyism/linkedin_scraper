@@ -242,12 +242,15 @@ async def login_with_cookie(page: Page, cookie_value: str) -> None:
          raise AuthenticationError(f"Cookie authentication error: {e}")
 
 
-async def is_logged_in(page: Page) -> bool:
+async def is_logged_in(page: Page, wait_timeout: float = 0) -> bool:
     """
     Check if currently logged in to LinkedIn.
     
     Args:
         page: Playwright page object
+        wait_timeout: If > 0, wait up to this many milliseconds for the
+            authenticated navigation to appear before giving up. Useful right
+            after navigation, when the nav renders after `domcontentloaded`.
         
     Returns:
         True if logged in, False otherwise
@@ -268,6 +271,20 @@ async def is_logged_in(page: Page) -> bool:
         new_count = await page.locator(new_selectors).count()
         
         has_nav_elements = old_count > 0 or new_count > 0
+        
+        # Step 2b: Optionally wait for the nav to render. LinkedIn injects the
+        # global nav shortly after the DOM is ready, so an immediate check on a
+        # freshly loaded page produces false negatives.
+        if not has_nav_elements and wait_timeout:
+            try:
+                await page.wait_for_selector(
+                    f'{old_selectors}, {new_selectors}',
+                    timeout=wait_timeout,
+                    state='attached',
+                )
+                has_nav_elements = True
+            except PlaywrightTimeoutError:
+                pass
         
         # Step 3: URL fallback - check for authenticated-only pages
         authenticated_only_pages = ['/feed', '/mynetwork', '/messaging', '/notifications']

@@ -52,8 +52,9 @@ class CompanyScraper(BaseScraper):
         logger.info(f"Starting company scraping: {linkedin_url}")
         await self.callback.on_start("company", linkedin_url)
         
-        # Navigate to company page
-        await self.navigate_and_wait(linkedin_url)
+        # The About tab holds the overview fields (website, size, etc.).
+        about_url = self._build_about_url(linkedin_url)
+        await self.navigate_and_wait(about_url)
         await self.callback.on_progress("Navigated to company page", 10)
         
         # Check if page exists
@@ -84,8 +85,28 @@ class CompanyScraper(BaseScraper):
         logger.info(f"Successfully scraped company: {name}")
         return company
     
+    def _build_about_url(self, company_url: str) -> str:
+        """Build the About tab URL for a company page."""
+        base = company_url.rstrip("/")
+        for suffix in ("/about", "/home", "/posts", "/jobs", "/life", "/people"):
+            if base.endswith(suffix):
+                base = base[: -len(suffix)]
+                break
+        return f"{base}/about/"
+
     async def _get_name(self) -> str:
         """Extract company name."""
+        try:
+            name = await self.page.evaluate("""() => {
+                const main = document.querySelector('main');
+                const el = main ? main.querySelector('h1, h2') : null;
+                return el ? el.innerText.trim() : null;
+            }""")
+            if name:
+                return name
+        except Exception as e:
+            logger.warning(f"Error getting company name: {e}")
+
         try:
             # Try main heading
             name_elem = self.page.locator('h1').first
@@ -94,26 +115,55 @@ class CompanyScraper(BaseScraper):
         except Exception as e:
             logger.warning(f"Error getting company name: {e}")
             return "Unknown Company"
-    
+
     async def _get_about(self) -> Optional[str]:
         """Extract about/description section."""
         try:
-            # Look for "About us" section
+            about = await self.page.evaluate("""() => {
+                const main = document.querySelector('main');
+                if (!main) return null;
+
+                let scope = main;
+                const overview = [...main.querySelectorAll('h2')]
+                    .find(h => h.innerText.trim() === 'Overview');
+                if (overview) {
+                    let el = overview;
+                    for (let i = 0; i < 5 && el; i++) {
+                        const longP = [...el.querySelectorAll('p')]
+                            .find(p => p.innerText.trim().length > 120);
+                        if (longP) { scope = el; break; }
+                        el = el.parentElement;
+                    }
+                }
+
+                let best = null;
+                for (const p of scope.querySelectorAll('p')) {
+                    const t = p.innerText.trim();
+                    if (t.length > 120 && (!best || t.length > best.length)) {
+                        best = t;
+                    }
+                }
+                return best;
+            }""")
+            if about:
+                return about.strip()
+        except Exception as e:
+            logger.debug(f"Error getting about section: {e}")
+
+        # Fallback: legacy "About us" section
+        try:
             sections = await self.page.locator('section').all()
-            
             for section in sections:
                 section_text = await section.inner_text()
                 if 'About us' in section_text[:50]:
-                    # Get the content paragraph
                     paragraphs = await section.locator('p').all()
                     if paragraphs:
                         about = await paragraphs[0].inner_text()
                         return about.strip()
-            
-            return None
         except Exception as e:
             logger.debug(f"Error getting about section: {e}")
-            return None
+        return None
+
     
     async def _get_overview(self) -> dict:
         """
@@ -134,43 +184,55 @@ class CompanyScraper(BaseScraper):
         }
         
         try:
-            # LinkedIn's new structure (as of 2024+): Uses info items instead of dt/dd
-            info_items = await self.page.locator('.org-top-card-summary-info-list__info-item').all()
-            
-            for item in info_items:
-                text = await item.inner_text()
-                text = text.strip()
-                text_lower = text.lower()
-                
-                # Detect what kind of information this is based on content patterns
-                if 'employee' in text_lower or 'k+' in text_lower:
-                    # Company size (e.g., "10K+ employees", "1,001-5,000 employees")
-                    overview['company_size'] = text
-                elif ',' in text and any(loc in text for loc in ['Washington', 'California', 'New York', 'Texas', 'United States', 'United Kingdom']):
-                    # Headquarters (e.g., "Redmond, Washington", "Mountain View, California")
-                    overview['headquarters'] = text
-                elif any(ind in text_lower for ind in ['software', 'technology', 'financial', 'healthcare', 'retail', 'manufacturing', 'consulting', 'education']):
-                    # Industry (e.g., "Software Development", "Financial Services")
-                    overview['industry'] = text
-                elif 'follower' in text_lower:
-                    # Skip follower count
-                    continue
-            
-            # Try to find website link
+            # Current LinkedIn About tab: label/value pairs rendered as <p>.
+            data = await self.page.evaluate("""() => {
+                const main = document.querySelector('main');
+                if (!main) return {};
+                const labels = {
+                    'Website': 'website',
+                    'Industry': 'industry',
+                    'Company size': 'company_size',
+                    'Headquarters': 'headquarters',
+                    'Type': 'company_type',
+                    'Founded': 'founded',
+                    'Specialties': 'specialties',
+                    'Phone': 'phone'
+                };
+                const out = {};
+                for (const p of main.querySelectorAll('p')) {
+                    const label = (p.innerText || '').trim();
+                    const key = labels[label];
+                    if (!key || out[key]) continue;
+                    const row = p.parentElement ? p.parentElement.parentElement : null;
+                    if (!row) continue;
+                    const valueDiv = row.children[1];
+                    if (!valueDiv) continue;
+                    const value = (valueDiv.innerText || '').trim();
+                    if (value) out[key] = value.split('\\n')[0].trim();
+                }
+                return out;
+            }""")
+
+            for key, value in (data or {}).items():
+                if key in overview:
+                    overview[key] = value
+
+            # Try to find website link if the label parsing missed it
             # LinkedIn often puts website in the about section or as a link
-            try:
-                links = await self.page.locator('a').all()
-                for link in links:
-                    href = await link.get_attribute('href')
-                    if href and 'linkedin' not in href and ('http' in href or 'www.' in href):
-                        link_text = await link.inner_text()
-                        # Skip navigation links, look for actual website URLs
-                        if link_text and any(word in link_text.lower() for word in ['learn more', 'website', 'visit']):
-                            overview['website'] = href
-                            break
-            except Exception as e:
-                logger.debug(f"Error finding website: {e}")
-            
+            if not overview.get("website"):
+                try:
+                    links = await self.page.locator('main a').all()
+                    for link in links:
+                        href = await link.get_attribute('href')
+                        if href and 'linkedin' not in href and ('http' in href or 'www.' in href):
+                            link_text = await link.inner_text()
+                            # Skip navigation links, look for actual website URLs
+                            if link_text and any(word in link_text.lower() for word in ['learn more', 'website', 'visit']):
+                                overview['website'] = href
+                                break
+                except Exception as e:
+                    logger.debug(f"Error finding website: {e}")
+
             # Fallback: Try old dt/dd structure (for backwards compatibility)
             if not any(overview.values()):
                 dt_elements = await self.page.locator('dt').all()

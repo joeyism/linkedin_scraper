@@ -42,7 +42,7 @@ class BaseScraper:
         Raises:
             AuthenticationError: If not logged in
         """
-        if not await is_logged_in(self.page):
+        if not await is_logged_in(self.page, wait_timeout=5000):
             raise AuthenticationError(
                 "Not logged in. Please authenticate before scraping."
             )

@@ -35,6 +35,130 @@ class JobScraper(BaseScraper):
             callback: Optional progress callback
         """
         super().__init__(page, callback or SilentCallback())
+        self._job_card: Optional[dict] = None
+
+    async def _get_job_card(self) -> dict:
+        """Extract the structured data from the job top card."""
+        if self._job_card is not None:
+            return self._job_card
+
+        # The top card hydrates after domcontentloaded; wait until the company,
+        # the details line (location · date · applicants) and a distinct title
+        # are all present inside the same card.
+        try:
+            await self.page.wait_for_function("""() => {
+                const main = document.querySelector('main');
+                if (!main) return false;
+                const companyA = main.querySelector('a[aria-label^="Company,"]') ||
+                    [...main.querySelectorAll('a[href*="/company/"]')].find(a => (a.innerText || '').trim());
+                if (!companyA) return false;
+                const ps = [...main.querySelectorAll('p')];
+                const detailsP = ps.find(p => /\\bago\\b|clicked apply|applicants?/i.test(p.innerText || ''));
+                if (!detailsP) return false;
+
+                const titleParts = (document.title || '').split('|').map(s => s.trim());
+                if (titleParts.length >= 3 && /linkedin/i.test(titleParts[titleParts.length - 1])) {
+                    return true;
+                }
+
+                let top = detailsP;
+                for (let i = 0; i < 8 && top && !top.contains(companyA); i++) {
+                    top = top.parentElement;
+                }
+                if (!top || !top.contains(companyA)) return false;
+
+                for (const p of top.querySelectorAll('p')) {
+                    if (p === detailsP || companyA.contains(p)) continue;
+                    const t = (p.innerText || '').trim();
+                    if (!t || t.startsWith('\\u00b7')) continue;
+                    if (/^Promoted by|^Responses managed/i.test(t)) continue;
+                    if (t.length < 2 || t.length > 200) continue;
+                    return true;
+                }
+                return false;
+            }""", timeout=15000)
+        except Exception as e:
+            logger.debug(f"Job top card wait timed out: {e}")
+
+        try:
+            self._job_card = await self.page.evaluate("""() => {
+                const main = document.querySelector('main');
+                if (!main) return {};
+
+                // document.title is "{job title} | {company} | LinkedIn" and is
+                // set by the document itself, so it is not subject to the
+                // partial-hydration races of the top card DOM.
+                let docTitle = null;
+                let docTitleCompany = null;
+                const titleParts = (document.title || '').split('|').map(s => s.trim());
+                if (titleParts.length >= 3 && /linkedin/i.test(titleParts[titleParts.length - 1])) {
+                    docTitle = titleParts[0].replace(/^\\(\\d+\\)\\s*/, '');
+                    docTitleCompany = titleParts[1];
+                }
+
+                let companyA = main.querySelector('a[aria-label^="Company,"]');
+                if (!companyA) {
+                    companyA = [...main.querySelectorAll('a[href*="/company/"]')]
+                        .find(a => (a.innerText || '').trim()) || null;
+                }
+
+                const company = docTitleCompany || (companyA ? companyA.innerText.trim().split('\\n')[0].trim() : null);
+                let companyUrl = companyA ? companyA.getAttribute('href') : null;
+                if (companyUrl) {
+                    companyUrl = companyUrl.replace(/\\/(life|posts|jobs|about|home)\\/?$/, '/');
+                }
+
+                const allPs = [...main.querySelectorAll('p')];
+                let detailsP = allPs.find(p => /\\bago\\b|clicked apply|applicants?/i.test(p.innerText || '')) || null;
+                if (!detailsP) {
+                    detailsP = allPs.find(p => ((p.innerText || '').match(/\\u00b7/g) || []).length >= 2) || null;
+                }
+
+                // Top card = nearest ancestor of the details line containing the
+                // company link. This avoids pulling in the "About the company"
+                // section when the title has not rendered yet.
+                let top = detailsP;
+                if (detailsP && companyA) {
+                    for (let i = 0; i < 8 && top && !top.contains(companyA); i++) {
+                        top = top.parentElement;
+                    }
+                }
+                if (!top || !companyA || !top.contains(companyA)) {
+                    top = companyA;
+                    for (let i = 0; i < 6 && top; i++) {
+                        if (top.querySelectorAll('p').length >= 3) break;
+                        top = top.parentElement;
+                    }
+                }
+
+                const ps = top ? [...top.querySelectorAll('p')] : [];
+                let title = null;
+                for (const p of ps) {
+                    if (p === detailsP) continue;
+                    if (companyA && companyA.contains(p)) continue;
+                    const t = (p.innerText || '').trim();
+                    if (!t || t.startsWith('\\u00b7')) continue;
+                    if (/^Promoted by|^Responses managed/i.test(t)) continue;
+                    if (t.length < 2 || t.length > 200) continue;
+                    title = t;
+                    break;
+                }
+
+                let location = null, postedDate = null, applicants = null;
+                if (detailsP) {
+                    const parts = detailsP.innerText.split('\\u00b7').map(s => s.trim()).filter(Boolean);
+                    location = parts[0] || null;
+                    postedDate = parts[1] || null;
+                    applicants = parts[2] || null;
+                }
+
+                return {company, companyUrl, title: docTitle || title, location, postedDate, applicants};
+            }""") or {}
+        except Exception as e:
+            logger.debug(f"Error extracting job top card: {e}")
+            self._job_card = {}
+
+        return self._job_card
     
     async def scrape(self, linkedin_url: str) -> Job:
         """
@@ -51,6 +175,9 @@ class JobScraper(BaseScraper):
         """
         logger.info(f"Starting job scraping: {linkedin_url}")
         await self.callback.on_start("Job", linkedin_url)
+
+        # Reset per-page cache so reuse across multiple job URLs is safe.
+        self._job_card = None
         
         # Navigate to job page
         await self.navigate_and_wait(linkedin_url)
@@ -100,7 +227,12 @@ class JobScraper(BaseScraper):
         return job
     
     async def _get_job_title(self) -> Optional[str]:
-        """Extract job title from h1 heading."""
+        """Extract job title from the top card."""
+        card = await self._get_job_card()
+        if card.get("title"):
+            return card["title"]
+
+        # Fallback to legacy h1 heading
         try:
             title_elem = self.page.locator('h1').first
             await title_elem.wait_for(timeout=5000)
@@ -108,9 +240,13 @@ class JobScraper(BaseScraper):
             return title.strip()
         except:
             return None
-    
+
     async def _get_company(self) -> Optional[str]:
-        """Extract company name from company link."""
+        """Extract company name from the top card."""
+        card = await self._get_job_card()
+        if card.get("company"):
+            return card["company"]
+
         try:
             # Find company links that have text (not just images)
             company_links = await self.page.locator('a[href*="/company/"]').all()
@@ -123,9 +259,13 @@ class JobScraper(BaseScraper):
         except:
             pass
         return None
-    
+
     async def _get_company_url(self) -> Optional[str]:
         """Extract company LinkedIn URL."""
+        card = await self._get_job_card()
+        if card.get("companyUrl"):
+            return card["companyUrl"]
+
         try:
             company_link = self.page.locator('a[href*="/company/"]').first
             if await company_link.count() > 0:
@@ -139,9 +279,13 @@ class JobScraper(BaseScraper):
         except:
             pass
         return None
-    
+
     async def _get_location(self) -> Optional[str]:
-        """Extract job location from job details panel."""
+        """Extract job location from the top card."""
+        card = await self._get_job_card()
+        if card.get("location"):
+            return card["location"]
+
         try:
             container = self.page.locator('.job-details-jobs-unified-top-card__primary-description-container').first
             if await container.count() > 0:
@@ -151,27 +295,14 @@ class JobScraper(BaseScraper):
                     return parts[0].strip().split('\n')[0].strip()
         except:
             pass
-            
-        try:
-            job_panel = self.page.locator('h1').first.locator('xpath=ancestor::*[5]')
-            if await job_panel.count() > 0:
-                text_elements = await job_panel.locator('span, div').all()
-                for elem in text_elements:
-                    text = await elem.inner_text()
-                    if text and (',' in text or 'Remote' in text or 'United States' in text):
-                        text = text.strip()
-                        # Avoid matching the job title if it contains a comma
-                        title = await self._get_job_title()
-                        if title and text == title:
-                            continue
-                        if len(text) > 3 and len(text) < 100 and not text.startswith('$'):
-                            return text
-        except:
-            pass
         return None
-    
+
     async def _get_posted_date(self) -> Optional[str]:
-        """Extract posted date from job details."""
+        """Extract posted date from the top card."""
+        card = await self._get_job_card()
+        if card.get("postedDate"):
+            return card["postedDate"]
+
         try:
             container = self.page.locator('.job-details-jobs-unified-top-card__primary-description-container').first
             if await container.count() > 0:
@@ -181,21 +312,14 @@ class JobScraper(BaseScraper):
                     return parts[1].strip().split('\n')[0].strip()
         except:
             pass
-            
-        try:
-            text_elements = await self.page.locator('span, div').all()
-            for elem in text_elements:
-                text = await elem.inner_text()
-                if text and ('ago' in text.lower() or 'day' in text.lower() or 'week' in text.lower() or 'hour' in text.lower()):
-                    text = text.strip()
-                    if len(text) < 50:
-                        return text
-        except:
-            pass
         return None
-    
+
     async def _get_applicant_count(self) -> Optional[str]:
-        """Extract applicant count from job details."""
+        """Extract applicant count from the top card."""
+        card = await self._get_job_card()
+        if card.get("applicants"):
+            return card["applicants"]
+
         try:
             container = self.page.locator('.job-details-jobs-unified-top-card__primary-description-container').first
             if await container.count() > 0:
@@ -205,24 +329,41 @@ class JobScraper(BaseScraper):
                     return parts[2].strip().split('\n')[0].strip()
         except:
             pass
-            
-        try:
-            main_content = self.page.locator('main').first
-            if await main_content.count() > 0:
-                text_elements = await main_content.locator('span, div').all()
-                for elem in text_elements:
-                    text = await elem.inner_text()
-                    text = text.strip()
-                    if text and len(text) < 50:
-                        text_lower = text.lower()
-                        if 'applicant' in text_lower or 'people clicked' in text_lower or 'applied' in text_lower:
-                            return text
-        except:
-            pass
         return None
-    
+
     async def _get_description(self) -> Optional[str]:
-        """Extract job description from article or about section."""
+        """Extract job description from the About the job section."""
+        try:
+            await self.page.wait_for_function("""() => {
+                const main = document.querySelector('main');
+                if (!main) return false;
+                return [...main.querySelectorAll('h2')]
+                    .some(h => /about the job/i.test(h.innerText || ''));
+            }""", timeout=15000)
+        except Exception as e:
+            logger.debug(f"About-the-job heading wait timed out: {e}")
+
+        try:
+            description = await self.page.evaluate("""() => {
+                const main = document.querySelector('main');
+                if (!main) return null;
+                const heading = [...main.querySelectorAll('h2')]
+                    .find(h => /about the job/i.test(h.innerText || ''));
+                if (!heading) return null;
+
+                let el = heading;
+                for (let i = 0; i < 8 && el; i++) {
+                    const box = el.querySelector('[data-testid="expandable-text-box"]');
+                    if (box && box.innerText.trim()) return box.innerText.trim();
+                    el = el.parentElement;
+                }
+                return null;
+            }""")
+            if description:
+                return description
+        except Exception as e:
+            logger.debug(f"Error getting job description: {e}")
+
         try:
             about_heading = self.page.locator('h2:has-text("About the job")').first
             if await about_heading.count() > 0:

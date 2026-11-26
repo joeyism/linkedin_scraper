@@ -12,6 +12,28 @@ from .exceptions import NetworkError
 logger = logging.getLogger(__name__)
 
 
+_STEALTH_INIT_SCRIPT = """
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+window.chrome = window.chrome || { runtime: {} };
+const originalQuery = window.navigator.permissions && window.navigator.permissions.query;
+if (originalQuery) {
+    window.navigator.permissions.query = (parameters) =>
+        parameters && parameters.name === 'notifications'
+            ? Promise.resolve({ state: Notification.permission })
+            : originalQuery(parameters);
+}
+"""
+
+_CHROMIUM_STEALTH_ARGS = [
+    "--disable-blink-features=AutomationControlled",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-infobars",
+]
+
+
 class BrowserManager:
     """Async context manager for Playwright browser lifecycle."""
     
@@ -21,6 +43,8 @@ class BrowserManager:
         slow_mo: int = 0,
         viewport: Optional[Dict[str, int]] = None,
         user_agent: Optional[str] = None,
+        engine: str = "chromium",
+        stealth: bool = True,
         **launch_options: Any
     ):
         """
@@ -31,12 +55,16 @@ class BrowserManager:
             slow_mo: Slow down operations by specified milliseconds
             viewport: Browser viewport size (default: 1280x720)
             user_agent: Custom user agent string
+            engine: Browser engine to use ("chromium" or "firefox")
+            stealth: Apply basic anti-bot-detection patches (default: True)
             **launch_options: Additional Playwright launch options
         """
         self.headless = headless
         self.slow_mo = slow_mo
         self.viewport = viewport or {"width": 1280, "height": 720}
         self.user_agent = user_agent
+        self.engine = engine
+        self.stealth = stealth
         self.launch_options = launch_options
         
         self._playwright: Optional[Playwright] = None
@@ -44,6 +72,7 @@ class BrowserManager:
         self._context: Optional[BrowserContext] = None
         self._page: Optional[Page] = None
         self._is_authenticated = False
+        self._resolved_user_agent: Optional[str] = user_agent
     
     async def __aenter__(self) -> "BrowserManager":
         """Start browser and create context."""
@@ -59,24 +88,40 @@ class BrowserManager:
         try:
             self._playwright = await async_playwright().start()
             
-            # Launch browser
-            self._browser = await self._playwright.chromium.launch(
-                headless=self.headless,
-                slow_mo=self.slow_mo,
-                **self.launch_options
-            )
+            if self.engine not in ("chromium", "firefox", "webkit"):
+                raise ValueError(
+                    f"Unsupported engine '{self.engine}'. "
+                    "Choose 'chromium', 'firefox' or 'webkit'."
+                )
             
-            logger.info(f"Browser launched (headless={self.headless})")
+            browser_type = getattr(self._playwright, self.engine)
             
-            # Create context
-            context_options: Dict[str, Any] = {
-                "viewport": self.viewport,
+            launch_args: Dict[str, Any] = {
+                "headless": self.headless,
+                "slow_mo": self.slow_mo,
             }
             
-            if self.user_agent:
-                context_options["user_agent"] = self.user_agent
+            # Chromium exposes automation flags that anti-bot systems detect.
+            if self.stealth and self.engine == "chromium":
+                launch_args["args"] = list(_CHROMIUM_STEALTH_ARGS)
             
-            self._context = await self._browser.new_context(**context_options)
+            launch_args.update(self.launch_options)
+            
+            self._browser = await browser_type.launch(**launch_args)
+            
+            logger.info(f"Browser launched (engine={self.engine}, headless={self.headless})")
+            
+            # Headless Chromium advertises "HeadlessChrome" in its UA, which is a
+            # well-known bot signal. Present a normal Chrome UA unless the caller
+            # supplied their own.
+            if not self._resolved_user_agent and self.engine == "chromium":
+                version = getattr(self._browser, "version", "") or ""
+                self._resolved_user_agent = (
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                    f"(KHTML, like Gecko) Chrome/{version} Safari/537.36"
+                )
+            
+            self._context = await self._create_context()
             
             # Create initial page
             self._page = await self._context.new_page()
@@ -86,6 +131,29 @@ class BrowserManager:
         except Exception as e:
             await self.close()
             raise NetworkError(f"Failed to start browser: {e}")
+    
+    async def _create_context(self, storage_state: Optional[str] = None) -> BrowserContext:
+        """Create a browser context with consistent stealth settings."""
+        if not self._browser:
+            raise RuntimeError("Browser not started")
+        
+        context_options: Dict[str, Any] = {
+            "viewport": self.viewport,
+            "locale": "en-US",
+        }
+        
+        if self._resolved_user_agent:
+            context_options["user_agent"] = self._resolved_user_agent
+        
+        if storage_state:
+            context_options["storage_state"] = storage_state
+        
+        context = await self._browser.new_context(**context_options)
+        
+        if self.stealth:
+            await context.add_init_script(_STEALTH_INIT_SCRIPT)
+        
+        return context
     
     async def close(self) -> None:
         """Close browser and cleanup resources."""
@@ -197,11 +265,7 @@ class BrowserManager:
         if not self._browser:
             raise RuntimeError("Browser not started")
         
-        self._context = await self._browser.new_context(
-            storage_state=filepath,
-            viewport=self.viewport,
-            user_agent=self.user_agent
-        )
+        self._context = await self._create_context(storage_state=filepath)
         
         # Create new page
         if self._page:

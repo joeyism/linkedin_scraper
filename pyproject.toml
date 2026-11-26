@@ -55,12 +55,3 @@ Issues = "https://github.com/joeyism/linkedin_scraper/issues"
 
 [tool.setuptools]
 packages = ["linkedin_scraper", "linkedin_scraper.core", "linkedin_scraper.models", "linkedin_scraper.scrapers"]
-
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra -q --strict-markers"
-testpaths = ["tests"]
-markers = [
-    "unit: Unit tests that don't require external services",
-    "integration: Integration tests that require LinkedIn session",
-]

@@ -53,7 +53,9 @@ class CompanyPostsScraper(BaseScraper):
             await self._trigger_lazy_load()
             
             has_posts = await self.page.evaluate('''() => {
-                return document.body.innerHTML.includes('urn:li:activity:');
+                return [...document.querySelectorAll('[role="listitem"]')].some(
+                    el => (el.getAttribute('componentkey') || '').startsWith('update-card-focus')
+                );
             }''')
             
             if has_posts:
@@ -88,7 +90,11 @@ class CompanyPostsScraper(BaseScraper):
             new_posts = await self._extract_posts_from_page()
             
             for post in new_posts:
-                if post.urn and not any(p.urn == post.urn for p in posts):
+                key = post.urn or post.linkedin_url or (post.text or "")[:100]
+                existing = {
+                    (p.urn or p.linkedin_url or (p.text or "")[:100]) for p in posts
+                }
+                if key and key not in existing:
                     posts.append(post)
                     if len(posts) >= limit:
                         break
@@ -104,110 +110,90 @@ class CompanyPostsScraper(BaseScraper):
     
     async def _extract_posts_via_js(self) -> List[Post]:
         posts_data = await self.page.evaluate('''() => {
-            const posts = [];
-            const html = document.body.innerHTML;
-            
-            // Find all activity URNs in the page
-            const urnMatches = html.matchAll(/urn:li:activity:(\\d+)/g);
-            const seenUrns = new Set();
-            
-            for (const match of urnMatches) {
-                const urn = match[0];
-                if (seenUrns.has(urn)) continue;
-                seenUrns.add(urn);
-                
-                // Find the element with this URN
-                const el = document.querySelector(`[data-urn="${urn}"]`);
-                if (!el) continue;
-                
-                // Get text content - try multiple selectors
-                let text = '';
-                const textSelectors = [
-                    '.feed-shared-update-v2__description',
-                    '.update-components-text',
-                    '.feed-shared-text',
-                    '[data-test-id="main-feed-activity-card__commentary"]',
-                    '.break-words.whitespace-pre-wrap'
-                ];
-                
-                for (const sel of textSelectors) {
-                    const textEl = el.querySelector(sel);
-                    if (textEl) {
-                        const t = textEl.innerText?.trim() || '';
-                        if (t.length > text.length && t.length > 20 && !t.startsWith('Microsoft\\nMicrosoft')) {
-                            text = t;
-                        }
-                    }
-                }
-                
-                // Fallback: find the largest text block that's not header/footer content
-                if (!text || text.length < 30) {
-                    const allDivs = el.querySelectorAll('div, span');
-                    let maxLen = 0;
-                    allDivs.forEach(div => {
-                        const t = div.innerText?.trim() || '';
-                        // Skip if it's just company info or reactions
-                        if (t.length > maxLen && t.length > 50 && 
-                            !t.includes('followers') && 
-                            !t.includes('reactions') &&
-                            !t.match(/^Microsoft\\n/) &&
-                            !t.match(/^\\d+[hdwmy]\\s/)) {
-                            // Check it's actual content not navigation
-                            const parent = div.parentElement;
-                            if (!parent?.classList?.contains('feed-shared-actor')) {
-                                text = t;
-                                maxLen = t.length;
-                            }
-                        }
-                    });
-                }
-                
-                if (!text || text.length < 20) continue;
-                
-                // Get time
-                const timeEl = el.querySelector('[class*="actor__sub-description"], [class*="update-components-actor__sub-description"]');
-                const timeText = timeEl ? timeEl.innerText : '';
-                
-                // Get reactions
-                const reactionsEl = el.querySelector('button[aria-label*="reaction"], [class*="social-details-social-counts__reactions"]');
-                const reactions = reactionsEl ? reactionsEl.innerText : '';
-                
-                // Get comments
-                const commentsEl = el.querySelector('button[aria-label*="comment"]');
-                const comments = commentsEl ? commentsEl.innerText : '';
-                
-                // Get reposts
-                const repostsEl = el.querySelector('button[aria-label*="repost"]');
-                const reposts = repostsEl ? repostsEl.innerText : '';
-                
-                // Get images
-                const images = [];
-                el.querySelectorAll('img[src*="media"]').forEach(img => {
-                    if (img.src && !img.src.includes('profile') && !img.src.includes('logo')) {
-                        images.push(img.src);
-                    }
-                });
-                
-                posts.push({
-                    urn: urn,
-                    text: text.substring(0, 2000),
-                    timeText: timeText,
-                    reactions: reactions,
-                    comments: comments,
-                    reposts: reposts,
-                    images: images
-                });
+            // Ordered URNs from the feed state (may only cover the first page).
+            let urns = [];
+            const m = document.documentElement.innerHTML.match(/"currentFirstPageUrns":\\[(.*?)\\]/);
+            if (m) {
+                const re = /"(urn:li:[^"]+)"/g;
+                let x;
+                while ((x = re.exec(m[1])) !== null) urns.push(x[1]);
             }
-            
-            return posts;
+
+            const cards = [...document.querySelectorAll('[role="listitem"]')].filter(
+                el => (el.getAttribute('componentkey') || '').startsWith('update-card-focus')
+            );
+
+            const results = [];
+            cards.forEach((card, index) => {
+                let text = '';
+                const box = card.querySelector('[data-testid="expandable-text-box"]');
+                if (box) text = (box.innerText || '').trim();
+
+                if (!text) {
+                    let best = '';
+                    for (const p of card.querySelectorAll('p')) {
+                        const t = (p.innerText || '').trim();
+                        if (t.length > best.length && !/^\\d+[hdwmy]\\b/.test(t) && !t.includes('followers')) {
+                            best = t;
+                        }
+                    }
+                    text = best;
+                }
+
+                if (!text || text.length < 10) return;
+
+                let timeText = '';
+                for (const p of card.querySelectorAll('p')) {
+                    const t = (p.innerText || '').trim();
+                    if (/^\\d+[hdwmy]\\b/.test(t)) { timeText = t; break; }
+                }
+
+                const findByAria = (needle) => {
+                    for (const b of card.querySelectorAll('button')) {
+                        const aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                        if (aria.includes(needle)) return (b.innerText || '').trim();
+                    }
+                    return '';
+                };
+
+                let reactions = findByAria('reaction button state');
+                if (!reactions) reactions = findByAria('reaction');
+                const comments = findByAria('comment');
+                const reposts = findByAria('repost');
+
+                const images = [];
+                for (const img of card.querySelectorAll('img[src*="media"]')) {
+                    const src = img.getAttribute('src') || '';
+                    if (src && !src.includes('profile') && !src.includes('logo')) {
+                        images.push(src);
+                    }
+                }
+
+                const urn = index < urns.length ? urns[index] : null;
+                results.push({
+                    urn: urn && urn.startsWith('urn:li:activity:') ? urn : null,
+                    text,
+                    timeText,
+                    reactions,
+                    comments,
+                    reposts,
+                    images
+                });
+            });
+
+            return results;
         }''')
         
         result: List[Post] = []
         for data in posts_data:
-            activity_id = data['urn'].replace('urn:li:activity:', '')
+            urn = data.get('urn')
+            activity_id = urn.replace('urn:li:activity:', '') if urn else None
             post = Post(
-                linkedin_url=f"https://www.linkedin.com/feed/update/urn:li:activity:{activity_id}/",
-                urn=data['urn'],
+                linkedin_url=(
+                    f"https://www.linkedin.com/feed/update/urn:li:activity:{activity_id}/"
+                    if activity_id else None
+                ),
+                urn=urn,
                 text=data['text'],
                 posted_date=self._extract_time_from_text(data.get('timeText', '')),
                 reactions_count=self._parse_count(data.get('reactions', '')),

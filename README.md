@@ -422,3 +422,28 @@ This tool is for educational purposes only. Make sure to comply with LinkedIn's 
 - [GitHub Repository](https://github.com/joeyism/linkedin_scraper)
 - [Issue Tracker](https://github.com/joeyism/linkedin_scraper/issues)
 - [PyPI Package](https://pypi.org/project/linkedin-scraper/)
+
+## 📸 Download profile avatars
+
+**`AvatarScraper`** — download the main profile **headshot** to an image file. It
+element-screenshots the rendered `<img>` (the only reliable way — the CDN URL is
+token-signed, `fetch`/`canvas` are blocked, and the profile PDF has no image).
+
+Authenticate with any of the existing helpers (bring your own): a `li_at` cookie,
+credentials, or manual login. The example below uses the `li_at` cookie.
+
+```python
+import os
+from linkedin_scraper import BrowserManager, login_with_cookie, AvatarScraper
+
+async with BrowserManager(headless=True, viewport={"width": 1400, "height": 900},
+                          device_scale_factor=2) as page:
+    await login_with_cookie(page, os.environ["LI_AT"])
+    result = await AvatarScraper(page).download(
+        "https://www.linkedin.com/in/some-person/", "out.png")
+    # {'saved': True, 'path': 'out.png', 'rendered': (152, 152)}
+```
+
+CLI: `LI_AT=<cookie> python samples/download_avatar.py <profile-url> out.png`.
+See [`skills/linkedin-avatar/SKILL.md`](skills/linkedin-avatar/SKILL.md).
+Pace requests and respect LinkedIn's Terms.

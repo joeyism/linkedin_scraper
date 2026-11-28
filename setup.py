@@ -59,6 +59,11 @@ setup(
     ],
     install_requires=basic_requirements,
     include_package_data=True,
+    entry_points={
+        'console_scripts': [
+            'linkedin-scraper=linkedin_scraper.cli:cli_entry',
+        ],
+    },
     project_urls={
         'Bug Reports': 'https://github.com/joeyism/linkedin_scraper/issues',
         'Source': 'https://github.com/joeyism/linkedin_scraper',

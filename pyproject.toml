@@ -47,6 +47,9 @@ dev = [
     "wheel>=0.40.0",
 ]
 
+[project.scripts]
+linkedin-scraper = "linkedin_scraper.cli:cli_entry"
+
 [project.urls]
 Homepage = "https://github.com/joeyism/linkedin_scraper"
 Documentation = "https://github.com/joeyism/linkedin_scraper#readme"
@@ -54,4 +57,10 @@ Repository = "https://github.com/joeyism/linkedin_scraper"
 Issues = "https://github.com/joeyism/linkedin_scraper/issues"
 
 [tool.setuptools]
-packages = ["linkedin_scraper", "linkedin_scraper.core", "linkedin_scraper.models", "linkedin_scraper.scrapers"]
+packages = [
+    "linkedin_scraper",
+    "linkedin_scraper.cli",
+    "linkedin_scraper.core",
+    "linkedin_scraper.models",
+    "linkedin_scraper.scrapers",
+]

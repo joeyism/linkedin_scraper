@@ -14,6 +14,7 @@ class CompanyPostsScraper(BaseScraper):
     
     def __init__(self, page: Page, callback: Optional[ProgressCallback] = None):
         super().__init__(page, callback or SilentCallback())
+        self._first_page_urns: List[str] = []
     
     async def scrape(self, company_url: str, limit: int = 10) -> List[Post]:
         logger.info(f"Starting company posts scraping: {company_url}")
@@ -48,7 +49,23 @@ class CompanyPostsScraper(BaseScraper):
             logger.debug(f"DOM load timeout: {e}")
         
         await self.page.wait_for_timeout(3000)
-        
+
+        # Capture the ordered feed URNs before lazy-scrolling: LinkedIn drops
+        # the `currentFirstPageUrns` key once the feed virtualizes.
+        try:
+            self._first_page_urns = await self.page.evaluate('''() => {
+                const m = document.documentElement.innerHTML.match(/"currentFirstPageUrns":\\[(.*?)\\]/);
+                if (!m) return [];
+                const out = [];
+                const re = /"(urn:li:[^"]+)"/g;
+                let x;
+                while ((x = re.exec(m[1])) !== null) out.push(x[1]);
+                return out;
+            }''')
+        except Exception as e:
+            logger.debug(f"Could not capture feed URNs: {e}")
+            self._first_page_urns = []
+
         for attempt in range(3):
             await self._trigger_lazy_load()
             
@@ -109,16 +126,7 @@ class CompanyPostsScraper(BaseScraper):
         return await self._extract_posts_via_js()
     
     async def _extract_posts_via_js(self) -> List[Post]:
-        posts_data = await self.page.evaluate('''() => {
-            // Ordered URNs from the feed state (may only cover the first page).
-            let urns = [];
-            const m = document.documentElement.innerHTML.match(/"currentFirstPageUrns":\\[(.*?)\\]/);
-            if (m) {
-                const re = /"(urn:li:[^"]+)"/g;
-                let x;
-                while ((x = re.exec(m[1])) !== null) urns.push(x[1]);
-            }
-
+        posts_data = await self.page.evaluate('''(urns) => {
             const cards = [...document.querySelectorAll('[role="listitem"]')].filter(
                 el => (el.getAttribute('componentkey') || '').startsWith('update-card-focus')
             );
@@ -127,7 +135,14 @@ class CompanyPostsScraper(BaseScraper):
             cards.forEach((card, index) => {
                 let text = '';
                 const box = card.querySelector('[data-testid="expandable-text-box"]');
+                const hasExpandable = !!box;
                 if (box) text = (box.innerText || '').trim();
+
+                let timeText = '';
+                for (const p of card.querySelectorAll('p')) {
+                    const t = (p.innerText || '').trim();
+                    if (/^\\d+[hdwmy]\\b/.test(t)) { timeText = t; break; }
+                }
 
                 if (!text) {
                     let best = '';
@@ -141,12 +156,6 @@ class CompanyPostsScraper(BaseScraper):
                 }
 
                 if (!text || text.length < 10) return;
-
-                let timeText = '';
-                for (const p of card.querySelectorAll('p')) {
-                    const t = (p.innerText || '').trim();
-                    if (/^\\d+[hdwmy]\\b/.test(t)) { timeText = t; break; }
-                }
 
                 const findByAria = (needle) => {
                     for (const b of card.querySelectorAll('button')) {
@@ -169,9 +178,16 @@ class CompanyPostsScraper(BaseScraper):
                     }
                 }
 
-                const urn = index < urns.length ? urns[index] : null;
+                // Sponsored/ads don't have a relative timestamp and usually no
+                // expandable commentary; organic posts always have a timestamp.
+                const rawUrn = index < urns.length ? urns[index] : null;
+                const sponsored =
+                    (!!rawUrn && !rawUrn.startsWith('urn:li:activity:')) ||
+                    (!timeText && !hasExpandable);
+
                 results.push({
-                    urn: urn && urn.startsWith('urn:li:activity:') ? urn : null,
+                    urn: sponsored ? null : rawUrn,
+                    sponsored,
                     text,
                     timeText,
                     reactions,
@@ -182,10 +198,12 @@ class CompanyPostsScraper(BaseScraper):
             });
 
             return results;
-        }''')
+        }''', self._first_page_urns)
         
         result: List[Post] = []
         for data in posts_data:
+            if data.get('sponsored'):
+                continue
             urn = data.get('urn')
             activity_id = urn.replace('urn:li:activity:', '') if urn else None
             post = Post(

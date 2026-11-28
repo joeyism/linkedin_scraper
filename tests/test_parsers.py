@@ -87,3 +87,46 @@ def test_parse_post_time(posts_parser):
 )
 def test_build_about_url(url, expected):
     assert CompanyScraper(page=None)._build_about_url(url) == expected
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_company_posts_skips_sponsored_cards():
+    class _FakePage:
+        async def evaluate(self, script, arg=None):
+            return [
+                {
+                    "urn": "urn:li:activity:111",
+                    "sponsored": False,
+                    "text": "organic post about books",
+                    "timeText": "10h",
+                    "reactions": "152",
+                    "comments": "21",
+                    "reposts": "13",
+                    "images": [],
+                },
+                {
+                    "urn": None,
+                    "sponsored": True,
+                    "text": "Joey, Hiring Pro goes beyond job posting",
+                    "timeText": "",
+                    "reactions": "",
+                    "comments": "",
+                    "reposts": "",
+                    "images": [],
+                },
+                {
+                    "urn": "urn:li:activity:222",
+                    "sponsored": False,
+                    "text": "another organic post about mentors",
+                    "timeText": "1d",
+                    "reactions": "182",
+                    "comments": "22",
+                    "reposts": "27",
+                    "images": [],
+                },
+            ]
+
+    posts = await CompanyPostsScraper(page=_FakePage())._extract_posts_via_js()
+    assert [p.urn for p in posts] == ["urn:li:activity:111", "urn:li:activity:222"]
+    assert all(p.linkedin_url for p in posts)

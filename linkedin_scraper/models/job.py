@@ -57,3 +57,23 @@ class Job(BaseModel):
             f"  Posted: {self.posted_date}\n"
             f"  Applicants: {self.applicant_count}>"
         )
+
+
+class JobFeedItem(BaseModel):
+    """A single posting in a time-windowed job feed (flat, machine-readable)."""
+
+    title: Optional[str] = None
+    url: str
+    company: Optional[str] = None
+    location: Optional[str] = None
+    postedAt: Optional[str] = None
+    description: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self.model_dump(exclude_none=True)
+
+    def to_json(self, **kwargs) -> str:
+        return self.model_dump_json(exclude_none=True, **kwargs)
+
+
+__all__ = ["Job", "JobFeedItem"]
